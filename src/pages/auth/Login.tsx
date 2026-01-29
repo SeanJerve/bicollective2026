@@ -4,6 +4,7 @@ import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { lovable } from "@/integrations/lovable";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -37,13 +38,26 @@ const Login = () => {
   };
 
   const handleGoogleSignIn = async () => {
-    const { error } = await signInWithGoogle();
-    if (error) {
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    
+    if (result.redirected) {
+      return;
+    }
+    
+    if (result.error) {
       toast({
         title: "Sign in failed",
-        description: error.message,
+        description: result.error.message,
         variant: "destructive",
       });
+    } else {
+      toast({
+        title: "Welcome!",
+        description: "You have successfully signed in with Google",
+      });
+      navigate("/");
     }
   };
 
