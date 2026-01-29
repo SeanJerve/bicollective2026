@@ -3,13 +3,17 @@ import { BadgeCheck, Minus, Plus, ShoppingBag, Star, ChevronRight } from "lucide
 import { useState } from "react";
 import PageLayout from "@/components/layout/PageLayout";
 import ProductCard from "@/components/marketplace/ProductCard";
-import { getProductBySlug, getProductsByBrand, products } from "@/data/mockData";
+import { getProductBySlug, getProductsByBrand } from "@/data/mockData";
+import { useCart } from "@/contexts/CartContext";
+import { useToast } from "@/hooks/use-toast";
 
 const ProductDetail = () => {
   const { slug } = useParams();
   const product = getProductBySlug(slug || "");
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const { addToCart } = useCart();
+  const { toast } = useToast();
 
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
 
@@ -178,6 +182,17 @@ const ProductDetail = () => {
               {/* Add to Cart */}
               <div className="space-y-4">
                 <button
+                  onClick={() => {
+                    if (!selectedSize) {
+                      toast({
+                        title: "Please select a size",
+                        description: "Choose a size before adding to cart",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    addToCart(product.id, quantity, selectedSize);
+                  }}
                   className="btn-brutal w-full flex items-center justify-center gap-3"
                   disabled={!product.inStock}
                 >

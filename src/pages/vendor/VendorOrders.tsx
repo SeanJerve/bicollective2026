@@ -1,0 +1,299 @@
+import { useEffect, useState } from "react";
+import { Eye, CheckCircle, Truck, Package } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+
+const VendorOrders = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [orders, setOrders] = useState<any[]>([]);
+  const [brand, setBrand] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<string>("all");
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (!user) return;
+
+      try {
+        const { data: brandData } = await supabase
+          .from("brands")
+          .select("*")
+          .eq("owner_id", user.id)
+          .single();
+
+        if (!brandData) {
+          setLoading(false);
+          return;
+        }
+
+        setBrand(brandData);
+
+        const { data: ordersData } = await supabase
+          .from("vendor_orders")
+          .select(`
+            *,
+            order:orders (
+              id,
+              shipping_name,
+              shipping_phone,
+              shipping_address,
+              notes,
+              created_at
+            ),
+            items:order_items (
+              id,
+              product_name,
+              product_price,
+              quantity,
+              size
+            )
+          `)
+          .eq("brand_id", brandData.id)
+          .order("created_at", { ascending: false });
+
+        setOrders(ordersData || []);
+      } catch (error) {
+        console.error("Error fetching orders:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [user]);
+
+  const updateOrderStatus = async (orderId: string, status: "pending_payment" | "payment_uploaded" | "paid" | "processing" | "shipped" | "delivered" | "cancelled") => {
+    try {
+      const { error } = await supabase
+        .from("vendor_orders")
+        .update({ status })
+        .eq("id", orderId);
+
+      if (error) throw error;
+
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status } : o))
+      );
+
+      toast({
+        title: "Order updated",
+        description: `Order status changed to ${status.replace("_", " ")}`,
+      });
+    } catch (error) {
+      console.error("Error updating order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update order",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const formatPrice = (amount: number) => {
+    return new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+    }).format(amount);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "pending_payment":
+        return "bg-muted text-muted-foreground";
+      case "payment_uploaded":
+        return "bg-secondary text-secondary-foreground border-2 border-foreground";
+      case "paid":
+        return "bg-success text-success-foreground";
+      case "processing":
+        return "bg-primary text-primary-foreground";
+      case "shipped":
+        return "bg-primary text-primary-foreground";
+      case "delivered":
+        return "bg-success text-success-foreground";
+      case "cancelled":
+        return "bg-destructive text-destructive-foreground";
+      default:
+        return "bg-muted text-muted-foreground";
+    }
+  };
+
+  const filteredOrders = orders.filter((o) => {
+    if (filter === "all") return true;
+    return o.status === filter;
+  });
+
+  if (loading) {
+    return (
+      <div className="p-8">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 w-48 skeleton-brutal" />
+          <div className="h-64 skeleton-brutal" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-8">
+      <div className="mb-8">
+        <h1 className="font-heading text-4xl uppercase">Orders</h1>
+        <p className="text-muted-foreground mt-1">
+          Manage your customer orders
+        </p>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {[
+          { value: "all", label: "All" },
+          { value: "payment_uploaded", label: "Payment Uploaded" },
+          { value: "paid", label: "Paid" },
+          { value: "processing", label: "Processing" },
+          { value: "shipped", label: "Shipped" },
+          { value: "delivered", label: "Delivered" },
+        ].map((f) => (
+          <button
+            key={f.value}
+            onClick={() => setFilter(f.value)}
+            className={`px-4 py-2 font-heading text-sm uppercase ${
+              filter === f.value
+                ? "bg-foreground text-background"
+                : "bg-secondary hover:bg-accent"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {filteredOrders.length > 0 ? (
+        <div className="space-y-4">
+          {filteredOrders.map((order) => (
+            <div key={order.id} className="card-brutal">
+              <div className="p-6 border-b border-border-subtle">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="font-heading uppercase">
+                      {order.order?.shipping_name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(order.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span
+                      className={`inline-block px-3 py-1 text-xs uppercase ${getStatusColor(
+                        order.status
+                      )}`}
+                    >
+                      {order.status.replace(/_/g, " ")}
+                    </span>
+                    <p className="font-heading text-lg mt-2">
+                      {formatPrice(Number(order.subtotal))}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6">
+                {/* Order Items */}
+                <div className="mb-6">
+                  <h4 className="font-heading text-sm uppercase mb-3">Items</h4>
+                  <div className="space-y-2">
+                    {order.items?.map((item: any) => (
+                      <div key={item.id} className="flex justify-between text-sm">
+                        <span>
+                          {item.product_name} x{item.quantity}
+                          {item.size && ` (${item.size})`}
+                        </span>
+                        <span>{formatPrice(Number(item.product_price) * item.quantity)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Shipping Info */}
+                <div className="mb-6 p-4 bg-secondary">
+                  <h4 className="font-heading text-sm uppercase mb-2">Shipping</h4>
+                  <p className="text-sm">{order.order?.shipping_address}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {order.order?.shipping_phone}
+                  </p>
+                </div>
+
+                {/* Payment Proof */}
+                {order.payment_proof_url && (
+                  <div className="mb-6">
+                    <h4 className="font-heading text-sm uppercase mb-2">
+                      Payment Proof
+                    </h4>
+                    <a
+                      href={order.payment_proof_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline"
+                    >
+                      View Payment Screenshot
+                    </a>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex flex-wrap gap-2">
+                  {order.status === "payment_uploaded" && (
+                    <button
+                      onClick={() => updateOrderStatus(order.id, "paid")}
+                      className="btn-brutal flex items-center gap-2"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Verify Payment
+                    </button>
+                  )}
+                  {order.status === "paid" && (
+                    <button
+                      onClick={() => updateOrderStatus(order.id, "processing")}
+                      className="btn-brutal flex items-center gap-2"
+                    >
+                      <Package className="w-4 h-4" />
+                      Start Processing
+                    </button>
+                  )}
+                  {order.status === "processing" && (
+                    <button
+                      onClick={() => updateOrderStatus(order.id, "shipped")}
+                      className="btn-brutal flex items-center gap-2"
+                    >
+                      <Truck className="w-4 h-4" />
+                      Mark as Shipped
+                    </button>
+                  )}
+                  {order.status === "shipped" && (
+                    <button
+                      onClick={() => updateOrderStatus(order.id, "delivered")}
+                      className="btn-brutal flex items-center gap-2"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Mark as Delivered
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="card-brutal p-12 text-center">
+          <h3 className="font-heading text-2xl uppercase mb-4">No Orders Yet</h3>
+          <p className="text-muted-foreground">
+            Orders will appear here when customers purchase your products.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default VendorOrders;
