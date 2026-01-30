@@ -3,15 +3,16 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import ProductCard from "@/components/marketplace/ProductCard";
-import { getCategoryBySlug, getProductsByCategory } from "@/data/mockData";
+import ProductCardSkeleton from "@/components/marketplace/ProductCardSkeleton";
+import { useCategory, useProductsByCategory } from "@/hooks/useProducts";
 
 const CategoryDetail = () => {
   const { slug } = useParams();
-  const category = getCategoryBySlug(slug || "");
-  const categoryProducts = getProductsByCategory(slug || "");
+  const { data: category, isLoading: categoryLoading } = useCategory(slug || "");
+  const { data: categoryProducts, isLoading: productsLoading } = useProductsByCategory(slug || "");
   const [sortBy, setSortBy] = useState("newest");
 
-  const sortedProducts = [...categoryProducts].sort((a, b) => {
+  const sortedProducts = [...(categoryProducts || [])].sort((a, b) => {
     switch (sortBy) {
       case "price-low":
         return a.price - b.price;
@@ -22,12 +23,25 @@ const CategoryDetail = () => {
     }
   });
 
+  if (categoryLoading) {
+    return (
+      <PageLayout>
+        <div className="section-container py-20">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 w-48 skeleton-brutal" />
+            <div className="h-4 w-32 skeleton-brutal" />
+          </div>
+        </div>
+      </PageLayout>
+    );
+  }
+
   if (!category) {
     return (
       <PageLayout>
-        <div className="section-container py-20 text-center">
-          <h1 className="font-heading text-4xl uppercase mb-4">Category Not Found</h1>
-          <p className="text-muted-foreground mb-8">
+        <div className="section-container py-16 md:py-20 text-center">
+          <h1 className="font-heading text-3xl md:text-4xl uppercase mb-4">Category Not Found</h1>
+          <p className="text-muted-foreground mb-6 md:mb-8 text-sm md:text-base">
             The category you're looking for doesn't exist.
           </p>
           <Link to="/categories" className="btn-brutal">
@@ -41,9 +55,9 @@ const CategoryDetail = () => {
   return (
     <PageLayout>
       {/* Header */}
-      <section className="py-12 border-b-2 border-foreground">
+      <section className="py-8 md:py-12 border-b-2 border-foreground">
         <div className="section-container">
-          <nav className="text-sm mb-4">
+          <nav className="text-xs md:text-sm mb-3 md:mb-4">
             <Link to="/" className="text-muted-foreground hover:text-foreground">
               Home
             </Link>
@@ -54,23 +68,23 @@ const CategoryDetail = () => {
             <span className="mx-2 text-muted-foreground">/</span>
             <span>{category.name}</span>
           </nav>
-          <h1 className="font-heading text-5xl md:text-6xl uppercase">{category.name}</h1>
-          <p className="text-muted-foreground mt-2">
-            {categoryProducts.length} {categoryProducts.length === 1 ? "product" : "products"}
+          <h1 className="font-heading text-4xl md:text-6xl uppercase">{category.name}</h1>
+          <p className="text-muted-foreground mt-2 text-sm md:text-base">
+            {sortedProducts.length} {sortedProducts.length === 1 ? "product" : "products"}
           </p>
         </div>
       </section>
 
       {/* Products */}
-      <section className="py-12">
+      <section className="py-8 md:py-12">
         <div className="section-container">
           {/* Sort Bar */}
-          <div className="flex items-center justify-end mb-8">
-            <div className="relative">
+          <div className="flex items-center justify-end mb-6 md:mb-8">
+            <div className="relative w-full sm:w-auto">
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="appearance-none bg-background border-2 border-foreground px-4 py-2 pr-10 font-heading text-sm uppercase cursor-pointer"
+                className="w-full sm:w-auto appearance-none bg-background border-2 border-foreground px-3 md:px-4 py-2 pr-10 font-heading text-xs md:text-sm uppercase cursor-pointer"
               >
                 <option value="newest">Newest</option>
                 <option value="price-low">Price: Low to High</option>
@@ -80,16 +94,22 @@ const CategoryDetail = () => {
             </div>
           </div>
 
-          {sortedProducts.length > 0 ? (
+          {productsLoading ? (
+            <div className="product-grid">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <ProductCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : sortedProducts.length > 0 ? (
             <div className="product-grid">
               {sortedProducts.map((product) => (
                 <ProductCard key={product.id} {...product} />
               ))}
             </div>
           ) : (
-            <div className="text-center py-16 border-2 border-border-subtle">
-              <h3 className="font-heading text-2xl uppercase mb-2">No Products Yet</h3>
-              <p className="text-muted-foreground mb-6">
+            <div className="text-center py-12 md:py-16 border-2 border-border-subtle">
+              <h3 className="font-heading text-xl md:text-2xl uppercase mb-2">No Products Yet</h3>
+              <p className="text-muted-foreground mb-6 text-sm md:text-base">
                 No products in this category yet.
               </p>
               <Link to="/products" className="btn-brutal-secondary">
