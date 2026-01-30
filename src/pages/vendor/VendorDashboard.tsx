@@ -124,12 +124,12 @@ const VendorDashboard = () => {
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="animate-pulse space-y-8">
+      <div className="p-4 md:p-8">
+        <div className="animate-pulse space-y-6 md:space-y-8">
           <div className="h-8 w-48 skeleton-brutal" />
-          <div className="grid grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 skeleton-brutal" />
+              <div key={i} className="h-24 md:h-32 skeleton-brutal" />
             ))}
           </div>
         </div>
@@ -139,11 +139,11 @@ const VendorDashboard = () => {
 
   if (!brand) {
     return (
-      <div className="p-8">
-        <div className="card-brutal p-8 text-center">
-          <AlertCircle className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="font-heading text-2xl uppercase mb-4">No Store Found</h2>
-          <p className="text-muted-foreground mb-6">
+      <div className="p-4 md:p-8">
+        <div className="card-brutal p-6 md:p-8 text-center">
+          <AlertCircle className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="font-heading text-xl md:text-2xl uppercase mb-4">No Store Found</h2>
+          <p className="text-muted-foreground mb-6 text-sm md:text-base">
             You haven't set up your vendor store yet.
           </p>
           <Link to="/vendor/store" className="btn-brutal">
@@ -155,14 +155,14 @@ const VendorDashboard = () => {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="font-heading text-4xl uppercase">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Welcome back, {brand.name}</p>
+    <div className="p-4 md:p-8">
+      <div className="mb-6 md:mb-8">
+        <h1 className="font-heading text-2xl md:text-4xl uppercase">Dashboard</h1>
+        <p className="text-muted-foreground mt-1 text-sm md:text-base">Welcome back, {brand.name}</p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
         <div className="card-brutal p-6">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-secondary flex items-center justify-center">

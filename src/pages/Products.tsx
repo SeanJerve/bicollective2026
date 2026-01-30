@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { ChevronDown, SlidersHorizontal, X } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import ProductCard from "@/components/marketplace/ProductCard";
-import { products, categories, brands } from "@/data/mockData";
+import ProductCardSkeleton from "@/components/marketplace/ProductCardSkeleton";
+import { useProducts, useBrands, useCategories } from "@/hooks/useProducts";
 
 const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -11,7 +12,11 @@ const Products = () => {
   const [sortBy, setSortBy] = useState("newest");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  const filteredProducts = products.filter((product) => {
+  const { data: products, isLoading: productsLoading } = useProducts();
+  const { data: brands } = useBrands();
+  const { data: categories } = useCategories();
+
+  const filteredProducts = (products || []).filter((product) => {
     if (selectedCategory && product.categorySlug !== selectedCategory) return false;
     if (selectedBrand && product.brandSlug !== selectedBrand) return false;
     return true;
@@ -38,32 +43,32 @@ const Products = () => {
   return (
     <PageLayout>
       {/* Header */}
-      <section className="py-12 border-b-2 border-foreground">
+      <section className="py-8 md:py-12 border-b-2 border-foreground">
         <div className="section-container">
-          <nav className="text-sm mb-4">
+          <nav className="text-xs md:text-sm mb-3 md:mb-4">
             <Link to="/" className="text-muted-foreground hover:text-foreground">
               Home
             </Link>
             <span className="mx-2 text-muted-foreground">/</span>
             <span>All Products</span>
           </nav>
-          <h1 className="font-heading text-5xl md:text-6xl uppercase">Shop All</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="font-heading text-4xl md:text-6xl uppercase">Shop All</h1>
+          <p className="text-muted-foreground mt-2 text-sm md:text-base">
             {sortedProducts.length} {sortedProducts.length === 1 ? "product" : "products"}
           </p>
         </div>
       </section>
 
       {/* Filters & Products */}
-      <section className="py-12">
+      <section className="py-8 md:py-12">
         <div className="section-container">
-          <div className="flex flex-col lg:flex-row gap-8">
+          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
             {/* Mobile Filter Toggle */}
             <button
               onClick={() => setIsFilterOpen(true)}
               className="lg:hidden btn-brutal-secondary flex items-center justify-center gap-2"
             >
-              <SlidersHorizontal className="w-5 h-5" />
+              <SlidersHorizontal className="w-4 h-4 md:w-5 md:h-5" />
               Filters
               {hasActiveFilters && (
                 <span className="w-5 h-5 bg-foreground text-background text-xs flex items-center justify-center">
@@ -87,7 +92,7 @@ const Products = () => {
                         All Categories
                       </button>
                     </li>
-                    {categories.map((cat) => (
+                    {categories?.map((cat) => (
                       <li key={cat.id}>
                         <button
                           onClick={() => setSelectedCategory(cat.slug)}
@@ -112,7 +117,7 @@ const Products = () => {
                         All Brands
                       </button>
                     </li>
-                    {brands.map((brand) => (
+                    {brands?.map((brand) => (
                       <li key={brand.id}>
                         <button
                           onClick={() => setSelectedBrand(brand.slug)}
@@ -140,7 +145,7 @@ const Products = () => {
             {isFilterOpen && (
               <div className="fixed inset-0 z-50 lg:hidden">
                 <div className="absolute inset-0 bg-foreground/50" onClick={() => setIsFilterOpen(false)} />
-                <div className="absolute right-0 top-0 bottom-0 w-80 bg-background border-l-2 border-foreground p-6 overflow-y-auto animate-slide-in-right">
+                <div className="absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] bg-background border-l-2 border-foreground p-6 overflow-y-auto animate-slide-in-right">
                   <div className="flex items-center justify-between mb-8">
                     <h2 className="font-heading text-xl uppercase">Filters</h2>
                     <button onClick={() => setIsFilterOpen(false)}>
@@ -161,7 +166,7 @@ const Products = () => {
                             All Categories
                           </button>
                         </li>
-                        {categories.map((cat) => (
+                        {categories?.map((cat) => (
                           <li key={cat.id}>
                             <button
                               onClick={() => setSelectedCategory(cat.slug)}
@@ -186,7 +191,7 @@ const Products = () => {
                             All Brands
                           </button>
                         </li>
-                        {brands.map((brand) => (
+                        {brands?.map((brand) => (
                           <li key={brand.id}>
                             <button
                               onClick={() => setSelectedBrand(brand.slug)}
@@ -217,19 +222,19 @@ const Products = () => {
             {/* Product Grid */}
             <div className="flex-1">
               {/* Sort Bar */}
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 md:mb-8">
                 <div className="flex items-center gap-2 flex-wrap">
                   {selectedCategory && (
-                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-secondary text-sm border border-border-subtle">
-                      {categories.find((c) => c.slug === selectedCategory)?.name}
+                    <span className="inline-flex items-center gap-1 px-2 md:px-3 py-1 bg-secondary text-xs md:text-sm border border-border-subtle">
+                      {categories?.find((c) => c.slug === selectedCategory)?.name}
                       <button onClick={() => setSelectedCategory(null)}>
                         <X className="w-3 h-3" />
                       </button>
                     </span>
                   )}
                   {selectedBrand && (
-                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-secondary text-sm border border-border-subtle">
-                      {brands.find((b) => b.slug === selectedBrand)?.name}
+                    <span className="inline-flex items-center gap-1 px-2 md:px-3 py-1 bg-secondary text-xs md:text-sm border border-border-subtle">
+                      {brands?.find((b) => b.slug === selectedBrand)?.name}
                       <button onClick={() => setSelectedBrand(null)}>
                         <X className="w-3 h-3" />
                       </button>
@@ -237,11 +242,11 @@ const Products = () => {
                   )}
                 </div>
 
-                <div className="relative">
+                <div className="relative w-full sm:w-auto">
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="appearance-none bg-background border-2 border-foreground px-4 py-2 pr-10 font-heading text-sm uppercase cursor-pointer"
+                    className="w-full sm:w-auto appearance-none bg-background border-2 border-foreground px-3 md:px-4 py-2 pr-10 font-heading text-xs md:text-sm uppercase cursor-pointer"
                   >
                     <option value="newest">Newest</option>
                     <option value="price-low">Price: Low to High</option>
@@ -252,16 +257,22 @@ const Products = () => {
               </div>
 
               {/* Products */}
-              {sortedProducts.length > 0 ? (
+              {productsLoading ? (
+                <div className="product-grid">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <ProductCardSkeleton key={i} />
+                  ))}
+                </div>
+              ) : sortedProducts.length > 0 ? (
                 <div className="product-grid">
                   {sortedProducts.map((product) => (
                     <ProductCard key={product.id} {...product} />
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-20">
-                  <h3 className="font-heading text-2xl uppercase mb-2">No Products Found</h3>
-                  <p className="text-muted-foreground mb-6">Try adjusting your filters</p>
+                <div className="text-center py-16 md:py-20">
+                  <h3 className="font-heading text-xl md:text-2xl uppercase mb-2">No Products Found</h3>
+                  <p className="text-muted-foreground mb-6 text-sm md:text-base">Try adjusting your filters</p>
                   <button onClick={clearFilters} className="btn-brutal-secondary">
                     Clear Filters
                   </button>
