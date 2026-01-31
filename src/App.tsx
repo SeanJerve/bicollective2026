@@ -25,6 +25,8 @@ import Register from "./pages/auth/Register";
 // Customer pages
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
+import Orders from "./pages/account/Orders";
+import OrderDetail from "./pages/account/OrderDetail";
 
 // Vendor pages
 import VendorLayout from "./components/layout/VendorLayout";
@@ -71,6 +73,22 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Checkout />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/account/orders"
+                element={
+                  <ProtectedRoute>
+                    <Orders />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/account/orders/:orderId"
+                element={
+                  <ProtectedRoute>
+                    <OrderDetail />
                   </ProtectedRoute>
                 }
               />
