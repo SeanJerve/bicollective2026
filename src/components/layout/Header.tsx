@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Search, ShoppingBag, Menu, X, User, LogOut, LayoutDashboard, Shield } from "lucide-react";
+import { ShoppingBag, Menu, X, User, LogOut, LayoutDashboard, Shield, Search } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
+import SearchAutocomplete from "./SearchAutocomplete";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -94,7 +95,7 @@ const Header = () => {
                           <ShoppingBag className="w-4 h-4" />
                           My Orders
                         </Link>
-                        {(isVendor || isAdmin) && (
+                        {isVendor && !isAdmin && (
                           <Link
                             to="/vendor"
                             onClick={() => setIsUserMenuOpen(false)}
@@ -194,20 +195,13 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Search Bar */}
+      {/* Search Bar */}
         {isSearchOpen && (
           <div className="py-4 border-t-2 border-foreground animate-fade-in">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search products, brands..."
-                className="input-brutal w-full pr-12"
-                autoFocus
-              />
-              <button className="absolute right-0 top-0 h-full px-4 bg-foreground text-background border-2 border-foreground">
-                <Search className="w-5 h-5" />
-              </button>
-            </div>
+            <SearchAutocomplete
+              autoFocus
+              onClose={() => setIsSearchOpen(false)}
+            />
           </div>
         )}
       </div>
@@ -239,7 +233,7 @@ const Header = () => {
                   <ShoppingBag className="w-5 h-5" />
                   My Orders
                 </Link>
-                {(isVendor || isAdmin) && (
+                {isVendor && !isAdmin && (
                   <Link
                     to="/vendor"
                     onClick={() => setIsMenuOpen(false)}

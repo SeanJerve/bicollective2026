@@ -1,14 +1,40 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { ChevronDown, SlidersHorizontal, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { ChevronDown, SlidersHorizontal, X, MapPin } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import ProductCard from "@/components/marketplace/ProductCard";
 import ProductCardSkeleton from "@/components/marketplace/ProductCardSkeleton";
 import { useProducts, useBrands, useCategories } from "@/hooks/useProducts";
 
+const BICOL_LOCATIONS = [
+  "All Locations",
+  "Legazpi City",
+  "Naga City",
+  "Tabaco City",
+  "Ligao City",
+  "Iriga City",
+  "Sorsogon City",
+  "Masbate City",
+  "Daet",
+  "Virac",
+  "Albay",
+  "Camarines Sur",
+  "Camarines Norte",
+  "Sorsogon",
+  "Masbate",
+  "Catanduanes",
+];
+
 const Products = () => {
+  const [searchParams] = useSearchParams();
+  const searchQuery = searchParams.get("search") || "";
+  const locationParam = searchParams.get("location") || "";
+
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(
+    locationParam || null
+  );
   const [sortBy, setSortBy] = useState("newest");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
@@ -16,9 +42,29 @@ const Products = () => {
   const { data: brands } = useBrands();
   const { data: categories } = useCategories();
 
+  useEffect(() => {
+    if (locationParam) setSelectedLocation(locationParam);
+  }, [locationParam]);
+
   const filteredProducts = (products || []).filter((product) => {
     if (selectedCategory && product.categorySlug !== selectedCategory) return false;
     if (selectedBrand && product.brandSlug !== selectedBrand) return false;
+    if (selectedLocation) {
+      const brandData = brands?.find((b) => b.slug === product.brandSlug);
+      if (!brandData?.location?.toLowerCase().includes(selectedLocation.toLowerCase())) {
+        return false;
+      }
+    }
+    if (searchQuery) {
+      const lowerQ = searchQuery.toLowerCase();
+      if (
+        !product.name.toLowerCase().includes(lowerQ) &&
+        !product.brandName.toLowerCase().includes(lowerQ) &&
+        !product.category.toLowerCase().includes(lowerQ)
+      ) {
+        return false;
+      }
+    }
     return true;
   });
 
@@ -36,9 +82,10 @@ const Products = () => {
   const clearFilters = () => {
     setSelectedCategory(null);
     setSelectedBrand(null);
+    setSelectedLocation(null);
   };
 
-  const hasActiveFilters = selectedCategory || selectedBrand;
+  const hasActiveFilters = selectedCategory || selectedBrand || selectedLocation || searchQuery;
 
   return (
     <PageLayout>
@@ -52,9 +99,12 @@ const Products = () => {
             <span className="mx-2 text-muted-foreground">/</span>
             <span>All Products</span>
           </nav>
-          <h1 className="font-heading text-4xl md:text-6xl uppercase">Shop All</h1>
+          <h1 className="font-heading text-4xl md:text-6xl uppercase">
+            {searchQuery ? `Results for "${searchQuery}"` : "Shop All"}
+          </h1>
           <p className="text-muted-foreground mt-2 text-sm md:text-base">
             {sortedProducts.length} {sortedProducts.length === 1 ? "product" : "products"}
+            {selectedLocation && ` in ${selectedLocation}`}
           </p>
         </div>
       </section>
@@ -72,7 +122,7 @@ const Products = () => {
               Filters
               {hasActiveFilters && (
                 <span className="w-5 h-5 bg-foreground text-background text-xs flex items-center justify-center">
-                  {(selectedCategory ? 1 : 0) + (selectedBrand ? 1 : 0)}
+                  {(selectedCategory ? 1 : 0) + (selectedBrand ? 1 : 0) + (selectedLocation ? 1 : 0)}
                 </span>
               )}
             </button>
@@ -124,6 +174,31 @@ const Products = () => {
                           className={`text-sm ${selectedBrand === brand.slug ? "font-medium border-b-2 border-foreground" : "text-muted-foreground hover:text-foreground"}`}
                         >
                           {brand.name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Location */}
+                <div>
+                  <h3 className="font-heading uppercase text-sm tracking-wide mb-4 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Location
+                  </h3>
+                  <ul className="space-y-2">
+                    {BICOL_LOCATIONS.map((loc) => (
+                      <li key={loc}>
+                        <button
+                          onClick={() => setSelectedLocation(loc === "All Locations" ? null : loc)}
+                          className={`text-sm ${
+                            (loc === "All Locations" && !selectedLocation) ||
+                            selectedLocation === loc
+                              ? "font-medium border-b-2 border-foreground"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {loc}
                         </button>
                       </li>
                     ))}
@@ -203,6 +278,31 @@ const Products = () => {
                         ))}
                       </ul>
                     </div>
+
+                    {/* Location */}
+                    <div>
+                      <h3 className="font-heading uppercase text-sm tracking-wide mb-4 flex items-center gap-2">
+                        <MapPin className="w-4 h-4" />
+                        Location
+                      </h3>
+                      <ul className="space-y-3">
+                        {BICOL_LOCATIONS.map((loc) => (
+                          <li key={loc}>
+                            <button
+                              onClick={() => setSelectedLocation(loc === "All Locations" ? null : loc)}
+                              className={`text-sm ${
+                                (loc === "All Locations" && !selectedLocation) ||
+                                selectedLocation === loc
+                                  ? "font-medium"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              {loc}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
 
                   <div className="mt-8 pt-8 border-t border-border-subtle space-y-4">
@@ -236,6 +336,15 @@ const Products = () => {
                     <span className="inline-flex items-center gap-1 px-2 md:px-3 py-1 bg-secondary text-xs md:text-sm border border-border-subtle">
                       {brands?.find((b) => b.slug === selectedBrand)?.name}
                       <button onClick={() => setSelectedBrand(null)}>
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {selectedLocation && (
+                    <span className="inline-flex items-center gap-1 px-2 md:px-3 py-1 bg-secondary text-xs md:text-sm border border-border-subtle">
+                      <MapPin className="w-3 h-3" />
+                      {selectedLocation}
+                      <button onClick={() => setSelectedLocation(null)}>
                         <X className="w-3 h-3" />
                       </button>
                     </span>

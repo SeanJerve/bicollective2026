@@ -1,73 +1,196 @@
-# Welcome to your Lovable project
+# Bicollective — Multi-Vendor Marketplace
 
-## Project info
+A modern multi-vendor e-commerce marketplace built for Bicolano clothing brands using **React**, **TypeScript**, **Tailwind CSS**, and **Supabase** (via Lovable Cloud).
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+---
 
-## How can I edit this code?
+## Table of Contents
 
-There are several ways of editing your application.
+1. [Features](#features)
+2. [Test Accounts](#test-accounts)
+3. [Tech Stack](#tech-stack)
+4. [Project Structure](#project-structure)
+5. [Local Development](#local-development)
+6. [Environment Variables](#environment-variables)
+7. [Key Workflows](#key-workflows)
+8. [Security Notes](#security-notes)
+9. [Deployment](#deployment)
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Features
 
-Changes made via Lovable will be committed automatically to this repo.
+| Area | Description |
+|------|-------------|
+| **Public Marketplace** | Browse products, brands, and categories with location-aware search |
+| **Autocomplete Search** | Search products, brands, and locations globally from the header |
+| **Location Filtering** | Filter products and brands by Bicol city/province |
+| **User Authentication** | Email/password + Google Sign-In (auto-confirm enabled for testing) |
+| **Customer Orders** | View order history and tracking numbers at `/account/orders` |
+| **Vendor Dashboard** | Create products, upload images, manage inventory, view orders |
+| **Admin Panel** | Manage vendors, view reports (separate from vendor access) |
+| **Role-Based Access** | Admins, vendors, and customers have isolated routes/permissions |
+| **Neo-Brutalist Design** | Bold, high-contrast UI with full mobile responsiveness |
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Test Accounts
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+All accounts use auto-confirm email signup for faster testing.
 
-Follow these steps:
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | `admin@bicollective.test` | `admin123` |
+| Vendor | `testvendor@bicollective.test` | `password123` |
+| Customer | `customer@bicollective.test` | `customer123` |
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
+> **Note**: Admins can access the Admin Panel but **cannot** access the Vendor Dashboard or create their own store. Vendors cannot access the Admin Panel.
+
+---
+
+## Tech Stack
+
+- **Frontend**: React 18, TypeScript, Vite
+- **Styling**: Tailwind CSS + shadcn/ui components
+- **State**: TanStack Query (React Query)
+- **Backend**: Supabase (Auth, Database, Storage, Edge Functions)
+- **Routing**: React Router v6
+
+---
+
+## Project Structure
+
+```
+src/
+├── assets/            # Static images (hero, products, brands)
+├── components/
+│   ├── layout/        # Header, Footer, PageLayout, SearchAutocomplete
+│   ├── marketplace/   # ProductCard, BrandCard, CategoryCard
+│   ├── vendor/        # ProductForm
+│   ├── auth/          # TestAccountsBox
+│   └── ui/            # shadcn components
+├── contexts/          # AuthContext, CartContext
+├── hooks/             # useProducts, useCart, etc.
+├── integrations/      # Supabase client + types
+├── pages/
+│   ├── account/       # Orders, OrderDetail
+│   ├── admin/         # AdminDashboard, AdminVendors, AdminReports
+│   ├── auth/          # Login, Register
+│   └── vendor/        # VendorDashboard, VendorProducts, VendorOrders, VendorStore
+└── App.tsx            # Route definitions
+```
+
+---
+
+## Local Development
+
+### Prerequisites
+
+- **Node.js** 18+ and **npm** (or use **bun** for faster installs)
+- Git
+
+### Steps
+
+```bash
+# 1. Clone the repository
 git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
-npm i
+# 2. Install dependencies
+npm install
+# or
+bun install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 3. Create a .env file (see Environment Variables below)
+cp .env.example .env
+
+# 4. Start the dev server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app runs at `http://localhost:5173` by default.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+## Environment Variables
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Create a `.env` file in the project root with:
 
-## What technologies are used for this project?
+```env
+VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key
+VITE_SUPABASE_PROJECT_ID=your-project-id
+```
 
-This project is built with:
+> In Lovable Cloud projects, these are auto-generated. For standalone Supabase projects, copy them from your Supabase dashboard → Settings → API.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+---
 
-## How can I deploy this project?
+## Key Workflows
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+### Customer Flow
 
-## Can I connect a custom domain to my Lovable project?
+1. Browse products or use the autocomplete search bar
+2. Filter by category, brand, or location
+3. Add items to cart, proceed to checkout (requires login)
+4. View order history at `/account/orders`
+5. Track order status and tracking numbers
 
-Yes, you can!
+### Vendor Flow
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+1. Sign up as a new user (or use test vendor account)
+2. Navigate to `/vendor/store` to create a store (requires location)
+3. Once the store is created, the user gains the `vendor` role
+4. Add products via `/vendor/products`, upload images
+5. View and update orders at `/vendor/orders`
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### Admin Flow
+
+1. Log in with admin credentials
+2. Access `/admin` for vendor management and reports
+3. Admins cannot create stores or access vendor dashboard
+
+---
+
+## Security Notes
+
+- **Row-Level Security (RLS)** is enabled on all tables
+- Roles are stored in a separate `user_roles` table (not in profiles)
+- Admin checks use a `has_role()` database function to prevent privilege escalation
+- Storage buckets have RLS policies:
+  - `product-images` & `brand-assets`: public read, vendor write
+  - `payment-proofs`: restricted to customer/vendor/admin
+- Google OAuth is managed via Lovable Cloud
+- **Leaked password protection** should be enabled in Supabase Auth settings
+
+---
+
+## Deployment
+
+### Via Lovable
+
+Click **Publish** in the Lovable editor to deploy instantly.
+
+### Custom Domain
+
+1. Go to Project → Settings → Domains
+2. Add your custom domain and configure DNS as instructed
+
+### Self-Hosting
+
+Follow the [Lovable self-hosting guide](https://docs.lovable.dev/tips-tricks/self-hosting) for manual deployment.
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Open a pull request
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE) for details.

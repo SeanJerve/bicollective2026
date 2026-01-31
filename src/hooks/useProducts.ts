@@ -29,6 +29,7 @@ export interface Brand {
   isVerified: boolean;
   rating?: number;
   productCount?: number;
+  location?: string;
 }
 
 export interface Category {
@@ -124,7 +125,7 @@ export const useBrands = () => {
     queryFn: async (): Promise<Brand[]> => {
       const { data, error } = await supabase
         .from("brands")
-        .select("*")
+        .select("*, location")
         .in("status", ["approved", "verified"])
         .order("name");
 
@@ -153,6 +154,7 @@ export const useBrands = () => {
         isVerified: b.status === "verified",
         rating: b.rating ? Number(b.rating) : undefined,
         productCount: countMap[b.id] || 0,
+        location: b.location || undefined,
       }));
     },
   });

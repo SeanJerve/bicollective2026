@@ -18,7 +18,26 @@ const VendorStore = () => {
     description: "",
     logo_url: "",
     banner_url: "",
+    location: "",
   });
+
+  const BICOL_LOCATIONS = [
+    "Legazpi City",
+    "Naga City",
+    "Tabaco City",
+    "Ligao City",
+    "Iriga City",
+    "Sorsogon City",
+    "Masbate City",
+    "Daet",
+    "Virac",
+    "Albay",
+    "Camarines Sur",
+    "Camarines Norte",
+    "Sorsogon",
+    "Masbate",
+    "Catanduanes",
+  ];
 
   useEffect(() => {
     const fetchBrand = async () => {
@@ -39,6 +58,7 @@ const VendorStore = () => {
             description: data.description || "",
             logo_url: data.logo_url || "",
             banner_url: data.banner_url || "",
+            location: data.location || "",
           });
         }
       } catch (error) {
@@ -77,6 +97,7 @@ const VendorStore = () => {
             description: formData.description,
             logo_url: formData.logo_url || null,
             banner_url: formData.banner_url || null,
+            location: formData.location || null,
           })
           .eq("id", brand.id);
 
@@ -95,6 +116,7 @@ const VendorStore = () => {
           description: formData.description,
           logo_url: formData.logo_url || null,
           banner_url: formData.banner_url || null,
+          location: formData.location || null,
           status: "approved",
         });
 
@@ -209,6 +231,30 @@ const VendorStore = () => {
               className="input-brutal min-h-[120px]"
               placeholder="Tell customers about your brand..."
             />
+          </div>
+
+          <div>
+            <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
+              Location *
+            </label>
+            <select
+              value={formData.location}
+              onChange={(e) =>
+                setFormData({ ...formData, location: e.target.value })
+              }
+              className="input-brutal"
+              required
+            >
+              <option value="">Select your location</option>
+              {BICOL_LOCATIONS.map((loc) => (
+                <option key={loc} value={loc}>
+                  {loc}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground mt-1">
+              This helps customers filter products by location
+            </p>
           </div>
 
           <div>
