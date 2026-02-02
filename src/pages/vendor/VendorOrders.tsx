@@ -127,7 +127,7 @@ const VendorOrders = () => {
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <div className="animate-pulse space-y-6">
           <div className="h-8 w-48 skeleton-brutal" />
           <div className="h-64 skeleton-brutal" />
@@ -137,10 +137,10 @@ const VendorOrders = () => {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="font-heading text-4xl uppercase">Orders</h1>
-        <p className="text-muted-foreground mt-1">
+    <div className="p-4 md:p-8">
+      <div className="mb-6 md:mb-8">
+        <h1 className="font-heading text-2xl md:text-4xl uppercase">Orders</h1>
+        <p className="text-muted-foreground mt-1 text-sm md:text-base">
           Manage your customer orders
         </p>
       </div>
@@ -173,38 +173,38 @@ const VendorOrders = () => {
         <div className="space-y-4">
           {filteredOrders.map((order) => (
             <div key={order.id} className="card-brutal">
-              <div className="p-6 border-b border-border-subtle">
-                <div className="flex items-start justify-between">
+              <div className="p-4 md:p-6 border-b border-border-subtle">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div>
-                    <p className="font-heading uppercase">
+                    <p className="font-heading uppercase text-sm md:text-base">
                       {order.order?.shipping_name}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs md:text-sm text-muted-foreground">
                       {new Date(order.created_at).toLocaleDateString()}
                     </p>
                   </div>
-                  <div className="text-right">
+                  <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:gap-0">
                     <span
-                      className={`inline-block px-3 py-1 text-xs uppercase ${getStatusColor(
+                      className={`inline-block px-2 md:px-3 py-1 text-xs uppercase ${getStatusColor(
                         order.status
                       )}`}
                     >
                       {order.status.replace(/_/g, " ")}
                     </span>
-                    <p className="font-heading text-lg mt-2">
+                    <p className="font-heading text-base md:text-lg sm:mt-2">
                       {formatPrice(Number(order.subtotal))}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="p-6">
+              <div className="p-4 md:p-6">
                 {/* Order Items */}
-                <div className="mb-6">
-                  <h4 className="font-heading text-sm uppercase mb-3">Items</h4>
+                <div className="mb-4 md:mb-6">
+                  <h4 className="font-heading text-xs md:text-sm uppercase mb-2 md:mb-3">Items</h4>
                   <div className="space-y-2">
                     {order.items?.map((item: any) => (
-                      <div key={item.id} className="flex justify-between text-sm">
+                      <div key={item.id} className="flex justify-between text-xs md:text-sm">
                         <span>
                           {item.product_name} x{item.quantity}
                           {item.size && ` (${item.size})`}
@@ -216,25 +216,25 @@ const VendorOrders = () => {
                 </div>
 
                 {/* Shipping Info */}
-                <div className="mb-6 p-4 bg-secondary">
-                  <h4 className="font-heading text-sm uppercase mb-2">Shipping</h4>
-                  <p className="text-sm">{order.order?.shipping_address}</p>
-                  <p className="text-sm text-muted-foreground">
+                <div className="mb-4 md:mb-6 p-3 md:p-4 bg-secondary">
+                  <h4 className="font-heading text-xs md:text-sm uppercase mb-2">Shipping</h4>
+                  <p className="text-xs md:text-sm">{order.order?.shipping_address}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">
                     {order.order?.shipping_phone}
                   </p>
                 </div>
 
                 {/* Payment Proof */}
                 {order.payment_proof_url && (
-                  <div className="mb-6">
-                    <h4 className="font-heading text-sm uppercase mb-2">
+                  <div className="mb-4 md:mb-6">
+                    <h4 className="font-heading text-xs md:text-sm uppercase mb-2">
                       Payment Proof
                     </h4>
                     <a
                       href={order.payment_proof_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-primary hover:underline"
+                      className="text-xs md:text-sm text-primary hover:underline"
                     >
                       View Payment Screenshot
                     </a>
@@ -246,7 +246,7 @@ const VendorOrders = () => {
                   {order.status === "payment_uploaded" && (
                     <button
                       onClick={() => updateOrderStatus(order.id, "paid")}
-                      className="btn-brutal flex items-center gap-2"
+                      className="btn-brutal flex items-center gap-2 text-sm"
                     >
                       <CheckCircle className="w-4 h-4" />
                       Verify Payment
@@ -255,7 +255,7 @@ const VendorOrders = () => {
                   {order.status === "paid" && (
                     <button
                       onClick={() => updateOrderStatus(order.id, "processing")}
-                      className="btn-brutal flex items-center gap-2"
+                      className="btn-brutal flex items-center gap-2 text-sm"
                     >
                       <Package className="w-4 h-4" />
                       Start Processing
@@ -264,7 +264,7 @@ const VendorOrders = () => {
                   {order.status === "processing" && (
                     <button
                       onClick={() => updateOrderStatus(order.id, "shipped")}
-                      className="btn-brutal flex items-center gap-2"
+                      className="btn-brutal flex items-center gap-2 text-sm"
                     >
                       <Truck className="w-4 h-4" />
                       Mark as Shipped
@@ -273,7 +273,7 @@ const VendorOrders = () => {
                   {order.status === "shipped" && (
                     <button
                       onClick={() => updateOrderStatus(order.id, "delivered")}
-                      className="btn-brutal flex items-center gap-2"
+                      className="btn-brutal flex items-center gap-2 text-sm"
                     >
                       <CheckCircle className="w-4 h-4" />
                       Mark as Delivered
@@ -285,9 +285,9 @@ const VendorOrders = () => {
           ))}
         </div>
       ) : (
-        <div className="card-brutal p-12 text-center">
-          <h3 className="font-heading text-2xl uppercase mb-4">No Orders Yet</h3>
-          <p className="text-muted-foreground">
+        <div className="card-brutal p-8 md:p-12 text-center">
+          <h3 className="font-heading text-xl md:text-2xl uppercase mb-4">No Orders Yet</h3>
+          <p className="text-muted-foreground text-sm md:text-base">
             Orders will appear here when customers purchase your products.
           </p>
         </div>

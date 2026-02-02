@@ -155,7 +155,7 @@ const VendorStore = () => {
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <div className="animate-pulse space-y-6">
           <div className="h-8 w-48 skeleton-brutal" />
           <div className="h-64 skeleton-brutal" />
@@ -165,12 +165,12 @@ const VendorStore = () => {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="font-heading text-4xl uppercase">
+    <div className="p-4 md:p-8">
+      <div className="mb-6 md:mb-8">
+        <h1 className="font-heading text-2xl md:text-4xl uppercase">
           {brand ? "Store Settings" : "Set Up Your Store"}
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-muted-foreground mt-1 text-sm md:text-base">
           {brand
             ? "Manage your brand profile and storefront"
             : "Create your vendor profile to start selling"}
@@ -178,9 +178,9 @@ const VendorStore = () => {
       </div>
 
       <div className="max-w-2xl">
-        <form onSubmit={handleSubmit} className="card-brutal p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="card-brutal p-4 md:p-8 space-y-5 md:space-y-6">
           <div>
-            <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
+            <label className="font-heading text-xs md:text-sm uppercase tracking-wide mb-2 block">
               Brand Name *
             </label>
             <input
@@ -193,18 +193,18 @@ const VendorStore = () => {
                   slug: generateSlug(e.target.value),
                 });
               }}
-              className="input-brutal"
+              className="input-brutal text-sm md:text-base"
               placeholder="Your Brand Name"
               required
             />
           </div>
 
           <div>
-            <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
+            <label className="font-heading text-xs md:text-sm uppercase tracking-wide mb-2 block">
               Store URL
             </label>
-            <div className="flex items-center">
-              <span className="bg-secondary px-4 py-3 border-2 border-r-0 border-foreground text-muted-foreground">
+            <div className="flex flex-col sm:flex-row sm:items-center">
+              <span className="bg-secondary px-3 md:px-4 py-2 md:py-3 border-2 sm:border-r-0 border-foreground text-xs md:text-sm text-muted-foreground">
                 bicollective.com/brands/
               </span>
               <input
@@ -213,14 +213,14 @@ const VendorStore = () => {
                 onChange={(e) =>
                   setFormData({ ...formData, slug: generateSlug(e.target.value) })
                 }
-                className="input-brutal flex-1"
+                className="input-brutal flex-1 text-sm md:text-base"
                 placeholder="your-brand"
               />
             </div>
           </div>
 
           <div>
-            <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
+            <label className="font-heading text-xs md:text-sm uppercase tracking-wide mb-2 block">
               Description
             </label>
             <textarea
@@ -228,13 +228,13 @@ const VendorStore = () => {
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="input-brutal min-h-[120px]"
+              className="input-brutal min-h-[100px] md:min-h-[120px] text-sm md:text-base"
               placeholder="Tell customers about your brand..."
             />
           </div>
 
           <div>
-            <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
+            <label className="font-heading text-xs md:text-sm uppercase tracking-wide mb-2 block">
               Location *
             </label>
             <select
@@ -242,7 +242,7 @@ const VendorStore = () => {
               onChange={(e) =>
                 setFormData({ ...formData, location: e.target.value })
               }
-              className="input-brutal"
+              className="input-brutal text-sm md:text-base"
               required
             >
               <option value="">Select your location</option>
@@ -258,7 +258,7 @@ const VendorStore = () => {
           </div>
 
           <div>
-            <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
+            <label className="font-heading text-xs md:text-sm uppercase tracking-wide mb-2 block">
               Logo URL
             </label>
             <input
@@ -267,7 +267,7 @@ const VendorStore = () => {
               onChange={(e) =>
                 setFormData({ ...formData, logo_url: e.target.value })
               }
-              className="input-brutal"
+              className="input-brutal text-sm md:text-base"
               placeholder="https://..."
             />
             <p className="text-xs text-muted-foreground mt-1">
@@ -276,7 +276,7 @@ const VendorStore = () => {
           </div>
 
           <div>
-            <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
+            <label className="font-heading text-xs md:text-sm uppercase tracking-wide mb-2 block">
               Banner URL
             </label>
             <input
@@ -285,7 +285,7 @@ const VendorStore = () => {
               onChange={(e) =>
                 setFormData({ ...formData, banner_url: e.target.value })
               }
-              className="input-brutal"
+              className="input-brutal text-sm md:text-base"
               placeholder="https://..."
             />
             <p className="text-xs text-muted-foreground mt-1">
@@ -293,7 +293,7 @@ const VendorStore = () => {
             </p>
           </div>
 
-          <button type="submit" disabled={saving} className="btn-brutal w-full">
+          <button type="submit" disabled={saving} className="btn-brutal w-full text-sm md:text-base">
             {saving ? "Saving..." : brand ? "Save Changes" : "Create Store"}
           </button>
         </form>
