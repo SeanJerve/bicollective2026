@@ -94,12 +94,12 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="animate-pulse space-y-8">
+      <div className="p-4 md:p-8">
+        <div className="animate-pulse space-y-6 md:space-y-8">
           <div className="h-8 w-48 skeleton-brutal" />
-          <div className="grid grid-cols-5 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-32 skeleton-brutal" />
+              <div key={i} className="h-24 md:h-32 skeleton-brutal" />
             ))}
           </div>
         </div>
@@ -108,74 +108,74 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="font-heading text-4xl uppercase">Admin Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Platform overview and management</p>
+    <div className="p-4 md:p-8">
+      <div className="mb-6 md:mb-8">
+        <h1 className="font-heading text-2xl md:text-4xl uppercase">Admin Dashboard</h1>
+        <p className="text-muted-foreground mt-1 text-sm md:text-base">Platform overview and management</p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-        <div className="card-brutal p-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-secondary flex items-center justify-center">
-              <Users className="w-6 h-6" />
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6 mb-6 md:mb-8">
+        <div className="card-brutal p-4 md:p-6">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-secondary flex items-center justify-center flex-shrink-0">
+              <Users className="w-5 h-5 md:w-6 md:h-6" />
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Vendors</p>
-              <p className="font-heading text-2xl">{stats.totalVendors}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card-brutal p-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-success/20 flex items-center justify-center">
-              <BadgeCheck className="w-6 h-6 text-success" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Verified</p>
-              <p className="font-heading text-2xl">{stats.verifiedVendors}</p>
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Total Vendors</p>
+              <p className="font-heading text-xl md:text-2xl">{stats.totalVendors}</p>
             </div>
           </div>
         </div>
 
-        <div className="card-brutal p-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-secondary flex items-center justify-center">
-              <Package className="w-6 h-6" />
+        <div className="card-brutal p-4 md:p-6">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-success/20 flex items-center justify-center flex-shrink-0">
+              <BadgeCheck className="w-5 h-5 md:w-6 md:h-6 text-success" />
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Products</p>
-              <p className="font-heading text-2xl">{stats.totalProducts}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card-brutal p-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-secondary flex items-center justify-center">
-              <ShoppingCart className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Orders</p>
-              <p className="font-heading text-2xl">{stats.totalOrders}</p>
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Verified</p>
+              <p className="font-heading text-xl md:text-2xl">{stats.verifiedVendors}</p>
             </div>
           </div>
         </div>
 
-        <div className="card-brutal p-6">
-          <div className="flex items-center gap-4">
-            <div className={`w-12 h-12 flex items-center justify-center ${
+        <div className="card-brutal p-4 md:p-6">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-secondary flex items-center justify-center flex-shrink-0">
+              <Package className="w-5 h-5 md:w-6 md:h-6" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Products</p>
+              <p className="font-heading text-xl md:text-2xl">{stats.totalProducts}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card-brutal p-4 md:p-6">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-secondary flex items-center justify-center flex-shrink-0">
+              <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Total Orders</p>
+              <p className="font-heading text-xl md:text-2xl">{stats.totalOrders}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card-brutal p-4 md:p-6">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center flex-shrink-0 ${
               stats.pendingReports > 0 ? "bg-destructive/20" : "bg-secondary"
             }`}>
-              <AlertTriangle className={`w-6 h-6 ${
+              <AlertTriangle className={`w-5 h-5 md:w-6 md:h-6 ${
                 stats.pendingReports > 0 ? "text-destructive" : ""
               }`} />
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Reports</p>
-              <p className="font-heading text-2xl">{stats.pendingReports}</p>
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Reports</p>
+              <p className="font-heading text-xl md:text-2xl">{stats.pendingReports}</p>
             </div>
           </div>
         </div>
@@ -183,12 +183,12 @@ const AdminDashboard = () => {
 
       {/* Recent Vendors */}
       <div className="card-brutal">
-        <div className="p-6 border-b-2 border-foreground">
+        <div className="p-4 md:p-6 border-b-2 border-foreground">
           <div className="flex items-center justify-between">
-            <h2 className="font-heading text-xl uppercase">Recent Vendors</h2>
+            <h2 className="font-heading text-lg md:text-xl uppercase">Recent Vendors</h2>
             <Link
               to="/admin/vendors"
-              className="text-sm text-muted-foreground hover:text-foreground"
+              className="text-xs md:text-sm text-muted-foreground hover:text-foreground"
             >
               View All
             </Link>
@@ -198,20 +198,20 @@ const AdminDashboard = () => {
         {recentVendors.length > 0 ? (
           <div className="divide-y divide-border-subtle">
             {recentVendors.map((vendor) => (
-              <div key={vendor.id} className="p-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-muted flex items-center justify-center font-heading text-lg">
+              <div key={vendor.id} className="p-4 md:p-6 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-muted flex items-center justify-center font-heading text-base md:text-lg flex-shrink-0">
                     {vendor.name.charAt(0)}
                   </div>
-                  <div>
-                    <p className="font-heading uppercase">{vendor.name}</p>
-                    <p className="text-sm text-muted-foreground">
+                  <div className="min-w-0">
+                    <p className="font-heading uppercase text-sm md:text-base truncate">{vendor.name}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">
                       {new Date(vendor.created_at).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
                 <span
-                  className={`px-3 py-1 text-xs uppercase ${getStatusColor(
+                  className={`px-2 md:px-3 py-1 text-xs uppercase flex-shrink-0 ${getStatusColor(
                     vendor.status
                   )}`}
                 >
@@ -221,7 +221,7 @@ const AdminDashboard = () => {
             ))}
           </div>
         ) : (
-          <div className="p-8 text-center text-muted-foreground">
+          <div className="p-6 md:p-8 text-center text-muted-foreground text-sm md:text-base">
             No vendors yet
           </div>
         )}
