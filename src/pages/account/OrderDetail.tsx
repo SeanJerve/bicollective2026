@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Package, Truck, MapPin, Phone, Clock } from "lucide-react";
+import { Package, Truck, MapPin, Phone, Clock, Star } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import PaymentProofUpload from "@/components/account/PaymentProofUpload";
+import ReviewForm from "@/components/account/ReviewForm";
 
 const statusColors: Record<string, string> = {
   pending_payment: "bg-warning text-warning-foreground",
@@ -29,6 +32,8 @@ const statusLabels: Record<string, string> = {
 const OrderDetail = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [reviewingVendorOrder, setReviewingVendorOrder] = useState<string | null>(null);
 
   const { data: order, isLoading } = useQuery({
     queryKey: ["order-detail", orderId],
@@ -43,8 +48,9 @@ const OrderDetail = () => {
             subtotal,
             shipping_fee,
             tracking_number,
+            payment_proof_url,
             brand:brands(id, name, slug),
-            order_items(id, product_name, product_price, quantity, size)
+            order_items(id, product_name, product_price, quantity, size, product_id)
           )
         `)
         .eq("id", orderId!)
@@ -55,6 +61,20 @@ const OrderDetail = () => {
       return data;
     },
     enabled: !!orderId && !!user,
+  });
+
+  const { data: existingReviews } = useQuery({
+    queryKey: ["order-reviews", orderId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("reviews")
+        .select("vendor_order_id")
+        .eq("user_id", user!.id);
+
+      if (error) throw error;
+      return data?.map((r) => r.vendor_order_id) || [];
+    },
+    enabled: !!user,
   });
 
   const formatPrice = (amount: number) =>
@@ -206,6 +226,58 @@ const OrderDetail = () => {
                 <div className="flex justify-between text-sm mt-1">
                   <span>Shipping</span>
                   <span>{formatPrice(Number(vo.shipping_fee))}</span>
+                </div>
+              )}
+
+              {/* Payment Proof Upload for pending_payment orders */}
+              {vo.status === "pending_payment" && (
+                <div className="border-t border-border-subtle pt-4 mt-4">
+                  <PaymentProofUpload
+                    vendorOrderId={vo.id}
+                    currentProofUrl={vo.payment_proof_url}
+                    onUploadSuccess={() => {
+                      queryClient.invalidateQueries({ queryKey: ["order-detail", orderId] });
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Review section for delivered orders */}
+              {vo.status === "delivered" && !existingReviews?.includes(vo.id) && (
+                <div className="border-t border-border-subtle pt-4 mt-4">
+                  {reviewingVendorOrder === vo.id ? (
+                    <div>
+                      <h4 className="font-heading text-sm uppercase mb-3 flex items-center gap-2">
+                        <Star className="w-4 h-4" />
+                        Leave a Review
+                      </h4>
+                      <ReviewForm
+                        brandId={vo.brand?.id}
+                        vendorOrderId={vo.id}
+                        onSuccess={() => {
+                          setReviewingVendorOrder(null);
+                          queryClient.invalidateQueries({ queryKey: ["order-reviews", orderId] });
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setReviewingVendorOrder(vo.id)}
+                      className="btn-brutal-secondary w-full flex items-center justify-center gap-2"
+                    >
+                      <Star className="w-4 h-4" />
+                      Leave a Review
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {vo.status === "delivered" && existingReviews?.includes(vo.id) && (
+                <div className="border-t border-border-subtle pt-4 mt-4">
+                  <p className="text-sm text-success flex items-center gap-2">
+                    <Star className="w-4 h-4 fill-success" />
+                    You've reviewed this order
+                  </p>
                 </div>
               )}
             </div>

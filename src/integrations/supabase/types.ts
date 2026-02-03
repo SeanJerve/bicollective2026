@@ -459,6 +459,63 @@ export type Database = {
         }
         Relationships: []
       }
+      vendor_applications: {
+        Row: {
+          admin_notes: string | null
+          business_name: string
+          business_permit_url: string | null
+          business_type: Database["public"]["Enums"]["business_type"]
+          contact_phone: string
+          created_at: string | null
+          description: string | null
+          id: string
+          location: string
+          proof_of_products_url: string | null
+          status:
+            | Database["public"]["Enums"]["vendor_application_status"]
+            | null
+          updated_at: string | null
+          user_id: string
+          valid_id_url: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          business_name: string
+          business_permit_url?: string | null
+          business_type: Database["public"]["Enums"]["business_type"]
+          contact_phone: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          location: string
+          proof_of_products_url?: string | null
+          status?:
+            | Database["public"]["Enums"]["vendor_application_status"]
+            | null
+          updated_at?: string | null
+          user_id: string
+          valid_id_url?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          business_name?: string
+          business_permit_url?: string | null
+          business_type?: Database["public"]["Enums"]["business_type"]
+          contact_phone?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          location?: string
+          proof_of_products_url?: string | null
+          status?:
+            | Database["public"]["Enums"]["vendor_application_status"]
+            | null
+          updated_at?: string | null
+          user_id?: string
+          valid_id_url?: string | null
+        }
+        Relationships: []
+      }
       vendor_orders: {
         Row: {
           brand_id: string
@@ -513,6 +570,59 @@ export type Database = {
           },
         ]
       }
+      vendor_verifications: {
+        Row: {
+          additional_docs: string[] | null
+          admin_notes: string | null
+          bir_certificate_url: string | null
+          brand_id: string
+          dti_registration_url: string | null
+          id: string
+          mayor_permit_url: string | null
+          reviewed_at: string | null
+          status:
+            | Database["public"]["Enums"]["vendor_verification_status"]
+            | null
+          submitted_at: string | null
+        }
+        Insert: {
+          additional_docs?: string[] | null
+          admin_notes?: string | null
+          bir_certificate_url?: string | null
+          brand_id: string
+          dti_registration_url?: string | null
+          id?: string
+          mayor_permit_url?: string | null
+          reviewed_at?: string | null
+          status?:
+            | Database["public"]["Enums"]["vendor_verification_status"]
+            | null
+          submitted_at?: string | null
+        }
+        Update: {
+          additional_docs?: string[] | null
+          admin_notes?: string | null
+          bir_certificate_url?: string | null
+          brand_id?: string
+          dti_registration_url?: string | null
+          id?: string
+          mayor_permit_url?: string | null
+          reviewed_at?: string | null
+          status?:
+            | Database["public"]["Enums"]["vendor_verification_status"]
+            | null
+          submitted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_verifications_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -529,6 +639,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "vendor" | "customer"
+      business_type: "established" | "aspiring"
       order_status:
         | "pending_payment"
         | "payment_uploaded"
@@ -537,7 +648,17 @@ export type Database = {
         | "shipped"
         | "delivered"
         | "cancelled"
+      vendor_application_status:
+        | "pending"
+        | "approved"
+        | "needs_resubmission"
+        | "rejected"
       vendor_status: "pending" | "approved" | "verified" | "suspended"
+      vendor_verification_status:
+        | "pending"
+        | "verified"
+        | "needs_resubmission"
+        | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -666,6 +787,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "vendor", "customer"],
+      business_type: ["established", "aspiring"],
       order_status: [
         "pending_payment",
         "payment_uploaded",
@@ -675,7 +797,19 @@ export const Constants = {
         "delivered",
         "cancelled",
       ],
+      vendor_application_status: [
+        "pending",
+        "approved",
+        "needs_resubmission",
+        "rejected",
+      ],
       vendor_status: ["pending", "approved", "verified", "suspended"],
+      vendor_verification_status: [
+        "pending",
+        "verified",
+        "needs_resubmission",
+        "rejected",
+      ],
     },
   },
 } as const
