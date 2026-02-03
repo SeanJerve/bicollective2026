@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Eye, CheckCircle, Truck, Package } from "lucide-react";
+import { Eye, CheckCircle, Truck, Package, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +12,8 @@ const VendorOrders = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
+  const [updatingTracking, setUpdatingTracking] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -89,6 +91,47 @@ const VendorOrders = () => {
         description: "Failed to update order",
         variant: "destructive",
       });
+    }
+  };
+
+  const updateTrackingNumber = async (orderId: string) => {
+    const trackingNumber = trackingInputs[orderId]?.trim();
+    if (!trackingNumber) {
+      toast({
+        title: "Enter tracking number",
+        description: "Please enter a tracking number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUpdatingTracking(orderId);
+
+    try {
+      const { error } = await supabase
+        .from("vendor_orders")
+        .update({ tracking_number: trackingNumber })
+        .eq("id", orderId);
+
+      if (error) throw error;
+
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, tracking_number: trackingNumber } : o))
+      );
+
+      toast({
+        title: "Tracking updated",
+        description: "Tracking number has been saved",
+      });
+    } catch (error) {
+      console.error("Error updating tracking:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update tracking number",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingTracking(null);
     }
   };
 
@@ -280,6 +323,43 @@ const VendorOrders = () => {
                     </button>
                   )}
                 </div>
+
+                {/* Tracking Number Input */}
+                {(order.status === "processing" || order.status === "shipped") && (
+                  <div className="mt-4 pt-4 border-t border-border-subtle">
+                    <h4 className="font-heading text-xs md:text-sm uppercase mb-2">
+                      Tracking Number
+                    </h4>
+                    {order.tracking_number ? (
+                      <p className="text-sm font-mono bg-secondary px-3 py-2 inline-block">
+                        {order.tracking_number}
+                      </p>
+                    ) : (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={trackingInputs[order.id] || ""}
+                          onChange={(e) =>
+                            setTrackingInputs({ ...trackingInputs, [order.id]: e.target.value })
+                          }
+                          placeholder="Enter tracking number"
+                          className="input-brutal flex-1 text-sm"
+                        />
+                        <button
+                          onClick={() => updateTrackingNumber(order.id)}
+                          disabled={updatingTracking === order.id}
+                          className="btn-brutal-secondary text-sm flex items-center gap-2"
+                        >
+                          {updatingTracking === order.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            "Save"
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))}

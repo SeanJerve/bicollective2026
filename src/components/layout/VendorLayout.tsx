@@ -12,6 +12,7 @@ const VendorLayout = () => {
     { href: "/vendor/orders", label: "Orders", icon: ShoppingCart },
     { href: "/vendor/store", label: "Store Settings", icon: Store },
     { href: "/vendor/reviews", label: "Reviews", icon: Star },
+    { href: "/vendor/verification", label: "Verification", icon: Settings },
   ];
 
   const isActive = (path: string, exact?: boolean) => {

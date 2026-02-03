@@ -8,6 +8,8 @@ const AdminLayout = () => {
 
   const navItems = [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+    { href: "/admin/applications", label: "Applications", icon: Users },
+    { href: "/admin/verifications", label: "Verifications", icon: BadgeCheck },
     { href: "/admin/vendors", label: "Vendors", icon: Users },
     { href: "/admin/products", label: "Products", icon: Package },
     { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
