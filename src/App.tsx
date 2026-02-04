@@ -38,6 +38,7 @@ import VendorRegister from "./pages/vendor/VendorRegister";
 import VendorApplicationStatus from "./pages/vendor/VendorApplicationStatus";
 import VendorVerification from "./pages/vendor/VendorVerification";
 import VendorReviews from "./pages/vendor/VendorReviews";
+import VendorPromotions from "./pages/vendor/VendorPromotions";
 
 // Admin pages
 import AdminLayout from "./components/layout/AdminLayout";
@@ -48,6 +49,13 @@ import AdminApplications from "./pages/admin/AdminApplications";
 import AdminVerifications from "./pages/admin/AdminVerifications";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminOrders from "./pages/admin/AdminOrders";
+import AdminPromotions from "./pages/admin/AdminPromotions";
+import AdminDisputes from "./pages/admin/AdminDisputes";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
+
+// Customer pages extension
+import Vouchers from "./pages/account/Vouchers";
+import Disputes from "./pages/account/Disputes";
 
 // Static pages
 import HelpCenter from "./pages/static/HelpCenter";
@@ -131,6 +139,7 @@ const App = () => (
                 <Route path="store" element={<VendorStore />} />
                 <Route path="verification" element={<VendorVerification />} />
                 <Route path="reviews" element={<VendorReviews />} />
+                <Route path="promotions" element={<VendorPromotions />} />
               </Route>
 
               {/* Admin Routes */}
@@ -149,7 +158,14 @@ const App = () => (
                 <Route path="products" element={<AdminProducts />} />
                 <Route path="orders" element={<AdminOrders />} />
                 <Route path="reports" element={<AdminReports />} />
+                <Route path="promotions" element={<AdminPromotions />} />
+                <Route path="disputes" element={<AdminDisputes />} />
+                <Route path="analytics" element={<AdminAnalytics />} />
               </Route>
+
+              {/* Customer Account Routes */}
+              <Route path="/account/vouchers" element={<ProtectedRoute><Vouchers /></ProtectedRoute>} />
+              <Route path="/account/disputes" element={<ProtectedRoute><Disputes /></ProtectedRoute>} />
 
               {/* Static Pages */}
               <Route path="/help" element={<HelpCenter />} />

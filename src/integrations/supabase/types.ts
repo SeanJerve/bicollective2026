@@ -26,6 +26,8 @@ export type Database = {
           owner_id: string
           rating: number | null
           review_count: number | null
+          shipping_base_fee: number | null
+          shipping_per_item_fee: number | null
           slug: string
           status: Database["public"]["Enums"]["vendor_status"]
           updated_at: string
@@ -41,6 +43,8 @@ export type Database = {
           owner_id: string
           rating?: number | null
           review_count?: number | null
+          shipping_base_fee?: number | null
+          shipping_per_item_fee?: number | null
           slug: string
           status?: Database["public"]["Enums"]["vendor_status"]
           updated_at?: string
@@ -56,6 +60,8 @@ export type Database = {
           owner_id?: string
           rating?: number | null
           review_count?: number | null
+          shipping_base_fee?: number | null
+          shipping_per_item_fee?: number | null
           slug?: string
           status?: Database["public"]["Enums"]["vendor_status"]
           updated_at?: string
@@ -127,6 +133,127 @@ export type Database = {
         }
         Relationships: []
       }
+      disputes: {
+        Row: {
+          created_at: string | null
+          customer_id: string
+          description: string | null
+          evidence_urls: string[] | null
+          id: string
+          reason: string
+          refund_amount: number | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: Database["public"]["Enums"]["dispute_status"] | null
+          updated_at: string | null
+          vendor_id: string
+          vendor_order_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id: string
+          description?: string | null
+          evidence_urls?: string[] | null
+          id?: string
+          reason: string
+          refund_amount?: number | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["dispute_status"] | null
+          updated_at?: string | null
+          vendor_id: string
+          vendor_order_id: string
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string
+          description?: string | null
+          evidence_urls?: string[] | null
+          id?: string
+          reason?: string
+          refund_amount?: number | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["dispute_status"] | null
+          updated_at?: string | null
+          vendor_id?: string
+          vendor_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disputes_vendor_order_id_fkey"
+            columns: ["vendor_order_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_progress: {
+        Row: {
+          id: string
+          milestone_10_sellers_claimed: boolean | null
+          milestone_5_deliveries_claimed: boolean | null
+          total_delivered_orders: number | null
+          unique_sellers_purchased: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          milestone_10_sellers_claimed?: boolean | null
+          milestone_5_deliveries_claimed?: boolean | null
+          total_delivered_orders?: number | null
+          unique_sellers_purchased?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          milestone_10_sellers_claimed?: boolean | null
+          milestone_5_deliveries_claimed?: boolean | null
+          total_delivered_orders?: number | null
+          unique_sellers_purchased?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      lucky_promo_claims: {
+        Row: {
+          claimed_date: string
+          created_at: string | null
+          id: string
+          user_id: string
+          voucher_id: string | null
+        }
+        Insert: {
+          claimed_date?: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+          voucher_id?: string | null
+        }
+        Update: {
+          claimed_date?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+          voucher_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lucky_promo_claims_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "vouchers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -181,10 +308,13 @@ export type Database = {
           customer_id: string
           id: string
           notes: string | null
+          platform_voucher_id: string | null
           shipping_address: string
           shipping_name: string
           shipping_phone: string
           total_amount: number
+          total_discount: number | null
+          total_shipping: number | null
           updated_at: string
         }
         Insert: {
@@ -192,10 +322,13 @@ export type Database = {
           customer_id: string
           id?: string
           notes?: string | null
+          platform_voucher_id?: string | null
           shipping_address: string
           shipping_name: string
           shipping_phone: string
           total_amount: number
+          total_discount?: number | null
+          total_shipping?: number | null
           updated_at?: string
         }
         Update: {
@@ -203,13 +336,24 @@ export type Database = {
           customer_id?: string
           id?: string
           notes?: string | null
+          platform_voucher_id?: string | null
           shipping_address?: string
           shipping_name?: string
           shipping_phone?: string
           total_amount?: number
+          total_discount?: number | null
+          total_shipping?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orders_platform_voucher_id_fkey"
+            columns: ["platform_voucher_id"]
+            isOneToOne: false
+            referencedRelation: "vouchers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {
@@ -318,6 +462,89 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      promotions: {
+        Row: {
+          brand_id: string | null
+          code: string | null
+          created_at: string | null
+          created_by: string
+          current_uses: number | null
+          description: string | null
+          discount_value: number
+          ends_at: string
+          id: string
+          is_active: boolean | null
+          max_discount_amount: number | null
+          max_uses: number | null
+          max_uses_per_user: number | null
+          min_order_amount: number | null
+          name: string
+          scope: Database["public"]["Enums"]["promotion_scope"]
+          starts_at: string
+          target_category_ids: string[] | null
+          target_locations: string[] | null
+          target_product_ids: string[] | null
+          type: Database["public"]["Enums"]["promotion_type"]
+          updated_at: string | null
+        }
+        Insert: {
+          brand_id?: string | null
+          code?: string | null
+          created_at?: string | null
+          created_by: string
+          current_uses?: number | null
+          description?: string | null
+          discount_value?: number
+          ends_at: string
+          id?: string
+          is_active?: boolean | null
+          max_discount_amount?: number | null
+          max_uses?: number | null
+          max_uses_per_user?: number | null
+          min_order_amount?: number | null
+          name: string
+          scope?: Database["public"]["Enums"]["promotion_scope"]
+          starts_at?: string
+          target_category_ids?: string[] | null
+          target_locations?: string[] | null
+          target_product_ids?: string[] | null
+          type: Database["public"]["Enums"]["promotion_type"]
+          updated_at?: string | null
+        }
+        Update: {
+          brand_id?: string | null
+          code?: string | null
+          created_at?: string | null
+          created_by?: string
+          current_uses?: number | null
+          description?: string | null
+          discount_value?: number
+          ends_at?: string
+          id?: string
+          is_active?: boolean | null
+          max_discount_amount?: number | null
+          max_uses?: number | null
+          max_uses_per_user?: number | null
+          min_order_amount?: number | null
+          name?: string
+          scope?: Database["public"]["Enums"]["promotion_scope"]
+          starts_at?: string
+          target_category_ids?: string[] | null
+          target_locations?: string[] | null
+          target_product_ids?: string[] | null
+          type?: Database["public"]["Enums"]["promotion_type"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotions_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reports: {
         Row: {
@@ -518,40 +745,73 @@ export type Database = {
       }
       vendor_orders: {
         Row: {
+          auto_delivery_eligible: boolean | null
           brand_id: string
+          confirmed_at: string | null
           created_at: string
+          delivered_at: string | null
+          discount_amount: number | null
+          for_delivery_at: string | null
+          free_shipping_applied: boolean | null
+          handed_to_courier_at: string | null
           id: string
           order_id: string
           payment_proof_url: string | null
+          payment_reference: string | null
+          promo_code_applied: string | null
           shipping_fee: number | null
+          shipping_fee_original: number | null
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
           tracking_number: string | null
           updated_at: string
+          voucher_id: string | null
         }
         Insert: {
+          auto_delivery_eligible?: boolean | null
           brand_id: string
+          confirmed_at?: string | null
           created_at?: string
+          delivered_at?: string | null
+          discount_amount?: number | null
+          for_delivery_at?: string | null
+          free_shipping_applied?: boolean | null
+          handed_to_courier_at?: string | null
           id?: string
           order_id: string
           payment_proof_url?: string | null
+          payment_reference?: string | null
+          promo_code_applied?: string | null
           shipping_fee?: number | null
+          shipping_fee_original?: number | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal: number
           tracking_number?: string | null
           updated_at?: string
+          voucher_id?: string | null
         }
         Update: {
+          auto_delivery_eligible?: boolean | null
           brand_id?: string
+          confirmed_at?: string | null
           created_at?: string
+          delivered_at?: string | null
+          discount_amount?: number | null
+          for_delivery_at?: string | null
+          free_shipping_applied?: boolean | null
+          handed_to_courier_at?: string | null
           id?: string
           order_id?: string
           payment_proof_url?: string | null
+          payment_reference?: string | null
+          promo_code_applied?: string | null
           shipping_fee?: number | null
+          shipping_fee_original?: number | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           tracking_number?: string | null
           updated_at?: string
+          voucher_id?: string | null
         }
         Relationships: [
           {
@@ -566,6 +826,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_orders_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "vouchers"
             referencedColumns: ["id"]
           },
         ]
@@ -623,11 +890,102 @@ export type Database = {
           },
         ]
       }
+      vouchers: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          discount_value: number
+          expires_at: string
+          id: string
+          max_discount_amount: number | null
+          min_order_amount: number | null
+          name: string
+          source: string | null
+          source_promotion_id: string | null
+          status: Database["public"]["Enums"]["voucher_status"] | null
+          type: Database["public"]["Enums"]["promotion_type"]
+          used_at: string | null
+          used_on_order_id: string | null
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          discount_value: number
+          expires_at: string
+          id?: string
+          max_discount_amount?: number | null
+          min_order_amount?: number | null
+          name: string
+          source?: string | null
+          source_promotion_id?: string | null
+          status?: Database["public"]["Enums"]["voucher_status"] | null
+          type: Database["public"]["Enums"]["promotion_type"]
+          used_at?: string | null
+          used_on_order_id?: string | null
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          discount_value?: number
+          expires_at?: string
+          id?: string
+          max_discount_amount?: number | null
+          min_order_amount?: number | null
+          name?: string
+          source?: string | null
+          source_promotion_id?: string | null
+          status?: Database["public"]["Enums"]["voucher_status"] | null
+          type?: Database["public"]["Enums"]["promotion_type"]
+          used_at?: string | null
+          used_on_order_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vouchers_source_promotion_id_fkey"
+            columns: ["source_promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vouchers_used_on_order_id_fkey"
+            columns: ["used_on_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      apply_free_shipping_discount: {
+        Args: { _shipping_fee: number }
+        Returns: number
+      }
+      award_loyalty_voucher: {
+        Args: {
+          _milestone: Database["public"]["Enums"]["loyalty_milestone"]
+          _user_id: string
+        }
+        Returns: string
+      }
+      calculate_shipping_fee: {
+        Args: {
+          _buyer_location: string
+          _item_count: number
+          _seller_location: string
+        }
+        Returns: number
+      }
       get_brand_owner: { Args: { _brand_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -640,6 +998,17 @@ export type Database = {
     Enums: {
       app_role: "admin" | "vendor" | "customer"
       business_type: "established" | "aspiring"
+      dispute_status:
+        | "pending"
+        | "under_review"
+        | "resolved_refund"
+        | "resolved_replacement"
+        | "resolved_dismissed"
+        | "escalated"
+      loyalty_milestone:
+        | "first_purchase"
+        | "five_deliveries"
+        | "ten_unique_sellers"
       order_status:
         | "pending_payment"
         | "payment_uploaded"
@@ -648,6 +1017,12 @@ export type Database = {
         | "shipped"
         | "delivered"
         | "cancelled"
+        | "confirmed"
+        | "handed_to_courier"
+        | "for_delivery"
+        | "disputed"
+      promotion_scope: "platform" | "seller" | "location" | "product"
+      promotion_type: "percentage_discount" | "fixed_discount" | "free_shipping"
       vendor_application_status:
         | "pending"
         | "approved"
@@ -659,6 +1034,7 @@ export type Database = {
         | "verified"
         | "needs_resubmission"
         | "rejected"
+      voucher_status: "active" | "used" | "expired" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -788,6 +1164,19 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "vendor", "customer"],
       business_type: ["established", "aspiring"],
+      dispute_status: [
+        "pending",
+        "under_review",
+        "resolved_refund",
+        "resolved_replacement",
+        "resolved_dismissed",
+        "escalated",
+      ],
+      loyalty_milestone: [
+        "first_purchase",
+        "five_deliveries",
+        "ten_unique_sellers",
+      ],
       order_status: [
         "pending_payment",
         "payment_uploaded",
@@ -796,6 +1185,16 @@ export const Constants = {
         "shipped",
         "delivered",
         "cancelled",
+        "confirmed",
+        "handed_to_courier",
+        "for_delivery",
+        "disputed",
+      ],
+      promotion_scope: ["platform", "seller", "location", "product"],
+      promotion_type: [
+        "percentage_discount",
+        "fixed_discount",
+        "free_shipping",
       ],
       vendor_application_status: [
         "pending",
@@ -810,6 +1209,7 @@ export const Constants = {
         "needs_resubmission",
         "rejected",
       ],
+      voucher_status: ["active", "used", "expired", "cancelled"],
     },
   },
 } as const
