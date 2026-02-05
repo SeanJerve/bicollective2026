@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Gift, X, Sparkles, Loader2 } from "lucide-react";
+import { Gift, X, Sparkles, Loader2, Truck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -10,7 +10,7 @@ const LuckyPromoPopup = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [claimed, setClaimed] = useState(false);
-  const [reward, setReward] = useState<{ code: string; value: number } | null>(null);
+  const [reward, setReward] = useState<{ code: string; value: number; type: "discount" | "free_shipping" } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -44,8 +44,9 @@ const LuckyPromoPopup = () => {
     setLoading(true);
 
     try {
-      // Generate random discount (₱20 - ₱100)
-      const discountValue = Math.floor(Math.random() * 81) + 20;
+      // 30% chance free shipping, 70% chance discount
+      const isFreeShipping = Math.random() < 0.3;
+      const discountValue = isFreeShipping ? 50 : Math.floor(Math.random() * 81) + 20;
       const voucherCode = `LUCKY-${Date.now().toString(36).toUpperCase()}`;
 
       // Create voucher
@@ -53,10 +54,12 @@ const LuckyPromoPopup = () => {
         .from("vouchers")
         .insert({
           user_id: user.id,
-          name: "Lucky Daily Reward",
-          description: "You got lucky! Use this discount on your next purchase.",
+          name: isFreeShipping ? "Lucky Free Shipping" : "Lucky Daily Reward",
+          description: isFreeShipping 
+            ? "Free shipping on your next order! ₱50 off shipping fees."
+            : "You got lucky! Use this discount on your next purchase.",
           code: voucherCode,
-          type: "fixed_discount",
+          type: isFreeShipping ? "free_shipping" : "fixed_discount",
           discount_value: discountValue,
           source: "lucky_promo",
           expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
@@ -76,12 +79,18 @@ const LuckyPromoPopup = () => {
 
       if (claimError) throw claimError;
 
-      setReward({ code: voucherCode, value: discountValue });
+      setReward({ 
+        code: voucherCode, 
+        value: discountValue, 
+        type: isFreeShipping ? "free_shipping" : "discount" 
+      });
       setClaimed(true);
 
       toast({
         title: "🎉 Lucky reward claimed!",
-        description: `You got ₱${discountValue} off! Check your vouchers.`,
+        description: isFreeShipping 
+          ? "You got free shipping! Check your vouchers."
+          : `You got ₱${discountValue} off! Check your vouchers.`,
       });
     } catch (error: any) {
       console.error("Claim error:", error);
@@ -143,12 +152,26 @@ const LuckyPromoPopup = () => {
         ) : (
           <>
             <div className="w-20 h-20 mx-auto mb-4 bg-success flex items-center justify-center">
-              <Sparkles className="w-10 h-10 text-white" />
+              {reward?.type === "free_shipping" ? (
+                <Truck className="w-10 h-10 text-white" />
+              ) : (
+                <Sparkles className="w-10 h-10 text-white" />
+              )}
             </div>
             <h2 className="font-heading text-2xl uppercase mb-2">Congratulations!</h2>
             <div className="bg-secondary p-4 mb-4">
-              <p className="text-3xl font-heading text-success">₱{reward?.value}</p>
-              <p className="text-sm text-muted-foreground">discount voucher</p>
+              {reward?.type === "free_shipping" ? (
+                <>
+                  <Truck className="w-8 h-8 mx-auto text-success mb-1" />
+                  <p className="text-xl font-heading text-success">FREE SHIPPING</p>
+                  <p className="text-sm text-muted-foreground">₱50 off shipping fees</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-3xl font-heading text-success">₱{reward?.value}</p>
+                  <p className="text-sm text-muted-foreground">discount voucher</p>
+                </>
+              )}
             </div>
             <code className="block bg-foreground text-background px-4 py-2 font-mono text-lg mb-4">
               {reward?.code}
