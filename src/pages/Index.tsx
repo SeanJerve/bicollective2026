@@ -197,7 +197,7 @@ const Index = () => {
             Join Bicollective and reach thousands of customers. 
             Get your own storefront with zero setup fees.
           </p>
-          <Link to="/vendor/store" className="btn-brutal inline-flex items-center gap-2">
+          <Link to="/vendor/register" className="btn-brutal inline-flex items-center gap-2">
             Become a Vendor
             <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
           </Link>

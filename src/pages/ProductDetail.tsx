@@ -1,10 +1,12 @@
 import { useParams, Link } from "react-router-dom";
-import { BadgeCheck, Minus, Plus, ShoppingBag, Star, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { BadgeCheck, Minus, Plus, ShoppingBag, Star, ChevronRight, Heart } from "lucide-react";
+import { useState, useEffect } from "react";
 import PageLayout from "@/components/layout/PageLayout";
 import ProductCard from "@/components/marketplace/ProductCard";
 import ProductCardSkeleton from "@/components/marketplace/ProductCardSkeleton";
 import { useProduct, useProductsByBrand } from "@/hooks/useProducts";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,8 +16,97 @@ const ProductDetail = () => {
   const { data: relatedProducts, isLoading: relatedLoading } = useProductsByBrand(product?.brandSlug || "");
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const { user } = useAuth();
   const { addToCart } = useCart();
   const { toast } = useToast();
+
+  // Reviews state
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [averageRating, setAverageRating] = useState(0);
+  const [reviewCount, setReviewCount] = useState(0);
+
+  // Wishlist state
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+
+  // Fetch reviews
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (!product?.id) return;
+      setReviewsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("reviews")
+          .select(`
+            *,
+            profile:profiles!reviews_user_id_fkey(full_name, avatar_url)
+          `)
+          .eq("product_id", product.id)
+          .eq("is_visible", true)
+          .order("created_at", { ascending: false });
+
+        if (!error && data) {
+          setReviews(data);
+          setReviewCount(data.length);
+          if (data.length > 0) {
+            const avg = data.reduce((sum, r) => sum + r.rating, 0) / data.length;
+            setAverageRating(avg);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching reviews:", err);
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+
+    fetchReviews();
+  }, [product?.id]);
+
+  // Check if product is wishlisted
+  useEffect(() => {
+    const checkWishlist = async () => {
+      if (!user || !product?.id) return;
+      const { data } = await supabase
+        .from("wishlists")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("product_id", product.id)
+        .maybeSingle();
+      setIsWishlisted(!!data);
+    };
+    checkWishlist();
+  }, [user, product?.id]);
+
+  const toggleWishlist = async () => {
+    if (!user) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to add items to your wishlist",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!product) return;
+
+    setWishlistLoading(true);
+    try {
+      if (isWishlisted) {
+        await supabase.from("wishlists").delete().eq("user_id", user.id).eq("product_id", product.id);
+        setIsWishlisted(false);
+        toast({ title: "Removed from wishlist" });
+      } else {
+        await supabase.from("wishlists").insert({ user_id: user.id, product_id: product.id });
+        setIsWishlisted(true);
+        toast({ title: "Added to wishlist" });
+      }
+    } catch (err) {
+      console.error("Wishlist error:", err);
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
 
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
 
@@ -121,11 +212,11 @@ const ProductDetail = () => {
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
-                      className={`w-3 h-3 md:w-4 md:h-4 ${i < 4 ? "fill-foreground" : "fill-muted stroke-muted-foreground"}`}
+                      className={`w-3 h-3 md:w-4 md:h-4 ${i < Math.round(averageRating) ? "fill-foreground" : "fill-muted stroke-muted-foreground"}`}
                     />
                   ))}
                 </div>
-                <span className="text-xs md:text-sm text-muted-foreground">(24 reviews)</span>
+                <span className="text-xs md:text-sm text-muted-foreground">({reviewCount} reviews)</span>
               </div>
 
               {/* Price */}
@@ -212,11 +303,21 @@ const ProductDetail = () => {
                     }
                     addToCart(product.id, quantity, selectedSize);
                   }}
-                  className="btn-brutal w-full flex items-center justify-center gap-2 md:gap-3 text-sm md:text-base"
+                  className="btn-brutal w-full flex items-center justify-center gap-2 text-sm md:text-base"
                   disabled={!product.inStock}
                 >
                   <ShoppingBag className="w-4 h-4 md:w-5 md:h-5" />
                   {product.inStock ? "Add to Cart" : "Out of Stock"}
+                </button>
+                <button
+                  onClick={toggleWishlist}
+                  disabled={wishlistLoading}
+                  className={`btn-brutal-secondary w-full flex items-center justify-center gap-2 text-sm md:text-base ${
+                    isWishlisted ? "bg-destructive/10 border-destructive text-destructive" : ""
+                  }`}
+                >
+                  <Heart className={`w-4 h-4 md:w-5 md:h-5 ${isWishlisted ? "fill-destructive" : ""}`} />
+                  {isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
                 </button>
               </div>
 
@@ -235,6 +336,62 @@ const ProductDetail = () => {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Reviews Section */}
+      <section className="py-12 md:py-16 border-t-2 border-foreground">
+        <div className="section-container">
+          <h2 className="font-heading text-2xl md:text-3xl uppercase mb-6 md:mb-8">
+            Customer Reviews ({reviewCount})
+          </h2>
+
+          {reviewsLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="skeleton-brutal h-24" />
+              ))}
+            </div>
+          ) : reviews.length > 0 ? (
+            <div className="space-y-6">
+              {reviews.map((review) => (
+                <div key={review.id} className="card-brutal p-4 md:p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center font-heading text-sm flex-shrink-0">
+                      {review.profile?.full_name?.charAt(0) || "U"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-heading text-sm">
+                          {review.profile?.full_name || "Anonymous"}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(review.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-0.5 mb-2">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-3 h-3 ${
+                              i < review.rating ? "fill-foreground" : "fill-muted"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      {review.comment && (
+                        <p className="text-sm text-muted-foreground">{review.comment}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="card-brutal p-8 text-center text-muted-foreground">
+              No reviews yet. Be the first to review this product!
+            </div>
+          )}
         </div>
       </section>
 

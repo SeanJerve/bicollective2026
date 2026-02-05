@@ -10,20 +10,28 @@ const statusColors: Record<string, string> = {
   pending_payment: "bg-warning text-warning-foreground",
   payment_uploaded: "bg-info text-info-foreground",
   paid: "bg-info text-info-foreground",
+  confirmed: "bg-info text-info-foreground",
   processing: "bg-info text-info-foreground",
+  handed_to_courier: "bg-primary text-primary-foreground",
+  for_delivery: "bg-primary text-primary-foreground",
   shipped: "bg-primary text-primary-foreground",
   delivered: "bg-success text-success-foreground",
   cancelled: "bg-destructive text-destructive-foreground",
+  disputed: "bg-destructive text-destructive-foreground",
 };
 
 const statusLabels: Record<string, string> = {
   pending_payment: "Pending Payment",
   payment_uploaded: "Payment Uploaded",
   paid: "Paid",
+  confirmed: "Order Confirmed",
   processing: "Processing",
+  handed_to_courier: "Handed to Courier",
+  for_delivery: "For Delivery",
   shipped: "Shipped",
   delivered: "Delivered",
   cancelled: "Cancelled",
+  disputed: "Disputed",
 };
 
 const Orders = () => {

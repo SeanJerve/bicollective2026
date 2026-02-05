@@ -1,7 +1,17 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, MapPin } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
+import ShippingCalculator, { calculateShippingFee, BICOL_PROVINCES } from "@/components/checkout/ShippingCalculator";
+import VoucherSelector from "@/components/checkout/VoucherSelector";
+import PromoCodeInput from "@/components/checkout/PromoCodeInput";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +25,11 @@ const Checkout = () => {
   const [loading, setLoading] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+
+  // Promo and voucher state
+  const [selectedVoucher, setSelectedVoucher] = useState<any>(null);
+  const [appliedPromo, setAppliedPromo] = useState<any>(null);
+  const [buyerLocation, setBuyerLocation] = useState<string>("Albay");
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -45,6 +60,62 @@ const Checkout = () => {
     return acc;
   }, {} as Record<string, { brand: { id: string; name: string; slug: string }; items: typeof items; subtotal: number }>);
 
+  // Calculate shipping for each brand
+  const shippingByBrand = useMemo(() => {
+    const fees: Record<string, { original: number; final: number }> = {};
+    Object.entries(groupedItems).forEach(([brandId, group]) => {
+      const sellerLocation = (group.brand as any).location || "Albay";
+      const itemCount = group.items.reduce((sum, item) => sum + item.quantity, 0);
+      const original = calculateShippingFee(sellerLocation, buyerLocation, itemCount);
+      const hasFreeShipping = 
+        (selectedVoucher?.type === "free_shipping") ||
+        (appliedPromo?.type === "free_shipping");
+      const final = hasFreeShipping ? Math.max(0, original - 50) : original;
+      fees[brandId] = { original, final };
+    });
+    return fees;
+  }, [groupedItems, buyerLocation, selectedVoucher, appliedPromo]);
+
+  const totalShipping = useMemo(() => 
+    Object.values(shippingByBrand).reduce((sum, fee) => sum + fee.final, 0)
+  , [shippingByBrand]);
+
+  // Calculate discount
+  const discount = useMemo(() => {
+    const activeDiscount = selectedVoucher || appliedPromo;
+    if (!activeDiscount || activeDiscount.type === "free_shipping") return 0;
+
+    let discountAmount = 0;
+    if (activeDiscount.type === "percentage_discount") {
+      discountAmount = (total * activeDiscount.discount_value) / 100;
+      if (activeDiscount.max_discount_amount) {
+        discountAmount = Math.min(discountAmount, activeDiscount.max_discount_amount);
+      }
+    } else if (activeDiscount.type === "fixed_discount") {
+      discountAmount = activeDiscount.discount_value;
+    }
+    return Math.min(discountAmount, total);
+  }, [selectedVoucher, appliedPromo, total]);
+
+  const grandTotal = useMemo(() => 
+    Math.max(0, total + totalShipping - discount)
+  , [total, totalShipping, discount]);
+
+  // Handle voucher/promo selection
+  const handleVoucherSelect = (voucher: any) => {
+    setSelectedVoucher(voucher);
+    if (voucher) {
+      setAppliedPromo(null);
+    }
+  };
+
+  const handlePromoApply = (promo: any) => {
+    setAppliedPromo(promo);
+    if (promo) {
+      setSelectedVoucher(null);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -74,7 +145,9 @@ const Checkout = () => {
         .from("orders")
         .insert({
           customer_id: user.id,
-          total_amount: total,
+          total_amount: grandTotal,
+          total_shipping: totalShipping,
+          total_discount: discount,
           shipping_name: formData.fullName,
           shipping_phone: formData.phone,
           shipping_address: formData.address,
@@ -87,13 +160,21 @@ const Checkout = () => {
 
       // Create vendor orders and order items for each brand
       for (const [brandId, group] of Object.entries(groupedItems)) {
+        const shippingFee = shippingByBrand[brandId]?.final || 0;
+        const hasFreeShipping = (selectedVoucher?.type === "free_shipping") || 
+          (appliedPromo?.type === "free_shipping");
+
         const { data: vendorOrder, error: vendorOrderError } = await supabase
           .from("vendor_orders")
           .insert({
             order_id: order.id,
             brand_id: brandId,
             subtotal: group.subtotal,
-            shipping_fee: 0,
+            shipping_fee: shippingFee,
+            shipping_fee_original: shippingByBrand[brandId]?.original || 0,
+            free_shipping_applied: hasFreeShipping,
+            voucher_id: selectedVoucher?.id || null,
+            promo_code_applied: appliedPromo?.code || null,
             status: "pending_payment",
           })
           .select()
@@ -116,6 +197,18 @@ const Checkout = () => {
           .insert(orderItems);
 
         if (itemsError) throw itemsError;
+      }
+
+      // Mark voucher as used
+      if (selectedVoucher) {
+        await supabase
+          .from("vouchers")
+          .update({
+            status: "used",
+            used_at: new Date().toISOString(),
+            used_on_order_id: order.id,
+          })
+          .eq("id", selectedVoucher.id);
       }
 
       // Clear cart
@@ -233,11 +326,29 @@ const Checkout = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, address: e.target.value })
                     }
-                    className="input-brutal min-h-[120px]"
-                    placeholder="Street, Barangay, City, Province, ZIP"
+                  className="input-brutal min-h-[80px]"
+                  placeholder="Street, Barangay, City"
                     required
                   />
                 </div>
+
+              <div>
+                <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
+                  Province (for shipping calculation)
+                </label>
+                <Select value={buyerLocation} onValueChange={setBuyerLocation}>
+                  <SelectTrigger className="input-brutal">
+                    <SelectValue placeholder="Select province" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BICOL_PROVINCES.map((province) => (
+                      <SelectItem key={province} value={province}>
+                        {province}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
                 <div>
                   <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
@@ -278,7 +389,7 @@ const Checkout = () => {
                     <div className="space-y-4">
                       {group.items.map((item) => (
                         <div key={item.id} className="flex gap-4">
-                          <div className="w-16 h-20 bg-muted flex-shrink-0">
+                          <div className="w-14 h-18 bg-muted flex-shrink-0">
                             {item.product.image_url && (
                               <img
                                 src={item.product.image_url}
@@ -287,8 +398,8 @@ const Checkout = () => {
                               />
                             )}
                           </div>
-                          <div className="flex-1">
-                            <p className="text-sm">{item.product.name}</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm truncate">{item.product.name}</p>
                             {item.size && (
                               <p className="text-xs text-muted-foreground">
                                 Size: {item.size}
@@ -304,18 +415,71 @@ const Checkout = () => {
                         </div>
                       ))}
                     </div>
-                    <div className="flex justify-between mt-4 pt-4 border-t border-border-subtle">
-                      <span className="text-sm text-muted-foreground">Subtotal</span>
-                      <span className="font-heading">{formatPrice(group.subtotal)}</span>
+                    <div className="flex justify-between mt-3 pt-3 border-t border-border-subtle text-sm">
+                      <span className="text-muted-foreground">Subtotal</span>
+                      <span>{formatPrice(group.subtotal)}</span>
+                    </div>
+                    <div className="mt-2">
+                      <ShippingCalculator
+                        sellerLocation={(group.brand as any).location || "Albay"}
+                        buyerLocation={buyerLocation}
+                        itemCount={group.items.reduce((sum, i) => sum + i.quantity, 0)}
+                        hasFreeShipping={
+                          selectedVoucher?.type === "free_shipping" ||
+                          appliedPromo?.type === "free_shipping"
+                        }
+                      />
                     </div>
                   </div>
                 ))}
 
-                <div className="pt-6 border-t-2 border-foreground">
-                  <div className="flex justify-between">
-                    <span className="font-heading uppercase">Total</span>
+                {/* Voucher & Promo Section */}
+                <div className="pt-4 border-t-2 border-foreground space-y-4">
+                  <div>
+                    <label className="font-heading text-xs uppercase tracking-wide mb-2 block">
+                      Your Vouchers
+                    </label>
+                    <VoucherSelector
+                      onSelect={handleVoucherSelect}
+                      selectedVoucherId={selectedVoucher?.id || null}
+                      orderTotal={total}
+                    />
+                  </div>
+
+                  {!selectedVoucher && (
+                    <div>
+                      <label className="font-heading text-xs uppercase tracking-wide mb-2 block">
+                        Promo Code
+                      </label>
+                      <PromoCodeInput
+                        onApply={handlePromoApply}
+                        appliedCode={appliedPromo?.code || null}
+                        orderTotal={total}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Totals */}
+                <div className="pt-4 border-t-2 border-foreground space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span>{formatPrice(total)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Shipping</span>
+                    <span>{formatPrice(totalShipping)}</span>
+                  </div>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-sm text-success">
+                      <span>Discount</span>
+                      <span>-{formatPrice(discount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pt-2 border-t border-border-subtle">
+                    <span className="font-heading uppercase">Grand Total</span>
                     <span className="font-heading text-2xl">
-                      {formatPrice(total)}
+                      {formatPrice(grandTotal)}
                     </span>
                   </div>
                 </div>

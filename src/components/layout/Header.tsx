@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ShoppingBag, Menu, X, User, LogOut, LayoutDashboard, Shield, Search } from "lucide-react";
+import { ShoppingBag, Menu, X, User, LogOut, LayoutDashboard, Shield, Search, Heart, Ticket, AlertTriangle, UserCog } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import SearchAutocomplete from "./SearchAutocomplete";
@@ -94,6 +94,30 @@ const Header = () => {
                         >
                           <ShoppingBag className="w-4 h-4" />
                           My Orders
+                        </Link>
+                        <Link
+                          to="/account/wishlist"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary"
+                        >
+                          <Heart className="w-4 h-4" />
+                          Wishlist
+                        </Link>
+                        <Link
+                          to="/account/vouchers"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary"
+                        >
+                          <Ticket className="w-4 h-4" />
+                          My Vouchers
+                        </Link>
+                        <Link
+                          to="/account/profile"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary"
+                        >
+                          <UserCog className="w-4 h-4" />
+                          Profile Settings
                         </Link>
                         {isVendor && !isAdmin && (
                           <Link

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Package, ShoppingCart, DollarSign, Star, TrendingUp, AlertCircle } from "lucide-react";
+import { Package, ShoppingCart, DollarSign, Star, TrendingUp, AlertCircle, Ticket, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -10,6 +10,11 @@ interface DashboardStats {
   pendingOrders: number;
   totalRevenue: number;
   averageRating: number;
+  deliveredOrders: number;
+  totalPromos: number;
+  activePromos: number;
+  totalReviews: number;
+  lowStockProducts: number;
 }
 
 const VendorDashboard = () => {
@@ -20,6 +25,11 @@ const VendorDashboard = () => {
     pendingOrders: 0,
     totalRevenue: 0,
     averageRating: 0,
+    deliveredOrders: 0,
+    totalPromos: 0,
+    activePromos: 0,
+    totalReviews: 0,
+    lowStockProducts: 0,
   });
   const [brand, setBrand] = useState<any>(null);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
@@ -74,10 +84,39 @@ const VendorDashboard = () => {
           (o) => o.status === "pending_payment" || o.status === "payment_uploaded"
         ).length || 0;
 
-        const totalRevenue = ordersData?.reduce(
-          (sum, o) => sum + (o.status === "delivered" ? Number(o.subtotal) : 0),
-          0
-        ) || 0;
+        let totalRevenue = 0;
+        let deliveredOrders = 0;
+        ordersData?.forEach((o) => {
+          if (o.status === "delivered") {
+            totalRevenue += Number(o.subtotal) + Number(o.shipping_fee || 0);
+            deliveredOrders++;
+          }
+        });
+
+        // Get promotions count
+        const { count: totalPromos } = await supabase
+          .from("promotions")
+          .select("*", { count: "exact", head: true })
+          .eq("brand_id", brandData.id);
+
+        const { count: activePromos } = await supabase
+          .from("promotions")
+          .select("*", { count: "exact", head: true })
+          .eq("brand_id", brandData.id)
+          .eq("is_active", true);
+
+        // Get reviews count
+        const { count: totalReviews } = await supabase
+          .from("reviews")
+          .select("*", { count: "exact", head: true })
+          .eq("brand_id", brandData.id);
+
+        // Get low stock products
+        const { count: lowStockProducts } = await supabase
+          .from("products")
+          .select("*", { count: "exact", head: true })
+          .eq("brand_id", brandData.id)
+          .lt("stock_quantity", 5);
 
         setStats({
           totalProducts: totalProducts || 0,
@@ -85,6 +124,11 @@ const VendorDashboard = () => {
           pendingOrders,
           totalRevenue,
           averageRating: brandData.rating || 0,
+          deliveredOrders,
+          totalPromos: totalPromos || 0,
+          activePromos: activePromos || 0,
+          totalReviews: totalReviews || 0,
+          lowStockProducts: lowStockProducts || 0,
         });
 
         setRecentOrders(ordersData || []);
@@ -207,6 +251,57 @@ const VendorDashboard = () => {
             <div>
               <p className="text-sm text-muted-foreground">Average Rating</p>
               <p className="font-heading text-2xl">{stats.averageRating.toFixed(1)}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Additional Stats Row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
+        <div className="card-brutal p-4 md:p-6">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-success/20 flex items-center justify-center flex-shrink-0">
+              <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-success" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Delivered</p>
+              <p className="font-heading text-xl md:text-2xl">{stats.deliveredOrders}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card-brutal p-4 md:p-6">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-secondary flex items-center justify-center flex-shrink-0">
+              <Ticket className="w-5 h-5 md:w-6 md:h-6" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Active Promos</p>
+              <p className="font-heading text-xl md:text-2xl">{stats.activePromos}/{stats.totalPromos}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card-brutal p-4 md:p-6">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-secondary flex items-center justify-center flex-shrink-0">
+              <BarChart3 className="w-5 h-5 md:w-6 md:h-6" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Reviews</p>
+              <p className="font-heading text-xl md:text-2xl">{stats.totalReviews}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card-brutal p-4 md:p-6">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center flex-shrink-0 ${stats.lowStockProducts > 0 ? "bg-destructive/20" : "bg-secondary"}`}>
+              <Package className={`w-5 h-5 md:w-6 md:h-6 ${stats.lowStockProducts > 0 ? "text-destructive" : ""}`} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Low Stock</p>
+              <p className="font-heading text-xl md:text-2xl">{stats.lowStockProducts}</p>
             </div>
           </div>
         </div>

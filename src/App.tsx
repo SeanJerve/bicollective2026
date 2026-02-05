@@ -27,6 +27,7 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import Orders from "./pages/account/Orders";
 import OrderDetail from "./pages/account/OrderDetail";
+import ForgotPassword from "./pages/auth/ForgotPassword";
 
 // Vendor pages
 import VendorLayout from "./components/layout/VendorLayout";
@@ -56,6 +57,8 @@ import AdminAnalytics from "./pages/admin/AdminAnalytics";
 // Customer pages extension
 import Vouchers from "./pages/account/Vouchers";
 import Disputes from "./pages/account/Disputes";
+import Profile from "./pages/account/Profile";
+import Wishlist from "./pages/account/Wishlist";
 
 // Static pages
 import HelpCenter from "./pages/static/HelpCenter";
@@ -90,6 +93,7 @@ const App = () => (
               {/* Auth Routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/vendor/login" element={<Navigate to="/login" replace />} />
 
               {/* Customer Routes */}
@@ -166,6 +170,8 @@ const App = () => (
               {/* Customer Account Routes */}
               <Route path="/account/vouchers" element={<ProtectedRoute><Vouchers /></ProtectedRoute>} />
               <Route path="/account/disputes" element={<ProtectedRoute><Disputes /></ProtectedRoute>} />
+              <Route path="/account/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/account/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
 
               {/* Static Pages */}
               <Route path="/help" element={<HelpCenter />} />
