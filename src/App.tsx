@@ -53,6 +53,8 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import AdminPromotions from "./pages/admin/AdminPromotions";
 import AdminDisputes from "./pages/admin/AdminDisputes";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminVouchers from "./pages/admin/AdminVouchers";
+import AdminLuckyPromo from "./pages/admin/AdminLuckyPromo";
 
 // Customer pages extension
 import Vouchers from "./pages/account/Vouchers";
@@ -163,6 +165,8 @@ const App = () => (
                 <Route path="orders" element={<AdminOrders />} />
                 <Route path="reports" element={<AdminReports />} />
                 <Route path="promotions" element={<AdminPromotions />} />
+                <Route path="vouchers" element={<AdminVouchers />} />
+                <Route path="lucky-promo" element={<AdminLuckyPromo />} />
                 <Route path="disputes" element={<AdminDisputes />} />
                 <Route path="analytics" element={<AdminAnalytics />} />
               </Route>

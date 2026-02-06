@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, Package, ShoppingCart, Flag, BadgeCheck, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Package, ShoppingCart, Flag, BadgeCheck, LogOut, Tag, Ticket, Gift, BarChart3, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const AdminLayout = () => {
@@ -13,7 +13,12 @@ const AdminLayout = () => {
     { href: "/admin/vendors", label: "Vendors", icon: Users },
     { href: "/admin/products", label: "Products", icon: Package },
     { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
+    { href: "/admin/promotions", label: "Promotions", icon: Tag },
+    { href: "/admin/vouchers", label: "Vouchers", icon: Ticket },
+    { href: "/admin/lucky-promo", label: "Lucky Promo", icon: Gift },
     { href: "/admin/reports", label: "Reports", icon: Flag },
+    { href: "/admin/disputes", label: "Disputes", icon: AlertTriangle },
+    { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   ];
 
   const isActive = (path: string, exact?: boolean) => {
