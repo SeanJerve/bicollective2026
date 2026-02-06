@@ -254,6 +254,51 @@ export type Database = {
           },
         ]
       }
+      lucky_promo_settings: {
+        Row: {
+          active_hours_end: string | null
+          active_hours_start: string | null
+          daily_claim_limit: number
+          id: string
+          is_active: boolean
+          max_discount: number
+          min_discount: number
+          probability_percent: number
+          shipping_voucher_amount: number
+          shipping_voucher_chance: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active_hours_end?: string | null
+          active_hours_start?: string | null
+          daily_claim_limit?: number
+          id?: string
+          is_active?: boolean
+          max_discount?: number
+          min_discount?: number
+          probability_percent?: number
+          shipping_voucher_amount?: number
+          shipping_voucher_chance?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active_hours_end?: string | null
+          active_hours_start?: string | null
+          daily_claim_limit?: number
+          id?: string
+          is_active?: boolean
+          max_discount?: number
+          min_discount?: number
+          probability_percent?: number
+          shipping_voucher_amount?: number
+          shipping_voucher_chance?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string
@@ -470,11 +515,13 @@ export type Database = {
           created_at: string | null
           created_by: string
           current_uses: number | null
+          deployment_target: string | null
           description: string | null
           discount_value: number
           ends_at: string
           id: string
           is_active: boolean | null
+          is_stackable: boolean | null
           max_discount_amount: number | null
           max_uses: number | null
           max_uses_per_user: number | null
@@ -494,11 +541,13 @@ export type Database = {
           created_at?: string | null
           created_by: string
           current_uses?: number | null
+          deployment_target?: string | null
           description?: string | null
           discount_value?: number
           ends_at: string
           id?: string
           is_active?: boolean | null
+          is_stackable?: boolean | null
           max_discount_amount?: number | null
           max_uses?: number | null
           max_uses_per_user?: number | null
@@ -518,11 +567,13 @@ export type Database = {
           created_at?: string | null
           created_by?: string
           current_uses?: number | null
+          deployment_target?: string | null
           description?: string | null
           discount_value?: number
           ends_at?: string
           id?: string
           is_active?: boolean | null
+          is_stackable?: boolean | null
           max_discount_amount?: number | null
           max_uses?: number | null
           max_uses_per_user?: number | null
@@ -904,6 +955,7 @@ export type Database = {
           source: string | null
           source_promotion_id: string | null
           status: Database["public"]["Enums"]["voucher_status"] | null
+          target_audience: string | null
           type: Database["public"]["Enums"]["promotion_type"]
           used_at: string | null
           used_on_order_id: string | null
@@ -922,6 +974,7 @@ export type Database = {
           source?: string | null
           source_promotion_id?: string | null
           status?: Database["public"]["Enums"]["voucher_status"] | null
+          target_audience?: string | null
           type: Database["public"]["Enums"]["promotion_type"]
           used_at?: string | null
           used_on_order_id?: string | null
@@ -940,6 +993,7 @@ export type Database = {
           source?: string | null
           source_promotion_id?: string | null
           status?: Database["public"]["Enums"]["voucher_status"] | null
+          target_audience?: string | null
           type?: Database["public"]["Enums"]["promotion_type"]
           used_at?: string | null
           used_on_order_id?: string | null
