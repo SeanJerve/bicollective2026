@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Eye, EyeOff, Loader2, Package, Search } from "lucide-react";
+import { Eye, EyeOff, Loader2, Package, Search, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -45,28 +45,24 @@ const AdminProducts = () => {
 
   const toggleActive = async (productId: string, currentActive: boolean) => {
     try {
-      const { error } = await supabase
-        .from("products")
-        .update({ is_active: !currentActive })
-        .eq("id", productId);
-
+      const { error } = await supabase.from("products").update({ is_active: !currentActive }).eq("id", productId);
       if (error) throw error;
-
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id === productId ? { ...p, is_active: !currentActive } : p
-        )
-      );
-
-      toast({
-        title: currentActive ? "Product hidden" : "Product activated",
-      });
+      setProducts((prev) => prev.map((p) => p.id === productId ? { ...p, is_active: !currentActive } : p));
+      toast({ title: currentActive ? "Product hidden" : "Product activated" });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update product",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to update product", variant: "destructive" });
+    }
+  };
+
+  const deleteProduct = async (productId: string) => {
+    if (!confirm("Permanently delete this product? This cannot be undone.")) return;
+    try {
+      const { error } = await supabase.from("products").delete().eq("id", productId);
+      if (error) throw error;
+      setProducts((prev) => prev.filter((p) => p.id !== productId));
+      toast({ title: "Product deleted permanently" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to delete", variant: "destructive" });
     }
   };
 
@@ -159,18 +155,11 @@ const AdminProducts = () => {
                   </div>
                 </div>
                 <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-border-subtle">
-                  <button
-                    onClick={() => toggleActive(product.id, product.is_active)}
-                    className="p-2 hover:bg-secondary"
-                  >
+                  <button onClick={() => toggleActive(product.id, product.is_active)} className="p-2 hover:bg-secondary">
                     {product.is_active ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
-                  <Link
-                    to={`/products/${product.slug}`}
-                    className="p-2 hover:bg-secondary"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Link>
+                  <Link to={`/products/${product.slug}`} className="p-2 hover:bg-secondary"><Eye className="w-4 h-4" /></Link>
+                  <button onClick={() => deleteProduct(product.id)} className="p-2 hover:bg-destructive/20"><Trash2 className="w-4 h-4 text-destructive" /></button>
                 </div>
               </div>
             ))}
@@ -232,20 +221,11 @@ const AdminProducts = () => {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => toggleActive(product.id, product.is_active)}
-                            className="p-2 hover:bg-secondary"
-                            title={product.is_active ? "Hide" : "Show"}
-                          >
+                          <button onClick={() => toggleActive(product.id, product.is_active)} className="p-2 hover:bg-secondary" title={product.is_active ? "Hide" : "Show"}>
                             {product.is_active ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                           </button>
-                          <Link
-                            to={`/products/${product.slug}`}
-                            className="p-2 hover:bg-secondary"
-                            title="View"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Link>
+                          <Link to={`/products/${product.slug}`} className="p-2 hover:bg-secondary" title="View"><Eye className="w-4 h-4" /></Link>
+                          <button onClick={() => deleteProduct(product.id)} className="p-2 hover:bg-destructive/20" title="Delete"><Trash2 className="w-4 h-4 text-destructive" /></button>
                         </div>
                       </td>
                     </tr>

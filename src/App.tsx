@@ -17,6 +17,7 @@ import BrandDetail from "./pages/BrandDetail";
 import Categories from "./pages/Categories";
 import CategoryDetail from "./pages/CategoryDetail";
 import NotFound from "./pages/NotFound";
+import ComingSoon from "./pages/ComingSoon";
 
 // Auth pages
 import Login from "./pages/auth/Login";
@@ -184,6 +185,9 @@ const App = () => (
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/returns" element={<Returns />} />
+
+              {/* Coming Soon */}
+              <Route path="/coming-soon" element={<ComingSoon />} />
 
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />

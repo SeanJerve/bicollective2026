@@ -1,0 +1,149 @@
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface NotificationCounts {
+  // Admin counts
+  pendingApplications: number;
+  pendingVerifications: number;
+  pendingReports: number;
+  pendingDisputes: number;
+  // Vendor counts
+  pendingOrders: number;
+  newReviews: number;
+  lowStockProducts: number;
+  // Customer counts
+  orderUpdates: number;
+}
+
+const EMPTY_COUNTS: NotificationCounts = {
+  pendingApplications: 0,
+  pendingVerifications: 0,
+  pendingReports: 0,
+  pendingDisputes: 0,
+  pendingOrders: 0,
+  newReviews: 0,
+  lowStockProducts: 0,
+  orderUpdates: 0,
+};
+
+// Track dismissed notifications per session
+const dismissedKeys = new Set<string>();
+
+export const useNotifications = () => {
+  const { user, isAdmin, isVendor } = useAuth();
+  const [counts, setCounts] = useState<NotificationCounts>(EMPTY_COUNTS);
+  const [loading, setLoading] = useState(false);
+
+  const fetchCounts = useCallback(async () => {
+    if (!user) {
+      setCounts(EMPTY_COUNTS);
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const newCounts = { ...EMPTY_COUNTS };
+
+      if (isAdmin) {
+        const [apps, verifs, reports, disputes] = await Promise.all([
+          supabase.from("vendor_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
+          supabase.from("vendor_verifications").select("*", { count: "exact", head: true }).eq("status", "pending"),
+          supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "pending"),
+          supabase.from("disputes").select("*", { count: "exact", head: true }).eq("status", "pending"),
+        ]);
+        newCounts.pendingApplications = apps.count || 0;
+        newCounts.pendingVerifications = verifs.count || 0;
+        newCounts.pendingReports = reports.count || 0;
+        newCounts.pendingDisputes = disputes.count || 0;
+      }
+
+      if (isVendor && !isAdmin) {
+        const { data: brand } = await supabase.from("brands").select("id").eq("owner_id", user.id).maybeSingle();
+        if (brand) {
+          const [orders, reviews, lowStock] = await Promise.all([
+            supabase.from("vendor_orders").select("*", { count: "exact", head: true }).eq("brand_id", brand.id).in("status", ["payment_uploaded", "pending_payment"]),
+            supabase.from("reviews").select("*", { count: "exact", head: true }).eq("brand_id", brand.id).eq("is_visible", true),
+            supabase.from("products").select("*", { count: "exact", head: true }).eq("brand_id", brand.id).lt("stock_quantity", 5),
+          ]);
+          newCounts.pendingOrders = orders.count || 0;
+          newCounts.newReviews = reviews.count || 0;
+          newCounts.lowStockProducts = lowStock.count || 0;
+        }
+      }
+
+      if (!isAdmin) {
+        // Customer: count orders with recent status changes (non-delivered, non-cancelled)
+        const { count: orderUpdates } = await supabase
+          .from("orders")
+          .select(`
+            *,
+            vendor_orders!inner(status)
+          `, { count: "exact", head: true })
+          .eq("customer_id", user.id)
+          .in("vendor_orders.status", ["payment_uploaded", "paid", "confirmed", "handed_to_courier", "for_delivery", "shipped"]);
+        newCounts.orderUpdates = orderUpdates || 0;
+      }
+
+      setCounts(newCounts);
+    } catch (error) {
+      console.error("Error fetching notification counts:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, isAdmin, isVendor]);
+
+  useEffect(() => {
+    fetchCounts();
+
+    // Set up realtime subscriptions for updates
+    if (!user) return;
+
+    const channels: ReturnType<typeof supabase.channel>[] = [];
+
+    if (isAdmin) {
+      const adminChannel = supabase
+        .channel("admin-notifications")
+        .on("postgres_changes", { event: "*", schema: "public", table: "vendor_applications" }, fetchCounts)
+        .on("postgres_changes", { event: "*", schema: "public", table: "vendor_verifications" }, fetchCounts)
+        .on("postgres_changes", { event: "*", schema: "public", table: "reports" }, fetchCounts)
+        .on("postgres_changes", { event: "*", schema: "public", table: "disputes" }, fetchCounts)
+        .subscribe();
+      channels.push(adminChannel);
+    }
+
+    if (isVendor && !isAdmin) {
+      const vendorChannel = supabase
+        .channel("vendor-notifications")
+        .on("postgres_changes", { event: "*", schema: "public", table: "vendor_orders" }, fetchCounts)
+        .on("postgres_changes", { event: "*", schema: "public", table: "reviews" }, fetchCounts)
+        .on("postgres_changes", { event: "*", schema: "public", table: "products" }, fetchCounts)
+        .subscribe();
+      channels.push(vendorChannel);
+    }
+
+    if (!isAdmin) {
+      const customerChannel = supabase
+        .channel("customer-notifications")
+        .on("postgres_changes", { event: "*", schema: "public", table: "vendor_orders" }, fetchCounts)
+        .subscribe();
+      channels.push(customerChannel);
+    }
+
+    return () => {
+      channels.forEach((ch) => supabase.removeChannel(ch));
+    };
+  }, [user, isAdmin, isVendor, fetchCounts]);
+
+  const dismiss = (key: keyof NotificationCounts) => {
+    dismissedKeys.add(key);
+    setCounts((prev) => ({ ...prev, [key]: 0 }));
+  };
+
+  const totalAdmin = counts.pendingApplications + counts.pendingVerifications + counts.pendingReports + counts.pendingDisputes;
+  const totalVendor = counts.pendingOrders + counts.lowStockProducts;
+  const totalCustomer = counts.orderUpdates;
+
+  return { counts, loading, dismiss, totalAdmin, totalVendor, totalCustomer, refetch: fetchCounts };
+};

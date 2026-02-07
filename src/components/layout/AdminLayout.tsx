@@ -1,29 +1,43 @@
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Users, Package, ShoppingCart, Flag, BadgeCheck, LogOut, Tag, Ticket, Gift, BarChart3, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotifications } from "@/hooks/useNotifications";
+import NotificationBadge from "@/components/ui/notification-badge";
 
 const AdminLayout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { signOut, user } = useAuth();
+  const { counts } = useNotifications();
+
+  // Items that are "coming soon" for admin
+  const comingSoonItems = ["/admin/analytics"];
 
   const navItems = [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-    { href: "/admin/applications", label: "Applications", icon: Users },
-    { href: "/admin/verifications", label: "Verifications", icon: BadgeCheck },
+    { href: "/admin/applications", label: "Applications", icon: Users, badge: counts.pendingApplications },
+    { href: "/admin/verifications", label: "Verifications", icon: BadgeCheck, badge: counts.pendingVerifications },
     { href: "/admin/vendors", label: "Vendors", icon: Users },
     { href: "/admin/products", label: "Products", icon: Package },
     { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
     { href: "/admin/promotions", label: "Promotions", icon: Tag },
     { href: "/admin/vouchers", label: "Vouchers", icon: Ticket },
     { href: "/admin/lucky-promo", label: "Lucky Promo", icon: Gift },
-    { href: "/admin/reports", label: "Reports", icon: Flag },
-    { href: "/admin/disputes", label: "Disputes", icon: AlertTriangle },
-    { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/admin/reports", label: "Reports", icon: Flag, badge: counts.pendingReports },
+    { href: "/admin/disputes", label: "Disputes", icon: AlertTriangle, badge: counts.pendingDisputes },
+    { href: "/admin/analytics", label: "Analytics", icon: BarChart3, comingSoon: true },
   ];
 
   const isActive = (path: string, exact?: boolean) => {
     if (exact) return location.pathname === path;
     return location.pathname.startsWith(path);
+  };
+
+  const handleNavClick = (e: React.MouseEvent, item: typeof navItems[0]) => {
+    if (item.comingSoon) {
+      e.preventDefault();
+      navigate("/coming-soon");
+    }
   };
 
   return (
@@ -42,15 +56,23 @@ const AdminLayout = () => {
             {navItems.map((item) => (
               <li key={item.href}>
                 <Link
-                  to={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 font-heading text-sm uppercase tracking-wide transition-colors ${
-                    isActive(item.href, item.exact)
+                  to={item.comingSoon ? "#" : item.href}
+                  onClick={(e) => handleNavClick(e, item)}
+                  className={`flex items-center gap-3 px-4 py-3 font-heading text-sm uppercase tracking-wide transition-colors relative ${
+                    item.comingSoon
+                      ? "opacity-40 cursor-not-allowed"
+                      : isActive(item.href, item.exact)
                       ? "bg-background text-foreground"
                       : "hover:bg-background/10"
                   }`}
                 >
                   <item.icon className="w-5 h-5" />
                   {item.label}
+                  {item.badge && item.badge > 0 && (
+                    <span className="ml-auto min-w-[20px] h-[20px] bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 rounded-full">
+                      {item.badge}
+                    </span>
+                  )}
                 </Link>
               </li>
             ))}

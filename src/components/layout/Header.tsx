@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ShoppingBag, Menu, X, User, LogOut, LayoutDashboard, Shield, Search, Heart, Ticket, AlertTriangle, UserCog } from "lucide-react";
+import { ShoppingBag, Menu, X, User, LogOut, LayoutDashboard, Shield, Search, Heart, Ticket, UserCog, Bell } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
+import { useNotifications } from "@/hooks/useNotifications";
+import NotificationBadge from "@/components/ui/notification-badge";
 import SearchAutocomplete from "./SearchAutocomplete";
 
 const Header = () => {
@@ -13,6 +15,7 @@ const Header = () => {
   const navigate = useNavigate();
   const { user, signOut, isVendor, isAdmin } = useAuth();
   const { itemCount } = useCart();
+  const { totalAdmin, totalVendor, totalCustomer } = useNotifications();
 
   const navLinks = [
     { href: "/", label: "Home" },
@@ -31,6 +34,29 @@ const Header = () => {
     setIsUserMenuOpen(false);
     navigate("/");
   };
+
+  // For admin users, gray out customer features and redirect to 404
+  const adminDisabledLinks = isAdmin
+    ? ["/account/orders", "/account/wishlist", "/account/vouchers", "/account/profile"]
+    : [];
+
+  const isDisabledForAdmin = (href: string) => adminDisabledLinks.includes(href);
+
+  const handleNavClick = (href: string, closeMenu: () => void) => {
+    closeMenu();
+    if (isDisabledForAdmin(href)) {
+      navigate("/coming-soon");
+      return;
+    }
+    navigate(href);
+  };
+
+  const userMenuItems = [
+    { href: "/account/orders", label: "My Orders", icon: ShoppingBag, badge: totalCustomer },
+    { href: "/account/wishlist", label: "Wishlist", icon: Heart },
+    { href: "/account/vouchers", label: "My Vouchers", icon: Ticket },
+    { href: "/account/profile", label: "Profile Settings", icon: UserCog },
+  ];
 
   return (
     <header className="sticky top-0 z-50 bg-background border-b-2 border-foreground">
@@ -72,10 +98,15 @@ const Header = () => {
             <div className="relative">
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="p-2 hover:bg-secondary transition-colors border-2 border-transparent hover:border-foreground"
+                className="p-2 hover:bg-secondary transition-colors border-2 border-transparent hover:border-foreground relative"
                 aria-label="Account"
               >
                 <User className="w-5 h-5" />
+                {user && (
+                  <NotificationBadge
+                    count={isAdmin ? totalAdmin : isVendor ? totalVendor + totalCustomer : totalCustomer}
+                  />
+                )}
               </button>
 
               {isUserMenuOpen && (
@@ -87,56 +118,51 @@ const Header = () => {
                         <p className="text-sm font-medium truncate">{user.email}</p>
                       </div>
                       <div className="py-2">
-                        <Link
-                          to="/account/orders"
-                          onClick={() => setIsUserMenuOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary"
-                        >
-                          <ShoppingBag className="w-4 h-4" />
-                          My Orders
-                        </Link>
-                        <Link
-                          to="/account/wishlist"
-                          onClick={() => setIsUserMenuOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary"
-                        >
-                          <Heart className="w-4 h-4" />
-                          Wishlist
-                        </Link>
-                        <Link
-                          to="/account/vouchers"
-                          onClick={() => setIsUserMenuOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary"
-                        >
-                          <Ticket className="w-4 h-4" />
-                          My Vouchers
-                        </Link>
-                        <Link
-                          to="/account/profile"
-                          onClick={() => setIsUserMenuOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary"
-                        >
-                          <UserCog className="w-4 h-4" />
-                          Profile Settings
-                        </Link>
+                        {userMenuItems.map((item) => (
+                          <button
+                            key={item.href}
+                            onClick={() => handleNavClick(item.href, () => setIsUserMenuOpen(false))}
+                            className={`flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary w-full text-left ${
+                              isDisabledForAdmin(item.href) ? "text-muted-foreground/50" : ""
+                            }`}
+                          >
+                            <item.icon className="w-4 h-4" />
+                            {item.label}
+                            {item.badge && item.badge > 0 && !isAdmin && (
+                              <span className="ml-auto min-w-[18px] h-[18px] bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 rounded-full">
+                                {item.badge}
+                              </span>
+                            )}
+                          </button>
+                        ))}
                         {isVendor && !isAdmin && (
                           <Link
                             to="/vendor"
                             onClick={() => setIsUserMenuOpen(false)}
-                            className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary"
+                            className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary relative"
                           >
                             <LayoutDashboard className="w-4 h-4" />
                             Vendor Dashboard
+                            {totalVendor > 0 && (
+                              <span className="ml-auto min-w-[18px] h-[18px] bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 rounded-full">
+                                {totalVendor}
+                              </span>
+                            )}
                           </Link>
                         )}
                         {isAdmin && (
                           <Link
                             to="/admin"
                             onClick={() => setIsUserMenuOpen(false)}
-                            className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary"
+                            className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary relative"
                           >
                             <Shield className="w-4 h-4" />
                             Admin Panel
+                            {totalAdmin > 0 && (
+                              <span className="ml-auto min-w-[18px] h-[18px] bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 rounded-full">
+                                {totalAdmin}
+                              </span>
+                            )}
                           </Link>
                         )}
                         <button
@@ -211,10 +237,15 @@ const Header = () => {
             </Link>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2"
+              className="p-2 relative"
               aria-label="Menu"
             >
               {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {user && (
+                <NotificationBadge
+                  count={isAdmin ? totalAdmin : isVendor ? totalVendor + totalCustomer : totalCustomer}
+                />
+              )}
             </button>
           </div>
         </div>
@@ -249,14 +280,20 @@ const Header = () => {
             <hr className="border-border-subtle" />
             {user ? (
               <>
-                <Link
-                  to="/account/orders"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center gap-3 font-heading text-xl uppercase tracking-wide py-2"
+                <button
+                  onClick={() => handleNavClick("/account/orders", () => setIsMenuOpen(false))}
+                  className={`flex items-center gap-3 font-heading text-xl uppercase tracking-wide py-2 w-full text-left ${
+                    isDisabledForAdmin("/account/orders") ? "text-muted-foreground/50" : ""
+                  }`}
                 >
                   <ShoppingBag className="w-5 h-5" />
                   My Orders
-                </Link>
+                  {totalCustomer > 0 && !isAdmin && (
+                    <span className="ml-2 min-w-[20px] h-[20px] bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center px-1 rounded-full">
+                      {totalCustomer}
+                    </span>
+                  )}
+                </button>
                 {isVendor && !isAdmin && (
                   <Link
                     to="/vendor"
@@ -265,6 +302,11 @@ const Header = () => {
                   >
                     <LayoutDashboard className="w-5 h-5" />
                     Vendor Dashboard
+                    {totalVendor > 0 && (
+                      <span className="ml-2 min-w-[20px] h-[20px] bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center px-1 rounded-full">
+                        {totalVendor}
+                      </span>
+                    )}
                   </Link>
                 )}
                 {isAdmin && (
@@ -275,6 +317,11 @@ const Header = () => {
                   >
                     <Shield className="w-5 h-5" />
                     Admin Panel
+                    {totalAdmin > 0 && (
+                      <span className="ml-2 min-w-[20px] h-[20px] bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center px-1 rounded-full">
+                        {totalAdmin}
+                      </span>
+                    )}
                   </Link>
                 )}
                 <button
