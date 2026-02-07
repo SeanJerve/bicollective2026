@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Eye, Check, X, RotateCcw, Loader2, FileText, Building2, Sparkles } from "lucide-react";
+import { Eye, Check, X, RotateCcw, Loader2, FileText, Building2, Sparkles, Trash2, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -19,6 +19,7 @@ const AdminApplications = () => {
   const [adminNotes, setAdminNotes] = useState("");
   const [processing, setProcessing] = useState(false);
   const [filter, setFilter] = useState<string>("pending");
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchApplications();
@@ -46,73 +47,102 @@ const AdminApplications = () => {
     }
   };
 
-  const handleAction = async (action: "approved" | "needs_resubmission" | "rejected") => {
-    if (!selectedApp) return;
-
-    setProcessing(true);
+  // Generate signed URL for private bucket files
+  const getSignedUrl = async (publicUrl: string): Promise<string> => {
+    if (!publicUrl) return "";
+    if (signedUrls[publicUrl]) return signedUrls[publicUrl];
 
     try {
-      if (action === "approved") {
-        // Create brand for approved application
-        const slug = selectedApp.business_name
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/(^-|-$)/g, "");
+      // Extract the file path from the public URL
+      const urlParts = publicUrl.split("/storage/v1/object/public/vendor-documents/");
+      if (urlParts.length < 2) return publicUrl;
+      
+      const filePath = urlParts[1];
+      const { data, error } = await supabase.storage
+        .from("vendor-documents")
+        .createSignedUrl(filePath, 3600); // 1 hour expiry
 
-        const { error: brandError } = await supabase.from("brands").insert({
-          owner_id: selectedApp.user_id,
-          name: selectedApp.business_name,
-          slug: `${slug}-${Date.now().toString(36)}`,
-          location: selectedApp.location,
-          description: selectedApp.description,
-          status: "approved",
-        });
-
-        if (brandError) throw brandError;
-
-        // Add vendor role
-        const { error: roleError } = await supabase.from("user_roles").insert({
-          user_id: selectedApp.user_id,
-          role: "vendor",
-        });
-
-        if (roleError && !roleError.message.includes("duplicate")) {
-          throw roleError;
-        }
-      }
-
-      // Update application status
-      const { error } = await supabase
-        .from("vendor_applications")
-        .update({
-          status: action,
-          admin_notes: adminNotes || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", selectedApp.id);
-
-      if (error) throw error;
-
-      toast({
-        title: action === "approved" ? "Application Approved" : action === "rejected" ? "Application Rejected" : "Resubmission Requested",
-        description: action === "approved" 
-          ? "Vendor account created successfully" 
-          : "Application status updated",
-      });
-
-      setSelectedApp(null);
-      setAdminNotes("");
-      fetchApplications();
-    } catch (error: any) {
-      console.error("Error processing application:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to process application",
-        variant: "destructive",
-      });
-    } finally {
-      setProcessing(false);
+      if (error || !data?.signedUrl) return publicUrl;
+      
+      setSignedUrls(prev => ({ ...prev, [publicUrl]: data.signedUrl }));
+      return data.signedUrl;
+    } catch {
+      return publicUrl;
     }
+  };
+
+  // Load signed URLs when selecting an application
+  useEffect(() => {
+    if (!selectedApp) return;
+    
+    const loadUrls = async () => {
+      const urls = [selectedApp.valid_id_url, selectedApp.business_permit_url, selectedApp.proof_of_products_url].filter(Boolean);
+      for (const url of urls) {
+        await getSignedUrl(url);
+      }
+    };
+    loadUrls();
+  }, [selectedApp]);
+
+  const handleAction = async (action: "approved" | "needs_resubmission" | "rejected") => {
+    if (!selectedApp) return;
+    setProcessing(true);
+    try {
+      if (action === "approved") {
+        const slug = selectedApp.business_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+        const { error: brandError } = await supabase.from("brands").insert({
+          owner_id: selectedApp.user_id, name: selectedApp.business_name,
+          slug: `${slug}-${Date.now().toString(36)}`, location: selectedApp.location,
+          description: selectedApp.description, status: "approved",
+        });
+        if (brandError) throw brandError;
+        const { error: roleError } = await supabase.from("user_roles").insert({ user_id: selectedApp.user_id, role: "vendor" });
+        if (roleError && !roleError.message.includes("duplicate")) throw roleError;
+      }
+      const { error } = await supabase.from("vendor_applications").update({
+        status: action, admin_notes: adminNotes || null, updated_at: new Date().toISOString(),
+      }).eq("id", selectedApp.id);
+      if (error) throw error;
+      toast({ title: action === "approved" ? "Application Approved" : action === "rejected" ? "Application Rejected" : "Resubmission Requested" });
+      setSelectedApp(null); setAdminNotes(""); fetchApplications();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally { setProcessing(false); }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Permanently delete this application? This cannot be undone.")) return;
+    try {
+      const { error } = await supabase.from("vendor_applications").delete().eq("id", id);
+      if (error) throw error;
+      setApplications(prev => prev.filter(a => a.id !== id));
+      toast({ title: "Application deleted" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const DocumentViewer = ({ url, label }: { url: string; label: string }) => {
+    const signedUrl = signedUrls[url] || url;
+    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          {isImage ? <Image className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+          {label}
+        </div>
+        {isImage ? (
+          <a href={signedUrl} target="_blank" rel="noopener noreferrer">
+            <img src={signedUrl} alt={label} className="max-w-full max-h-64 border-2 border-border-subtle object-contain bg-muted" />
+          </a>
+        ) : (
+          <a href={signedUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm hover:underline text-primary">
+            <FileText className="w-4 h-4" />View Document
+          </a>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -120,15 +150,9 @@ const AdminApplications = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
         <div>
           <h1 className="font-heading text-2xl md:text-4xl uppercase">Applications</h1>
-          <p className="text-muted-foreground mt-1 text-sm md:text-base">
-            Review vendor applications
-          </p>
+          <p className="text-muted-foreground mt-1 text-sm md:text-base">Review vendor applications</p>
         </div>
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="input-brutal w-full sm:w-auto"
-        >
+        <select value={filter} onChange={(e) => setFilter(e.target.value)} className="input-brutal w-full sm:w-auto">
           <option value="pending">Pending</option>
           <option value="approved">Approved</option>
           <option value="needs_resubmission">Needs Resubmission</option>
@@ -138,16 +162,12 @@ const AdminApplications = () => {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin" />
-        </div>
+        <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin" /></div>
       ) : applications.length === 0 ? (
         <div className="card-brutal p-8 md:p-12 text-center">
           <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
           <h3 className="font-heading text-xl uppercase mb-2">No Applications</h3>
-          <p className="text-muted-foreground text-sm">
-            {filter === "pending" ? "No pending applications to review" : "No applications found"}
-          </p>
+          <p className="text-muted-foreground text-sm">{filter === "pending" ? "No pending applications to review" : "No applications found"}</p>
         </div>
       ) : (
         <>
@@ -158,27 +178,19 @@ const AdminApplications = () => {
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      {app.business_type === "established" ? (
-                        <Building2 className="w-4 h-4" />
-                      ) : (
-                        <Sparkles className="w-4 h-4" />
-                      )}
+                      {app.business_type === "established" ? <Building2 className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
                       <span className="font-medium">{app.business_name}</span>
                     </div>
                     <p className="text-xs text-muted-foreground">{app.location}</p>
                   </div>
-                  <span className={`px-2 py-0.5 text-xs uppercase ${statusColors[app.status as keyof typeof statusColors]}`}>
-                    {app.status.replace("_", " ")}
-                  </span>
+                  <span className={`px-2 py-0.5 text-xs uppercase ${statusColors[app.status as keyof typeof statusColors]}`}>{app.status.replace("_", " ")}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>{format(new Date(app.created_at), "PP")}</span>
-                  <button
-                    onClick={() => setSelectedApp(app)}
-                    className="p-2 hover:bg-secondary"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => setSelectedApp(app)} className="p-2 hover:bg-secondary"><Eye className="w-4 h-4" /></button>
+                    <button onClick={() => handleDelete(app.id)} className="p-2 hover:bg-destructive/20"><Trash2 className="w-4 h-4 text-destructive" /></button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -202,33 +214,14 @@ const AdminApplications = () => {
                   {applications.map((app) => (
                     <tr key={app.id}>
                       <td className="p-4 font-medium">{app.business_name}</td>
-                      <td className="p-4">
-                        <span className="flex items-center gap-2 capitalize">
-                          {app.business_type === "established" ? (
-                            <Building2 className="w-4 h-4" />
-                          ) : (
-                            <Sparkles className="w-4 h-4" />
-                          )}
-                          {app.business_type}
-                        </span>
-                      </td>
+                      <td className="p-4"><span className="flex items-center gap-2 capitalize">{app.business_type === "established" ? <Building2 className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}{app.business_type}</span></td>
                       <td className="p-4 text-muted-foreground">{app.location}</td>
-                      <td className="p-4 text-muted-foreground">
-                        {format(new Date(app.created_at), "PP")}
-                      </td>
+                      <td className="p-4 text-muted-foreground">{format(new Date(app.created_at), "PP")}</td>
+                      <td className="p-4"><span className={`px-2 py-1 text-xs uppercase ${statusColors[app.status as keyof typeof statusColors]}`}>{app.status.replace("_", " ")}</span></td>
                       <td className="p-4">
-                        <span className={`px-2 py-1 text-xs uppercase ${statusColors[app.status as keyof typeof statusColors]}`}>
-                          {app.status.replace("_", " ")}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center justify-end">
-                          <button
-                            onClick={() => setSelectedApp(app)}
-                            className="p-2 hover:bg-secondary"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => setSelectedApp(app)} className="p-2 hover:bg-secondary"><Eye className="w-4 h-4" /></button>
+                          <button onClick={() => handleDelete(app.id)} className="p-2 hover:bg-destructive/20" title="Delete permanently"><Trash2 className="w-4 h-4 text-destructive" /></button>
                         </div>
                       </td>
                     </tr>
@@ -247,74 +240,30 @@ const AdminApplications = () => {
             <div className="p-4 md:p-6 border-b border-border-subtle">
               <div className="flex items-center justify-between">
                 <h2 className="font-heading text-xl uppercase">Application Details</h2>
-                <button onClick={() => setSelectedApp(null)} className="p-2 hover:bg-secondary">
-                  <X className="w-5 h-5" />
-                </button>
+                <button onClick={() => setSelectedApp(null)} className="p-2 hover:bg-secondary"><X className="w-5 h-5" /></button>
               </div>
             </div>
 
             <div className="p-4 md:p-6 space-y-6">
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Business Name</span>
-                  <p className="font-medium">{selectedApp.business_name}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Business Type</span>
-                  <p className="font-medium capitalize">{selectedApp.business_type}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Location</span>
-                  <p className="font-medium">{selectedApp.location}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Phone</span>
-                  <p className="font-medium">{selectedApp.contact_phone}</p>
-                </div>
+                <div><span className="text-muted-foreground">Business Name</span><p className="font-medium">{selectedApp.business_name}</p></div>
+                <div><span className="text-muted-foreground">Business Type</span><p className="font-medium capitalize">{selectedApp.business_type}</p></div>
+                <div><span className="text-muted-foreground">Location</span><p className="font-medium">{selectedApp.location}</p></div>
+                <div><span className="text-muted-foreground">Phone</span><p className="font-medium">{selectedApp.contact_phone}</p></div>
               </div>
 
               {selectedApp.description && (
-                <div>
-                  <span className="text-muted-foreground text-sm">Description</span>
-                  <p className="text-sm mt-1">{selectedApp.description}</p>
-                </div>
+                <div><span className="text-muted-foreground text-sm">Description</span><p className="text-sm mt-1">{selectedApp.description}</p></div>
               )}
 
               <div>
-                <span className="text-muted-foreground text-sm">Documents</span>
-                <div className="mt-2 space-y-2">
-                  {selectedApp.valid_id_url && (
-                    <a
-                      href={selectedApp.valid_id_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm hover:underline"
-                    >
-                      <FileText className="w-4 h-4" />
-                      Valid ID
-                    </a>
-                  )}
-                  {selectedApp.business_permit_url && (
-                    <a
-                      href={selectedApp.business_permit_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm hover:underline"
-                    >
-                      <FileText className="w-4 h-4" />
-                      Business Permit
-                    </a>
-                  )}
-                  {selectedApp.proof_of_products_url && (
-                    <a
-                      href={selectedApp.proof_of_products_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm hover:underline"
-                    >
-                      <FileText className="w-4 h-4" />
-                      Product Photos
-                    </a>
+                <span className="text-muted-foreground text-sm font-heading uppercase">Submitted Documents</span>
+                <div className="mt-3 space-y-4">
+                  {selectedApp.valid_id_url && <DocumentViewer url={selectedApp.valid_id_url} label="Valid ID" />}
+                  {selectedApp.business_permit_url && <DocumentViewer url={selectedApp.business_permit_url} label="Business Permit" />}
+                  {selectedApp.proof_of_products_url && <DocumentViewer url={selectedApp.proof_of_products_url} label="Product Photos" />}
+                  {!selectedApp.valid_id_url && !selectedApp.business_permit_url && !selectedApp.proof_of_products_url && (
+                    <p className="text-sm text-muted-foreground">No documents uploaded</p>
                   )}
                 </div>
               </div>
@@ -322,41 +271,18 @@ const AdminApplications = () => {
               {selectedApp.status === "pending" && (
                 <>
                   <div>
-                    <label className="block font-heading text-sm uppercase mb-2">
-                      Admin Notes (optional)
-                    </label>
-                    <textarea
-                      value={adminNotes}
-                      onChange={(e) => setAdminNotes(e.target.value)}
-                      className="input-brutal w-full h-24 resize-none"
-                      placeholder="Add notes for the applicant..."
-                    />
+                    <label className="block font-heading text-sm uppercase mb-2">Admin Notes (optional)</label>
+                    <textarea value={adminNotes} onChange={(e) => setAdminNotes(e.target.value)} className="input-brutal w-full h-24 resize-none" placeholder="Add notes for the applicant..." />
                   </div>
-
                   <div className="flex flex-col sm:flex-row gap-3">
-                    <button
-                      onClick={() => handleAction("approved")}
-                      disabled={processing}
-                      className="btn-brutal flex items-center justify-center gap-2 flex-1"
-                    >
-                      {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                      Approve
+                    <button onClick={() => handleAction("approved")} disabled={processing} className="btn-brutal flex items-center justify-center gap-2 flex-1">
+                      {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}Approve
                     </button>
-                    <button
-                      onClick={() => handleAction("needs_resubmission")}
-                      disabled={processing}
-                      className="btn-brutal-secondary flex items-center justify-center gap-2 flex-1"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                      Request Resubmission
+                    <button onClick={() => handleAction("needs_resubmission")} disabled={processing} className="btn-brutal-secondary flex items-center justify-center gap-2 flex-1">
+                      <RotateCcw className="w-4 h-4" />Request Resubmission
                     </button>
-                    <button
-                      onClick={() => handleAction("rejected")}
-                      disabled={processing}
-                      className="border-2 border-destructive text-destructive px-4 py-2 font-heading uppercase text-sm hover:bg-destructive hover:text-destructive-foreground transition-colors flex items-center justify-center gap-2"
-                    >
-                      <X className="w-4 h-4" />
-                      Reject
+                    <button onClick={() => handleAction("rejected")} disabled={processing} className="border-2 border-destructive text-destructive px-4 py-2 font-heading uppercase text-sm hover:bg-destructive hover:text-destructive-foreground transition-colors flex items-center justify-center gap-2">
+                      <X className="w-4 h-4" />Reject
                     </button>
                   </div>
                 </>

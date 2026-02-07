@@ -1,17 +1,20 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, ShoppingCart, Store, Star, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Store, Star, Settings, LogOut, Tag } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const VendorLayout = () => {
   const location = useLocation();
   const { signOut, user } = useAuth();
+  const { counts } = useNotifications();
 
   const navItems = [
     { href: "/vendor", label: "Dashboard", icon: LayoutDashboard, exact: true },
-    { href: "/vendor/products", label: "Products", icon: Package },
-    { href: "/vendor/orders", label: "Orders", icon: ShoppingCart },
+    { href: "/vendor/products", label: "Products", icon: Package, badge: counts.lowStockProducts },
+    { href: "/vendor/orders", label: "Orders", icon: ShoppingCart, badge: counts.pendingOrders },
+    { href: "/vendor/promotions", label: "Promotions", icon: Tag },
     { href: "/vendor/store", label: "Store Settings", icon: Store },
-    { href: "/vendor/reviews", label: "Reviews", icon: Star },
+    { href: "/vendor/reviews", label: "Reviews", icon: Star, badge: counts.newReviews },
     { href: "/vendor/verification", label: "Verification", icon: Settings },
   ];
 
@@ -45,6 +48,11 @@ const VendorLayout = () => {
                 >
                   <item.icon className="w-5 h-5" />
                   {item.label}
+                  {item.badge && item.badge > 0 && (
+                    <span className="ml-auto min-w-[20px] h-[20px] bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 rounded-full">
+                      {item.badge}
+                    </span>
+                  )}
                 </Link>
               </li>
             ))}

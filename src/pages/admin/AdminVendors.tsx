@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BadgeCheck, Ban, Eye } from "lucide-react";
+import { BadgeCheck, Ban, Eye, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -52,6 +52,18 @@ const AdminVendors = () => {
         description: "Failed to update vendor",
         variant: "destructive",
       });
+    }
+  };
+
+  const deleteVendor = async (vendorId: string) => {
+    if (!confirm("Permanently delete this vendor and all their data? This cannot be undone.")) return;
+    try {
+      const { error } = await supabase.from("brands").delete().eq("id", vendorId);
+      if (error) throw error;
+      setVendors(prev => prev.filter(v => v.id !== vendorId));
+      toast({ title: "Vendor deleted permanently" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to delete vendor", variant: "destructive" });
     }
   };
 
@@ -196,6 +208,13 @@ const AdminVendors = () => {
                         <BadgeCheck className="w-4 h-4" />
                       </button>
                     )}
+                    <button
+                      onClick={() => deleteVendor(vendor.id)}
+                      className="p-2 hover:bg-destructive/20"
+                      title="Delete permanently"
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -287,6 +306,13 @@ const AdminVendors = () => {
                               <BadgeCheck className="w-4 h-4" />
                             </button>
                           )}
+                          <button
+                            onClick={() => deleteVendor(vendor.id)}
+                            className="p-2 hover:bg-destructive/20"
+                            title="Delete permanently"
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </button>
                         </div>
                       </td>
                     </tr>
