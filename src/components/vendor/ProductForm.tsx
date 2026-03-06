@@ -19,6 +19,9 @@ interface ProductFormProps {
     inStock?: boolean;
     stockQuantity?: number;
     sizes?: string[];
+    listingType?: string;
+    releaseDate?: string;
+    preorderDiscountPercent?: number;
   };
   onSuccess: () => void;
   onCancel: () => void;
