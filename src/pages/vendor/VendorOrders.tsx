@@ -396,6 +396,15 @@ const VendorOrders = () => {
                     )}
                   </div>
                 )}
+
+                {/* Chat with buyer */}
+                <div className="mt-4 pt-4 border-t border-border-subtle flex justify-end">
+                  <OrderChat
+                    vendorOrderId={order.id}
+                    otherUserId={order.order?.customer_id || ""}
+                    otherUserName={order.order?.shipping_name || "Customer"}
+                  />
+                </div>
               </div>
             </div>
           ))}
