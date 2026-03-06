@@ -1,9 +1,10 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { BadgeCheck, Minus, Plus, ShoppingBag, Star, ChevronRight, Heart, Zap } from "lucide-react";
+import { BadgeCheck, Minus, Plus, ShoppingBag, Star, ChevronRight, Heart, Zap, Clock } from "lucide-react";
 import { useState, useEffect } from "react";
 import PageLayout from "@/components/layout/PageLayout";
 import ProductCard from "@/components/marketplace/ProductCard";
 import ProductCardSkeleton from "@/components/marketplace/ProductCardSkeleton";
+import ImageGallery from "@/components/product/ImageGallery";
 import { useProduct, useProductsByBrand } from "@/hooks/useProducts";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
