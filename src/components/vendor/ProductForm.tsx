@@ -174,6 +174,9 @@ const ProductForm = ({
         stock_quantity: formData.stockQuantity,
         sizes: formData.sizes,
         is_active: true,
+        listing_type: formData.listingType,
+        release_date: formData.releaseDate || null,
+        preorder_discount_percent: formData.preorderDiscountPercent || 0,
       };
 
       if (initialData?.id) {
