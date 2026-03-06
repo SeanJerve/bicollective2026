@@ -70,6 +70,19 @@ const VendorRegister = () => {
 
         if (application) {
           setExistingApplication(application);
+          // Pre-fill form if needs_resubmission
+          if (application.status === "needs_resubmission") {
+            setFormData({
+              businessName: application.business_name || "",
+              businessType: application.business_type as BusinessType,
+              location: application.location || "",
+              contactPhone: application.contact_phone || "",
+              description: application.description || "",
+              businessPermitUrl: application.business_permit_url || null,
+              validIdUrl: application.valid_id_url || null,
+              proofOfProductsUrl: application.proof_of_products_url || null,
+            });
+          }
         }
 
         // Check if already a vendor
