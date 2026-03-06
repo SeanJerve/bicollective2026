@@ -229,18 +229,24 @@ const OrderDetail = () => {
                 </div>
               )}
 
-              {/* Payment Proof Upload for pending_payment orders */}
-              {vo.status === "pending_payment" && (
+              {/* Payment proof display */}
+              {vo.payment_proof_url && (
                 <div className="border-t border-border-subtle pt-4 mt-4">
-                  <PaymentProofUpload
-                    vendorOrderId={vo.id}
-                    currentProofUrl={vo.payment_proof_url}
-                    onUploadSuccess={() => {
-                      queryClient.invalidateQueries({ queryKey: ["order-detail", orderId] });
-                    }}
-                  />
+                  <h4 className="font-heading text-sm uppercase mb-2">Payment Proof</h4>
+                  <a href={vo.payment_proof_url} target="_blank" rel="noopener noreferrer">
+                    <img src={vo.payment_proof_url} alt="Payment proof" className="w-32 h-32 object-cover border border-border-subtle" />
+                  </a>
                 </div>
               )}
+
+              {/* Chat */}
+              <div className="border-t border-border-subtle pt-4 mt-4 flex justify-end">
+                <OrderChat
+                  vendorOrderId={vo.id}
+                  otherUserId={vo.brand?.id || ""}
+                  otherUserName={vo.brand?.name || "Vendor"}
+                />
+              </div>
 
               {/* Review section for delivered orders */}
               {vo.status === "delivered" && !existingReviews?.includes(vo.id) && (
