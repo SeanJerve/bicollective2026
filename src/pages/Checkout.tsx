@@ -514,6 +514,67 @@ const Checkout = () => {
                   )}
                 </div>
 
+                {/* Payment Method */}
+                <div>
+                  <label className="font-heading text-sm uppercase tracking-wide mb-3 block">Payment Method</label>
+                  <div className="space-y-2">
+                    {([
+                      { value: "cod", label: "Cash on Delivery (COD)", desc: "Pay when you receive your order" },
+                      { value: "gcash", label: "GCash", desc: "Upload proof of payment" },
+                      { value: "bank_transfer", label: "Bank Transfer", desc: "Upload proof of payment" },
+                    ] as const).map((method) => (
+                      <label
+                        key={method.value}
+                        className={`block p-3 border-2 cursor-pointer transition-colors ${
+                          paymentMethod === method.value
+                            ? "border-foreground bg-secondary/50"
+                            : "border-border-subtle hover:border-foreground/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            checked={paymentMethod === method.value}
+                            onChange={() => { setPaymentMethod(method.value); setPaymentProofFile(null); }}
+                          />
+                          <div>
+                            <span className="font-heading text-sm">{method.label}</span>
+                            <p className="text-xs text-muted-foreground">{method.desc}</p>
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+
+                  {/* Payment Proof Upload for GCash/Bank Transfer */}
+                  {paymentMethod !== "cod" && (
+                    <div className="mt-4 p-4 border-2 border-border-subtle">
+                      <label className="font-heading text-xs uppercase mb-2 block">
+                        Upload Proof of Payment <span className="text-destructive">*</span>
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setPaymentProofFile(e.target.files?.[0] || null)}
+                        className="w-full text-sm"
+                      />
+                      {paymentProofFile && (
+                        <div className="mt-2">
+                          <img
+                            src={URL.createObjectURL(paymentProofFile)}
+                            alt="Payment proof preview"
+                            className="w-32 h-32 object-cover border border-border-subtle"
+                          />
+                        </div>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Upload a screenshot of your {paymentMethod === "gcash" ? "GCash" : "bank transfer"} transaction.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {/* Notes */}
                 <div>
                   <label className="font-heading text-sm uppercase tracking-wide mb-2 block">Order Notes (Optional)</label>
@@ -527,10 +588,10 @@ const Checkout = () => {
 
                 <button
                   type="submit"
-                  disabled={loading || checkoutItems.length === 0 || !selectedAddress}
+                  disabled={loading || checkoutItems.length === 0 || !selectedAddress || (paymentMethod !== "cod" && !paymentProofFile)}
                   className="btn-brutal w-full"
                 >
-                  {loading ? "Placing Order..." : "Place Order"}
+                  {loading ? (uploadingProof ? "Uploading payment proof..." : "Placing Order...") : "Place Order"}
                 </button>
               </form>
             </div>
