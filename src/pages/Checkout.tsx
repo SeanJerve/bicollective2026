@@ -116,8 +116,12 @@ const Checkout = () => {
         },
       }] as any[];
     }
+    // If selectedCartItemIds provided, filter cart items
+    if (selectedCartItemIds && selectedCartItemIds.length > 0) {
+      return items.filter((item) => selectedCartItemIds.includes(item.id));
+    }
     return items;
-  }, [isBuyNow, buyNowItem, items]);
+  }, [isBuyNow, buyNowItem, items, selectedCartItemIds]);
 
   const productSubtotal = useMemo(() => {
     return checkoutItems.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
