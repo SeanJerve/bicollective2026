@@ -18,6 +18,11 @@ export interface Product {
   categorySlug: string;
   description?: string;
   inStock: boolean;
+  listingType: string;
+  releaseDate?: string;
+  preorderDiscountPercent?: number;
+  storeSalePercent?: number;
+  storeSaleEndsAt?: string;
 }
 
 export interface Brand {
