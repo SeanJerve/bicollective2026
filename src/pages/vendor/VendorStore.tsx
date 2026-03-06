@@ -19,6 +19,8 @@ const VendorStore = () => {
     logo_url: "",
     banner_url: "",
     location: "",
+    store_sale_percent: 0,
+    store_sale_ends_at: "",
   });
 
   const BICOL_LOCATIONS = [
@@ -59,6 +61,8 @@ const VendorStore = () => {
             logo_url: data.logo_url || "",
             banner_url: data.banner_url || "",
             location: data.location || "",
+            store_sale_percent: data.store_sale_percent || 0,
+            store_sale_ends_at: data.store_sale_ends_at ? data.store_sale_ends_at.split("T")[0] : "",
           });
         }
       } catch (error) {
@@ -98,6 +102,8 @@ const VendorStore = () => {
             logo_url: formData.logo_url || null,
             banner_url: formData.banner_url || null,
             location: formData.location || null,
+            store_sale_percent: formData.store_sale_percent || 0,
+            store_sale_ends_at: formData.store_sale_ends_at || null,
           })
           .eq("id", brand.id);
 
@@ -290,6 +296,45 @@ const VendorStore = () => {
             />
             <p className="text-xs text-muted-foreground mt-1">
               Wide image recommended (1200x400px)
+            </p>
+          </div>
+
+          {/* Store-wide Sale */}
+          <div className="border-t-2 border-foreground pt-5 md:pt-6">
+            <h2 className="font-heading text-sm md:text-base uppercase tracking-wide mb-4">Store-wide Sale</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="font-heading text-xs md:text-sm uppercase tracking-wide mb-2 block">
+                  Discount %
+                </label>
+                <input
+                  type="number"
+                  value={formData.store_sale_percent}
+                  onChange={(e) =>
+                    setFormData({ ...formData, store_sale_percent: Number(e.target.value) })
+                  }
+                  className="input-brutal text-sm md:text-base"
+                  min="0"
+                  max="100"
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="font-heading text-xs md:text-sm uppercase tracking-wide mb-2 block">
+                  Sale Ends
+                </label>
+                <input
+                  type="date"
+                  value={formData.store_sale_ends_at}
+                  onChange={(e) =>
+                    setFormData({ ...formData, store_sale_ends_at: e.target.value })
+                  }
+                  className="input-brutal text-sm md:text-base"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Set to 0% or leave end date empty to disable the sale
             </p>
           </div>
 

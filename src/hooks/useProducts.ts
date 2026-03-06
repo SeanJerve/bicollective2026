@@ -18,6 +18,11 @@ export interface Product {
   categorySlug: string;
   description?: string;
   inStock: boolean;
+  listingType: string;
+  releaseDate?: string;
+  preorderDiscountPercent?: number;
+  storeSalePercent?: number;
+  storeSaleEndsAt?: string;
 }
 
 export interface Brand {
@@ -50,7 +55,7 @@ export const useProducts = () => {
         .from("products")
         .select(`
           *,
-          brand:brands!inner(id, name, slug, status, location),
+          brand:brands!inner(id, name, slug, status, location, store_sale_percent, store_sale_ends_at),
           category:categories(id, name, slug)
         `)
         .eq("is_active", true)
@@ -75,6 +80,11 @@ export const useProducts = () => {
         categorySlug: p.category?.slug || "",
         description: p.description || "",
         inStock: p.in_stock ?? true,
+        listingType: p.listing_type || "regular",
+        releaseDate: p.release_date || undefined,
+        preorderDiscountPercent: p.preorder_discount_percent || undefined,
+        storeSalePercent: p.brand?.store_sale_percent || undefined,
+        storeSaleEndsAt: p.brand?.store_sale_ends_at || undefined,
       }));
     },
   });
@@ -89,7 +99,7 @@ export const useProduct = (slug: string) => {
         .from("products")
         .select(`
           *,
-          brand:brands!inner(id, name, slug, status, location),
+          brand:brands!inner(id, name, slug, status, location, store_sale_percent, store_sale_ends_at),
           category:categories(id, name, slug)
         `)
         .eq("slug", slug)
@@ -115,6 +125,11 @@ export const useProduct = (slug: string) => {
         categorySlug: data.category?.slug || "",
         description: data.description || "",
         inStock: data.in_stock ?? true,
+        listingType: data.listing_type || "regular",
+        releaseDate: data.release_date || undefined,
+        preorderDiscountPercent: data.preorder_discount_percent || undefined,
+        storeSalePercent: data.brand?.store_sale_percent || undefined,
+        storeSaleEndsAt: data.brand?.store_sale_ends_at || undefined,
       };
     },
     enabled: !!slug,
@@ -234,6 +249,9 @@ export const useProductsByBrand = (brandSlug: string) => {
         categorySlug: p.category?.slug || "",
         description: p.description || "",
         inStock: p.in_stock ?? true,
+        listingType: p.listing_type || "regular",
+        releaseDate: p.release_date || undefined,
+        preorderDiscountPercent: p.preorder_discount_percent || undefined,
       }));
     },
     enabled: !!brandSlug,
@@ -297,6 +315,9 @@ export const useProductsByCategory = (categorySlug: string) => {
         categorySlug: p.category?.slug || "",
         description: p.description || "",
         inStock: p.in_stock ?? true,
+        listingType: p.listing_type || "regular",
+        releaseDate: p.release_date || undefined,
+        preorderDiscountPercent: p.preorder_discount_percent || undefined,
       }));
     },
     enabled: !!categorySlug,

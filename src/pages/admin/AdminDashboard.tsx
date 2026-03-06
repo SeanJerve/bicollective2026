@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Users, Package, ShoppingCart, BadgeCheck, TrendingUp, AlertTriangle } from "lucide-react";
+import { Users, Package, ShoppingCart, BadgeCheck, TrendingUp, AlertTriangle, FileText, Scale, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface DashboardStats {
@@ -9,6 +9,9 @@ interface DashboardStats {
   totalProducts: number;
   totalOrders: number;
   pendingReports: number;
+  pendingApplications: number;
+  pendingDisputes: number;
+  revenue: number;
 }
 
 const AdminDashboard = () => {
@@ -18,6 +21,9 @@ const AdminDashboard = () => {
     totalProducts: 0,
     totalOrders: 0,
     pendingReports: 0,
+    pendingApplications: 0,
+    pendingDisputes: 0,
+    revenue: 0,
   });
   const [recentVendors, setRecentVendors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +57,29 @@ const AdminDashboard = () => {
           .select("*", { count: "exact", head: true })
           .eq("status", "pending");
 
+        // Get pending applications
+        const { count: pendingApplications } = await supabase
+          .from("vendor_applications")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "pending");
+
+        // Get pending disputes
+        const { count: pendingDisputes } = await supabase
+          .from("disputes")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "pending");
+
+        // Get revenue from delivered orders
+        const { data: deliveredOrders } = await supabase
+          .from("vendor_orders")
+          .select("subtotal, shipping_fee")
+          .eq("status", "delivered");
+
+        const revenue = (deliveredOrders || []).reduce(
+          (sum, o) => sum + Number(o.subtotal) + Number(o.shipping_fee || 0),
+          0
+        );
+
         // Get recent vendors
         const { data: vendors } = await supabase
           .from("brands")
@@ -64,6 +93,9 @@ const AdminDashboard = () => {
           totalProducts: totalProducts || 0,
           totalOrders: totalOrders || 0,
           pendingReports: pendingReports || 0,
+          pendingApplications: pendingApplications || 0,
+          pendingDisputes: pendingDisputes || 0,
+          revenue,
         });
 
         setRecentVendors(vendors || []);
@@ -115,7 +147,18 @@ const AdminDashboard = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6 mb-6 md:mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
+        <div className="card-brutal p-4 md:p-6">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-success/20 flex items-center justify-center flex-shrink-0">
+              <DollarSign className="w-5 h-5 md:w-6 md:h-6 text-success" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Revenue</p>
+              <p className="font-heading text-lg md:text-2xl">₱{stats.revenue.toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
         <div className="card-brutal p-4 md:p-6">
           <div className="flex items-center gap-3 md:gap-4">
             <div className="w-10 h-10 md:w-12 md:h-12 bg-secondary flex items-center justify-center flex-shrink-0">
@@ -179,6 +222,59 @@ const AdminDashboard = () => {
             </div>
           </div>
         </div>
+
+        <div className="card-brutal p-4 md:p-6">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center flex-shrink-0 ${
+              stats.pendingApplications > 0 ? "bg-accent" : "bg-secondary"
+            }`}>
+              <FileText className="w-5 h-5 md:w-6 md:h-6" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Applications</p>
+              <p className="font-heading text-xl md:text-2xl">{stats.pendingApplications}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card-brutal p-4 md:p-6">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center flex-shrink-0 ${
+              stats.pendingDisputes > 0 ? "bg-destructive/20" : "bg-secondary"
+            }`}>
+              <Scale className={`w-5 h-5 md:w-6 md:h-6 ${
+                stats.pendingDisputes > 0 ? "text-destructive" : ""
+              }`} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Disputes</p>
+              <p className="font-heading text-xl md:text-2xl">{stats.pendingDisputes}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Links */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 md:mb-8">
+        {[
+          { label: "Applications", to: "/admin/applications", count: stats.pendingApplications },
+          { label: "Disputes", to: "/admin/disputes", count: stats.pendingDisputes },
+          { label: "Reports", to: "/admin/reports", count: stats.pendingReports },
+          { label: "Analytics", to: "/admin/analytics", count: null },
+        ].map((link) => (
+          <Link
+            key={link.to}
+            to={link.to}
+            className="card-brutal p-4 text-center hover:bg-secondary transition-colors"
+          >
+            <span className="font-heading text-sm uppercase">{link.label}</span>
+            {link.count !== null && link.count > 0 && (
+              <span className="ml-2 px-2 py-0.5 text-xs bg-destructive text-destructive-foreground">
+                {link.count}
+              </span>
+            )}
+          </Link>
+        ))}
       </div>
 
       {/* Recent Vendors */}

@@ -1,9 +1,10 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { BadgeCheck, Minus, Plus, ShoppingBag, Star, ChevronRight, Heart, Zap } from "lucide-react";
+import { BadgeCheck, Minus, Plus, ShoppingBag, Star, ChevronRight, Heart, Zap, Clock } from "lucide-react";
 import { useState, useEffect } from "react";
 import PageLayout from "@/components/layout/PageLayout";
 import ProductCard from "@/components/marketplace/ProductCard";
 import ProductCardSkeleton from "@/components/marketplace/ProductCardSkeleton";
+import ImageGallery from "@/components/product/ImageGallery";
 import { useProduct, useProductsByBrand } from "@/hooks/useProducts";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -176,15 +177,13 @@ const ProductDetail = () => {
       <section className="py-8 md:py-12">
         <div className="section-container">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-            {/* Product Image */}
-            <div className="card-brutal overflow-hidden">
-              <div className="aspect-[3/4] bg-muted">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
+            {/* Product Image Gallery */}
+            <div>
+              <ImageGallery
+                mainImage={product.image}
+                images={product.images}
+                alt={product.name}
+              />
             </div>
 
             {/* Product Info */}
@@ -220,17 +219,42 @@ const ProductDetail = () => {
                 <span className="text-xs md:text-sm text-muted-foreground">({reviewCount} reviews)</span>
               </div>
 
+              {/* Listing Type Badge */}
+              {product.listingType === "teaser" && (
+                <div className="mb-4 inline-flex items-center gap-2 px-3 py-1.5 bg-muted border-2 border-foreground text-sm font-heading uppercase">
+                  <Clock className="w-4 h-4" />
+                  Coming Soon
+                </div>
+              )}
+              {product.listingType === "preorder" && (
+                <div className="mb-4 inline-flex items-center gap-2 px-3 py-1.5 bg-accent border-2 border-foreground text-sm font-heading uppercase">
+                  <Zap className="w-4 h-4" />
+                  Pre-order {product.preorderDiscountPercent ? `— ${product.preorderDiscountPercent}% OFF` : ""}
+                </div>
+              )}
+              {product.releaseDate && (
+                <p className="text-xs text-muted-foreground mb-4">
+                  Release date: {new Date(product.releaseDate).toLocaleDateString()}
+                </p>
+              )}
+
               {/* Price */}
               <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-6 md:mb-8">
-                <span className="font-heading text-2xl md:text-3xl">{formatPrice(product.price)}</span>
-                {product.originalPrice && product.originalPrice > product.price && (
+                {product.listingType === "teaser" ? (
+                  <span className="font-heading text-2xl md:text-3xl text-muted-foreground">Price TBA</span>
+                ) : (
                   <>
-                    <span className="text-lg md:text-xl text-muted-foreground line-through">
-                      {formatPrice(product.originalPrice)}
-                    </span>
-                    <span className="badge-verified text-xs">
-                      {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
-                    </span>
+                    <span className="font-heading text-2xl md:text-3xl">{formatPrice(product.price)}</span>
+                    {product.originalPrice && product.originalPrice > product.price && (
+                      <>
+                        <span className="text-lg md:text-xl text-muted-foreground line-through">
+                          {formatPrice(product.originalPrice)}
+                        </span>
+                        <span className="badge-verified text-xs">
+                          {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
+                        </span>
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -327,10 +351,10 @@ const ProductDetail = () => {
                     });
                   }}
                   className="btn-brutal w-full flex items-center justify-center gap-2 text-sm md:text-base"
-                  disabled={!product.inStock}
+                  disabled={!product.inStock || product.listingType === "teaser"}
                 >
                   <Zap className="w-4 h-4 md:w-5 md:h-5" />
-                  {product.inStock ? "Buy Now" : "Out of Stock"}
+                  {product.listingType === "teaser" ? "Coming Soon" : product.listingType === "preorder" ? "Pre-order Now" : product.inStock ? "Buy Now" : "Out of Stock"}
                 </button>
 
                 {/* Add to Cart */}
@@ -347,10 +371,10 @@ const ProductDetail = () => {
                     addToCart(product.id, quantity, selectedSize);
                   }}
                   className="btn-brutal-secondary w-full flex items-center justify-center gap-2 text-sm md:text-base"
-                  disabled={!product.inStock}
+                  disabled={!product.inStock || product.listingType === "teaser"}
                 >
                   <ShoppingBag className="w-4 h-4 md:w-5 md:h-5" />
-                  Add to Cart
+                  {product.listingType === "teaser" ? "Add to Wishlist" : "Add to Cart"}
                 </button>
               </div>
 

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { BadgeCheck } from "lucide-react";
+import { BadgeCheck, Clock, Zap } from "lucide-react";
 
 interface ProductCardProps {
   id: string;
@@ -13,6 +13,10 @@ interface ProductCardProps {
   isVerifiedBrand?: boolean;
   category?: string;
   inStock?: boolean;
+  listingType?: string;
+  preorderDiscountPercent?: number;
+  storeSalePercent?: number;
+  storeSaleEndsAt?: string;
 }
 
 const ProductCard = ({
@@ -26,6 +30,10 @@ const ProductCard = ({
   isVerifiedBrand = false,
   category,
   inStock = true,
+  listingType = "regular",
+  preorderDiscountPercent,
+  storeSalePercent,
+  storeSaleEndsAt,
 }: ProductCardProps) => {
   const formatPrice = (amount: number) => {
     return new Intl.NumberFormat("en-PH", {
@@ -33,6 +41,8 @@ const ProductCard = ({
       currency: "PHP",
     }).format(amount);
   };
+
+  const isStoreSaleActive = storeSalePercent && storeSalePercent > 0 && storeSaleEndsAt && new Date(storeSaleEndsAt) > new Date();
 
   return (
     <article className="group">
@@ -45,14 +55,29 @@ const ProductCard = ({
               alt={name}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
-            {!inStock && (
+            {!inStock && listingType === "regular" && (
               <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
                 <span className="font-heading uppercase tracking-wide text-sm">
                   Out of Stock
                 </span>
               </div>
             )}
-            {category && (
+            {listingType === "teaser" && (
+              <div className="absolute top-3 right-3 px-2 py-1 bg-muted border border-foreground text-xs font-heading uppercase flex items-center gap-1">
+                <Clock className="w-3 h-3" /> Coming Soon
+              </div>
+            )}
+            {listingType === "preorder" && (
+              <div className="absolute top-3 right-3 px-2 py-1 bg-accent border border-foreground text-xs font-heading uppercase flex items-center gap-1">
+                <Zap className="w-3 h-3" /> Pre-order
+              </div>
+            )}
+            {isStoreSaleActive && (
+              <div className="absolute top-3 left-3 px-2 py-1 bg-destructive text-destructive-foreground text-xs font-heading uppercase">
+                {storeSalePercent}% OFF
+              </div>
+            )}
+            {category && !isStoreSaleActive && (
               <span className="absolute top-3 left-3 badge-category">
                 {category}
               </span>
@@ -82,11 +107,17 @@ const ProductCard = ({
 
             {/* Price */}
             <div className="flex items-center gap-2">
-              <span className="font-heading text-lg">{formatPrice(price)}</span>
-              {originalPrice && originalPrice > price && (
-                <span className="text-sm text-muted-foreground line-through">
-                  {formatPrice(originalPrice)}
-                </span>
+              {listingType === "teaser" ? (
+                <span className="font-heading text-lg text-muted-foreground">Price TBA</span>
+              ) : (
+                <>
+                  <span className="font-heading text-lg">{formatPrice(price)}</span>
+                  {originalPrice && originalPrice > price && (
+                    <span className="text-sm text-muted-foreground line-through">
+                      {formatPrice(originalPrice)}
+                    </span>
+                  )}
+                </>
               )}
             </div>
           </div>
