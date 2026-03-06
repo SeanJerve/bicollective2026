@@ -40,6 +40,7 @@ const VendorOrders = () => {
             *,
             order:orders (
               id,
+              customer_id,
               shipping_name,
               shipping_phone,
               shipping_address,
