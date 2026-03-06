@@ -51,6 +51,9 @@ const ProductForm = ({
     inStock: initialData?.inStock ?? true,
     stockQuantity: initialData?.stockQuantity || 0,
     sizes: initialData?.sizes || ["XS", "S", "M", "L", "XL"],
+    listingType: initialData?.listingType || "regular",
+    releaseDate: initialData?.releaseDate || "",
+    preorderDiscountPercent: initialData?.preorderDiscountPercent || 0,
   });
 
   const generateSlug = (name: string) => {
