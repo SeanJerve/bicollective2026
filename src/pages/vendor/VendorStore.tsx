@@ -102,6 +102,8 @@ const VendorStore = () => {
             logo_url: formData.logo_url || null,
             banner_url: formData.banner_url || null,
             location: formData.location || null,
+            store_sale_percent: formData.store_sale_percent || 0,
+            store_sale_ends_at: formData.store_sale_ends_at || null,
           })
           .eq("id", brand.id);
 
