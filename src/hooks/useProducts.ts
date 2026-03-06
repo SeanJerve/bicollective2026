@@ -55,7 +55,7 @@ export const useProducts = () => {
         .from("products")
         .select(`
           *,
-          brand:brands!inner(id, name, slug, status, location),
+          brand:brands!inner(id, name, slug, status, location, store_sale_percent, store_sale_ends_at),
           category:categories(id, name, slug)
         `)
         .eq("is_active", true)
