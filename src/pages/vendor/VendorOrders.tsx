@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Eye, CheckCircle, Truck, Package, Loader2 } from "lucide-react";
+import { Eye, CheckCircle, Truck, Package, Loader2, MessageSquare } from "lucide-react";
+import OrderChat from "@/components/chat/OrderChat";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
