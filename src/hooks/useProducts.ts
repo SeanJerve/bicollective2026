@@ -89,7 +89,7 @@ export const useProduct = (slug: string) => {
         .from("products")
         .select(`
           *,
-          brand:brands!inner(id, name, slug, status),
+          brand:brands!inner(id, name, slug, status, location),
           category:categories(id, name, slug)
         `)
         .eq("slug", slug)
