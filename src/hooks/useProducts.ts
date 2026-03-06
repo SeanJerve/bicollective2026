@@ -50,7 +50,7 @@ export const useProducts = () => {
         .from("products")
         .select(`
           *,
-          brand:brands!inner(id, name, slug, status),
+          brand:brands!inner(id, name, slug, status, location),
           category:categories(id, name, slug)
         `)
         .eq("is_active", true)
