@@ -9,6 +9,9 @@ interface DashboardStats {
   totalProducts: number;
   totalOrders: number;
   pendingReports: number;
+  pendingApplications: number;
+  pendingDisputes: number;
+  revenue: number;
 }
 
 const AdminDashboard = () => {
