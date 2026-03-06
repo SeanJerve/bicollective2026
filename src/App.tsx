@@ -180,6 +180,7 @@ const App = () => (
               <Route path="/account/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/account/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
               <Route path="/account/add-address" element={<ProtectedRoute><AddAddress /></ProtectedRoute>} />
+              <Route path="/account/to-review" element={<ProtectedRoute><ToReview /></ProtectedRoute>} />
 
               {/* Static Pages */}
               <Route path="/help" element={<HelpCenter />} />

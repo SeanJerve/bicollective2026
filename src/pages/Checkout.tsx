@@ -771,9 +771,13 @@ const Checkout = () => {
                 </div>
 
                 <div className="mt-6 p-4 bg-secondary">
-                  <h4 className="font-heading text-sm uppercase mb-2">Payment Instructions</h4>
+                  <h4 className="font-heading text-sm uppercase mb-2">Payment Method</h4>
                   <p className="text-sm text-muted-foreground">
-                    After placing your order, upload proof of payment (GCash or Bank Transfer) from your order history page.
+                    {paymentMethod === "cod"
+                      ? "Cash on Delivery — pay when you receive your order."
+                      : paymentMethod === "gcash"
+                      ? "GCash — your payment proof will be sent to the vendor for verification."
+                      : "Bank Transfer — your payment proof will be sent to the vendor for verification."}
                   </p>
                 </div>
               </div>
