@@ -1,5 +1,5 @@
-import { useParams, Link } from "react-router-dom";
-import { BadgeCheck, Minus, Plus, ShoppingBag, Star, ChevronRight, Heart } from "lucide-react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { BadgeCheck, Minus, Plus, ShoppingBag, Star, ChevronRight, Heart, Zap } from "lucide-react";
 import { useState, useEffect } from "react";
 import PageLayout from "@/components/layout/PageLayout";
 import ProductCard from "@/components/marketplace/ProductCard";
