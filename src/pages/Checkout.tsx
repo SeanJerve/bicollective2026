@@ -48,6 +48,14 @@ const Checkout = () => {
   const buyNowItem: BuyNowItem | null = location.state?.buyNowItem || null;
   const isBuyNow = !!buyNowItem;
 
+  // Selective cart checkout
+  const selectedCartItemIds: string[] | null = location.state?.selectedCartItemIds || null;
+
+  // Payment method state
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "gcash" | "bank_transfer">("cod");
+  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
+  const [uploadingProof, setUploadingProof] = useState(false);
+
   // Address state
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
 
