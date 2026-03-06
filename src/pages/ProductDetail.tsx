@@ -19,6 +19,7 @@ const ProductDetail = () => {
   const { user } = useAuth();
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Reviews state
   const [reviews, setReviews] = useState<any[]>([]);
