@@ -299,6 +299,45 @@ const VendorStore = () => {
             </p>
           </div>
 
+          {/* Store-wide Sale */}
+          <div className="border-t-2 border-foreground pt-5 md:pt-6">
+            <h2 className="font-heading text-sm md:text-base uppercase tracking-wide mb-4">Store-wide Sale</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="font-heading text-xs md:text-sm uppercase tracking-wide mb-2 block">
+                  Discount %
+                </label>
+                <input
+                  type="number"
+                  value={formData.store_sale_percent}
+                  onChange={(e) =>
+                    setFormData({ ...formData, store_sale_percent: Number(e.target.value) })
+                  }
+                  className="input-brutal text-sm md:text-base"
+                  min="0"
+                  max="100"
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="font-heading text-xs md:text-sm uppercase tracking-wide mb-2 block">
+                  Sale Ends
+                </label>
+                <input
+                  type="date"
+                  value={formData.store_sale_ends_at}
+                  onChange={(e) =>
+                    setFormData({ ...formData, store_sale_ends_at: e.target.value })
+                  }
+                  className="input-brutal text-sm md:text-base"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Set to 0% or leave end date empty to disable the sale
+            </p>
+          </div>
+
           <button type="submit" disabled={saving} className="btn-brutal w-full text-sm md:text-base">
             {saving ? "Saving..." : brand ? "Save Changes" : "Create Store"}
           </button>

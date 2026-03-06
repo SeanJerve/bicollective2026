@@ -401,17 +401,6 @@ const ProductForm = ({
           </div>
         )}
       </div>
-      <div>
-        <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
-          Description
-        </label>
-        <textarea
-          value={formData.description}
-          onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-          className="input-brutal w-full min-h-[100px] resize-y"
-          rows={4}
-        />
-      </div>
 
       {/* Stock */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
