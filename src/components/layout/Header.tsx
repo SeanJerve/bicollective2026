@@ -53,6 +53,7 @@ const Header = () => {
 
   const userMenuItems = [
     { href: "/account/orders", label: "My Orders", icon: ShoppingBag, badge: totalCustomer },
+    { href: "/account/to-review", label: "To Review", icon: Star },
     { href: "/account/wishlist", label: "Wishlist", icon: Heart },
     { href: "/account/vouchers", label: "My Vouchers", icon: Ticket },
     { href: "/account/profile", label: "Profile Settings", icon: UserCog },
