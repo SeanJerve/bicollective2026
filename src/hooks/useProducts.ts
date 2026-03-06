@@ -80,6 +80,11 @@ export const useProducts = () => {
         categorySlug: p.category?.slug || "",
         description: p.description || "",
         inStock: p.in_stock ?? true,
+        listingType: p.listing_type || "regular",
+        releaseDate: p.release_date || undefined,
+        preorderDiscountPercent: p.preorder_discount_percent || undefined,
+        storeSalePercent: p.brand?.store_sale_percent || undefined,
+        storeSaleEndsAt: p.brand?.store_sale_ends_at || undefined,
       }));
     },
   });
