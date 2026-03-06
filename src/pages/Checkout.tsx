@@ -32,6 +32,8 @@ interface BuyNowItem {
   };
 }
 
+type GroupedItems = Record<string, { brand: { id: string; name: string; slug: string; location?: string }; items: any[]; subtotal: number }>;
+
 const Checkout = () => {
   const { items, total, clearCart } = useCart();
   const { user } = useAuth();
