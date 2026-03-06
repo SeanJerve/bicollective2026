@@ -249,6 +249,9 @@ export const useProductsByBrand = (brandSlug: string) => {
         categorySlug: p.category?.slug || "",
         description: p.description || "",
         inStock: p.in_stock ?? true,
+        listingType: p.listing_type || "regular",
+        releaseDate: p.release_date || undefined,
+        preorderDiscountPercent: p.preorder_discount_percent || undefined,
       }));
     },
     enabled: !!brandSlug,
