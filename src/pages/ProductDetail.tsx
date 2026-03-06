@@ -177,15 +177,13 @@ const ProductDetail = () => {
       <section className="py-8 md:py-12">
         <div className="section-container">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-            {/* Product Image */}
-            <div className="card-brutal overflow-hidden">
-              <div className="aspect-[3/4] bg-muted">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
+            {/* Product Image Gallery */}
+            <div>
+              <ImageGallery
+                mainImage={product.image}
+                images={product.images}
+                alt={product.name}
+              />
             </div>
 
             {/* Product Info */}
