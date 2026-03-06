@@ -12,6 +12,7 @@ export interface Product {
   brandId: string;
   brandName: string;
   brandSlug: string;
+  brandLocation?: string;
   isVerifiedBrand: boolean;
   category: string;
   categorySlug: string;
