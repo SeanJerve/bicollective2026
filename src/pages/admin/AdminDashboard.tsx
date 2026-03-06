@@ -222,6 +222,59 @@ const AdminDashboard = () => {
             </div>
           </div>
         </div>
+
+        <div className="card-brutal p-4 md:p-6">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center flex-shrink-0 ${
+              stats.pendingApplications > 0 ? "bg-accent" : "bg-secondary"
+            }`}>
+              <FileText className="w-5 h-5 md:w-6 md:h-6" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Applications</p>
+              <p className="font-heading text-xl md:text-2xl">{stats.pendingApplications}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card-brutal p-4 md:p-6">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center flex-shrink-0 ${
+              stats.pendingDisputes > 0 ? "bg-destructive/20" : "bg-secondary"
+            }`}>
+              <Scale className={`w-5 h-5 md:w-6 md:h-6 ${
+                stats.pendingDisputes > 0 ? "text-destructive" : ""
+              }`} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Disputes</p>
+              <p className="font-heading text-xl md:text-2xl">{stats.pendingDisputes}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Links */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 md:mb-8">
+        {[
+          { label: "Applications", to: "/admin/applications", count: stats.pendingApplications },
+          { label: "Disputes", to: "/admin/disputes", count: stats.pendingDisputes },
+          { label: "Reports", to: "/admin/reports", count: stats.pendingReports },
+          { label: "Analytics", to: "/admin/analytics", count: null },
+        ].map((link) => (
+          <Link
+            key={link.to}
+            to={link.to}
+            className="card-brutal p-4 text-center hover:bg-secondary transition-colors"
+          >
+            <span className="font-heading text-sm uppercase">{link.label}</span>
+            {link.count !== null && link.count > 0 && (
+              <span className="ml-2 px-2 py-0.5 text-xs bg-destructive text-destructive-foreground">
+                {link.count}
+              </span>
+            )}
+          </Link>
+        ))}
       </div>
 
       {/* Recent Vendors */}
