@@ -280,9 +280,26 @@ const Checkout = () => {
     if (!user) { toast({ title: "Please sign in", variant: "destructive" }); return; }
     if (checkoutItems.length === 0) { toast({ title: "No items to checkout", variant: "destructive" }); return; }
     if (!selectedAddress) { toast({ title: "Please select an address", variant: "destructive" }); return; }
+    if (paymentMethod !== "cod" && !paymentProofFile) {
+      toast({ title: "Payment proof required", description: "Please upload proof of payment for GCash/Bank Transfer", variant: "destructive" });
+      return;
+    }
 
     setLoading(true);
     try {
+      // Upload payment proof if needed
+      let paymentProofUrl: string | null = null;
+      if (paymentProofFile && paymentMethod !== "cod") {
+        setUploadingProof(true);
+        const ext = paymentProofFile.name.split(".").pop();
+        const path = `${user.id}/${Date.now()}.${ext}`;
+        const { error: uploadErr } = await supabase.storage.from("payment-proofs").upload(path, paymentProofFile);
+        if (uploadErr) throw uploadErr;
+        const { data: urlData } = supabase.storage.from("payment-proofs").getPublicUrl(path);
+        paymentProofUrl = urlData.publicUrl;
+        setUploadingProof(false);
+      }
+
       const shippingAddressStr = `${selectedAddress.street}, ${selectedAddress.barangay}, ${selectedAddress.city}, ${selectedAddress.province} ${selectedAddress.zip_code}`;
 
       const { data: order, error: orderError } = await supabase
@@ -311,6 +328,8 @@ const Checkout = () => {
           ? Math.max(0, brandShippingAfterVoucher - Math.round(promoFreeShipping * brandShipping / totalShippingOriginal))
           : brandShippingAfterVoucher;
 
+        const initialStatus = paymentMethod === "cod" ? "pending_payment" : "payment_uploaded";
+
         const { data: vendorOrder, error: vendorOrderError } = await supabase
           .from("vendor_orders")
           .insert({
@@ -323,7 +342,9 @@ const Checkout = () => {
             discount_amount: Math.round(promoDiscount * group.subtotal / productSubtotal),
             voucher_id: selectedVouchers.length > 0 ? selectedVouchers[0].id : null,
             promo_code_applied: appliedPromo?.code || null,
-            status: "pending_payment",
+            status: initialStatus,
+            payment_method: paymentMethod,
+            payment_proof_url: paymentProofUrl,
           })
           .select()
           .single();
@@ -360,9 +381,16 @@ const Checkout = () => {
         } catch {}
       }
 
-      // Only clear cart if NOT buy now mode
+      // Only clear selected items from cart (not buy now mode)
       if (!isBuyNow) {
-        await clearCart();
+        if (selectedCartItemIds) {
+          // Only remove selected items from cart
+          for (const itemId of selectedCartItemIds) {
+            await supabase.from("cart_items").delete().eq("id", itemId);
+          }
+        } else {
+          await clearCart();
+        }
       }
       setOrderId(order.id);
       setOrderComplete(true);
@@ -371,6 +399,7 @@ const Checkout = () => {
       toast({ title: "Checkout failed", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
+      setUploadingProof(false);
     }
   };
 
