@@ -63,6 +63,7 @@ import Disputes from "./pages/account/Disputes";
 import Profile from "./pages/account/Profile";
 import Wishlist from "./pages/account/Wishlist";
 import AddAddress from "./pages/account/AddAddress";
+import ToReview from "./pages/account/ToReview";
 
 // Static pages
 import HelpCenter from "./pages/static/HelpCenter";
