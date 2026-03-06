@@ -75,6 +75,8 @@ export type Database = {
           shipping_per_item_fee: number | null
           slug: string
           status: Database["public"]["Enums"]["vendor_status"]
+          store_sale_ends_at: string | null
+          store_sale_percent: number | null
           updated_at: string
         }
         Insert: {
@@ -92,6 +94,8 @@ export type Database = {
           shipping_per_item_fee?: number | null
           slug: string
           status?: Database["public"]["Enums"]["vendor_status"]
+          store_sale_ends_at?: string | null
+          store_sale_percent?: number | null
           updated_at?: string
         }
         Update: {
@@ -109,6 +113,8 @@ export type Database = {
           shipping_per_item_fee?: number | null
           slug?: string
           status?: Database["public"]["Enums"]["vendor_status"]
+          store_sale_ends_at?: string | null
+          store_sale_percent?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -497,9 +503,12 @@ export type Database = {
           images: string[] | null
           in_stock: boolean | null
           is_active: boolean | null
+          listing_type: string
           name: string
           original_price: number | null
+          preorder_discount_percent: number | null
           price: number
+          release_date: string | null
           sizes: string[] | null
           slug: string
           stock_quantity: number | null
@@ -515,9 +524,12 @@ export type Database = {
           images?: string[] | null
           in_stock?: boolean | null
           is_active?: boolean | null
+          listing_type?: string
           name: string
           original_price?: number | null
+          preorder_discount_percent?: number | null
           price: number
+          release_date?: string | null
           sizes?: string[] | null
           slug: string
           stock_quantity?: number | null
@@ -533,9 +545,12 @@ export type Database = {
           images?: string[] | null
           in_stock?: boolean | null
           is_active?: boolean | null
+          listing_type?: string
           name?: string
           original_price?: number | null
+          preorder_discount_percent?: number | null
           price?: number
+          release_date?: string | null
           sizes?: string[] | null
           slug?: string
           stock_quantity?: number | null
