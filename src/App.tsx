@@ -62,6 +62,7 @@ import Vouchers from "./pages/account/Vouchers";
 import Disputes from "./pages/account/Disputes";
 import Profile from "./pages/account/Profile";
 import Wishlist from "./pages/account/Wishlist";
+import AddAddress from "./pages/account/AddAddress";
 
 // Static pages
 import HelpCenter from "./pages/static/HelpCenter";
