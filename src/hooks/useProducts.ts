@@ -125,6 +125,11 @@ export const useProduct = (slug: string) => {
         categorySlug: data.category?.slug || "",
         description: data.description || "",
         inStock: data.in_stock ?? true,
+        listingType: data.listing_type || "regular",
+        releaseDate: data.release_date || undefined,
+        preorderDiscountPercent: data.preorder_discount_percent || undefined,
+        storeSalePercent: data.brand?.store_sale_percent || undefined,
+        storeSaleEndsAt: data.brand?.store_sale_ends_at || undefined,
       };
     },
     enabled: !!slug,
