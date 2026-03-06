@@ -371,10 +371,10 @@ const ProductDetail = () => {
                     addToCart(product.id, quantity, selectedSize);
                   }}
                   className="btn-brutal-secondary w-full flex items-center justify-center gap-2 text-sm md:text-base"
-                  disabled={!product.inStock}
+                  disabled={!product.inStock || product.listingType === "teaser"}
                 >
                   <ShoppingBag className="w-4 h-4 md:w-5 md:h-5" />
-                  Add to Cart
+                  {product.listingType === "teaser" ? "Add to Wishlist" : "Add to Cart"}
                 </button>
               </div>
 
