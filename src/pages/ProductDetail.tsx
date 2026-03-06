@@ -219,17 +219,42 @@ const ProductDetail = () => {
                 <span className="text-xs md:text-sm text-muted-foreground">({reviewCount} reviews)</span>
               </div>
 
+              {/* Listing Type Badge */}
+              {product.listingType === "teaser" && (
+                <div className="mb-4 inline-flex items-center gap-2 px-3 py-1.5 bg-muted border-2 border-foreground text-sm font-heading uppercase">
+                  <Clock className="w-4 h-4" />
+                  Coming Soon
+                </div>
+              )}
+              {product.listingType === "preorder" && (
+                <div className="mb-4 inline-flex items-center gap-2 px-3 py-1.5 bg-accent border-2 border-foreground text-sm font-heading uppercase">
+                  <Zap className="w-4 h-4" />
+                  Pre-order {product.preorderDiscountPercent ? `— ${product.preorderDiscountPercent}% OFF` : ""}
+                </div>
+              )}
+              {product.releaseDate && (
+                <p className="text-xs text-muted-foreground mb-4">
+                  Release date: {new Date(product.releaseDate).toLocaleDateString()}
+                </p>
+              )}
+
               {/* Price */}
               <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-6 md:mb-8">
-                <span className="font-heading text-2xl md:text-3xl">{formatPrice(product.price)}</span>
-                {product.originalPrice && product.originalPrice > product.price && (
+                {product.listingType === "teaser" ? (
+                  <span className="font-heading text-2xl md:text-3xl text-muted-foreground">Price TBA</span>
+                ) : (
                   <>
-                    <span className="text-lg md:text-xl text-muted-foreground line-through">
-                      {formatPrice(product.originalPrice)}
-                    </span>
-                    <span className="badge-verified text-xs">
-                      {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
-                    </span>
+                    <span className="font-heading text-2xl md:text-3xl">{formatPrice(product.price)}</span>
+                    {product.originalPrice && product.originalPrice > product.price && (
+                      <>
+                        <span className="text-lg md:text-xl text-muted-foreground line-through">
+                          {formatPrice(product.originalPrice)}
+                        </span>
+                        <span className="badge-verified text-xs">
+                          {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
+                        </span>
+                      </>
+                    )}
                   </>
                 )}
               </div>
