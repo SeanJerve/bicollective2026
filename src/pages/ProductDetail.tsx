@@ -351,10 +351,10 @@ const ProductDetail = () => {
                     });
                   }}
                   className="btn-brutal w-full flex items-center justify-center gap-2 text-sm md:text-base"
-                  disabled={!product.inStock}
+                  disabled={!product.inStock || product.listingType === "teaser"}
                 >
                   <Zap className="w-4 h-4 md:w-5 md:h-5" />
-                  {product.inStock ? "Buy Now" : "Out of Stock"}
+                  {product.listingType === "teaser" ? "Coming Soon" : product.listingType === "preorder" ? "Pre-order Now" : product.inStock ? "Buy Now" : "Out of Stock"}
                 </button>
 
                 {/* Add to Cart */}
