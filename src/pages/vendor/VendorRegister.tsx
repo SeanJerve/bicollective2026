@@ -147,7 +147,7 @@ const VendorRegister = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.from("vendor_applications").insert({
+      const applicationData = {
         user_id: user.id,
         business_name: formData.businessName,
         business_type: formData.businessType,
@@ -157,13 +157,25 @@ const VendorRegister = () => {
         business_permit_url: formData.businessPermitUrl,
         valid_id_url: formData.validIdUrl,
         proof_of_products_url: formData.proofOfProductsUrl,
-        status: "pending",
-      });
+        status: "pending" as const,
+      };
+
+      let error;
+      if (existingApplication?.status === "needs_resubmission") {
+        // Update existing application
+        ({ error } = await supabase
+          .from("vendor_applications")
+          .update(applicationData)
+          .eq("id", existingApplication.id));
+      } else {
+        // Insert new application
+        ({ error } = await supabase.from("vendor_applications").insert(applicationData));
+      }
 
       if (error) throw error;
 
       toast({
-        title: "Application submitted!",
+        title: existingApplication ? "Application resubmitted!" : "Application submitted!",
         description: "We'll review your application and get back to you soon.",
       });
 

@@ -151,6 +151,16 @@ const Header = () => {
                             )}
                           </Link>
                         )}
+                        {!isVendor && !isAdmin && (
+                          <Link
+                            to="/vendor/register"
+                            onClick={() => setIsUserMenuOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary"
+                          >
+                            <Store className="w-4 h-4" />
+                            Become a Vendor
+                          </Link>
+                        )}
                         {isAdmin && (
                           <Link
                             to="/admin"

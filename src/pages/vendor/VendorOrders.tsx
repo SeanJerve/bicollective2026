@@ -306,8 +306,18 @@ const VendorOrders = () => {
                   )}
                   {order.status === "processing" && (
                     <button
-                      onClick={() => updateOrderStatus(order.id, "shipped")}
-                      className="btn-brutal flex items-center gap-2 text-sm"
+                      onClick={() => {
+                        if (!order.tracking_number) {
+                          toast({
+                            title: "Tracking number required",
+                            description: "Please enter and save a tracking number before marking as shipped",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        updateOrderStatus(order.id, "shipped");
+                      }}
+                      className={`btn-brutal flex items-center gap-2 text-sm ${!order.tracking_number ? "opacity-60" : ""}`}
                     >
                       <Truck className="w-4 h-4" />
                       Mark as Shipped
