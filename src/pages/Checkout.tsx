@@ -115,15 +115,15 @@ const Checkout = () => {
 
   // Group items by brand
   const groupedItems = useMemo(() => {
-    return checkoutItems.reduce((acc, item) => {
+    return checkoutItems.reduce((acc: Record<string, { brand: { id: string; name: string; slug: string; location?: string }; items: any[]; subtotal: number }>, item: any) => {
       const brandId = item.product.brand_id;
       if (!acc[brandId]) {
-        acc[brandId] = { brand: (item.product as any).brand, items: [], subtotal: 0 };
+        acc[brandId] = { brand: item.product.brand, items: [], subtotal: 0 };
       }
       acc[brandId].items.push(item);
       acc[brandId].subtotal += Number(item.product.price) * item.quantity;
       return acc;
-    }, {} as Record<string, { brand: { id: string; name: string; slug: string; location?: string }; items: typeof checkoutItems; subtotal: number }>);
+    }, {});
   }, [checkoutItems]);
 
   // Fetch active auto-apply promos
