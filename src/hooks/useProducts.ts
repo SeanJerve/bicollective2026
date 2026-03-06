@@ -69,6 +69,7 @@ export const useProducts = () => {
         brandId: p.brand?.id || "",
         brandName: p.brand?.name || "",
         brandSlug: p.brand?.slug || "",
+        brandLocation: p.brand?.location || undefined,
         isVerifiedBrand: p.brand?.status === "verified",
         category: p.category?.name || "",
         categorySlug: p.category?.slug || "",
