@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Users, Package, ShoppingCart, BadgeCheck, TrendingUp, AlertTriangle } from "lucide-react";
+import { Users, Package, ShoppingCart, BadgeCheck, TrendingUp, AlertTriangle, FileText, Scale, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface DashboardStats {
