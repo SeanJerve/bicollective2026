@@ -1,5 +1,5 @@
-import { useParams, Link } from "react-router-dom";
-import { BadgeCheck, Minus, Plus, ShoppingBag, Star, ChevronRight, Heart } from "lucide-react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { BadgeCheck, Minus, Plus, ShoppingBag, Star, ChevronRight, Heart, Zap } from "lucide-react";
 import { useState, useEffect } from "react";
 import PageLayout from "@/components/layout/PageLayout";
 import ProductCard from "@/components/marketplace/ProductCard";
@@ -19,6 +19,7 @@ const ProductDetail = () => {
   const { user } = useAuth();
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Reviews state
   const [reviews, setReviews] = useState<any[]>([]);
@@ -289,8 +290,50 @@ const ProductDetail = () => {
                 </div>
               </div>
 
-              {/* Add to Cart */}
-              <div className="space-y-4">
+              {/* Actions */}
+              <div className="space-y-3">
+                {/* Buy Now */}
+                <button
+                  onClick={() => {
+                    if (!selectedSize) {
+                      toast({
+                        title: "Please select a size",
+                        description: "Choose a size before buying",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    navigate("/checkout", {
+                      state: {
+                        buyNowItem: {
+                          product_id: product.id,
+                          quantity,
+                          size: selectedSize,
+                          product: {
+                            id: product.id,
+                            name: product.name,
+                            price: product.price,
+                            image_url: product.image,
+                            brand_id: product.brandId,
+                            brand: {
+                              id: product.brandId,
+                              name: product.brandName,
+                              slug: product.brandSlug,
+                              location: product.brandLocation || "Albay",
+                            },
+                          },
+                        },
+                      },
+                    });
+                  }}
+                  className="btn-brutal w-full flex items-center justify-center gap-2 text-sm md:text-base"
+                  disabled={!product.inStock}
+                >
+                  <Zap className="w-4 h-4 md:w-5 md:h-5" />
+                  {product.inStock ? "Buy Now" : "Out of Stock"}
+                </button>
+
+                {/* Add to Cart */}
                 <button
                   onClick={() => {
                     if (!selectedSize) {
@@ -303,21 +346,11 @@ const ProductDetail = () => {
                     }
                     addToCart(product.id, quantity, selectedSize);
                   }}
-                  className="btn-brutal w-full flex items-center justify-center gap-2 text-sm md:text-base"
+                  className="btn-brutal-secondary w-full flex items-center justify-center gap-2 text-sm md:text-base"
                   disabled={!product.inStock}
                 >
                   <ShoppingBag className="w-4 h-4 md:w-5 md:h-5" />
-                  {product.inStock ? "Add to Cart" : "Out of Stock"}
-                </button>
-                <button
-                  onClick={toggleWishlist}
-                  disabled={wishlistLoading}
-                  className={`btn-brutal-secondary w-full flex items-center justify-center gap-2 text-sm md:text-base ${
-                    isWishlisted ? "bg-destructive/10 border-destructive text-destructive" : ""
-                  }`}
-                >
-                  <Heart className={`w-4 h-4 md:w-5 md:h-5 ${isWishlisted ? "fill-destructive" : ""}`} />
-                  {isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+                  Add to Cart
                 </button>
               </div>
 

@@ -12,6 +12,7 @@ export interface Product {
   brandId: string;
   brandName: string;
   brandSlug: string;
+  brandLocation?: string;
   isVerifiedBrand: boolean;
   category: string;
   categorySlug: string;
@@ -49,7 +50,7 @@ export const useProducts = () => {
         .from("products")
         .select(`
           *,
-          brand:brands!inner(id, name, slug, status),
+          brand:brands!inner(id, name, slug, status, location),
           category:categories(id, name, slug)
         `)
         .eq("is_active", true)
@@ -68,6 +69,7 @@ export const useProducts = () => {
         brandId: p.brand?.id || "",
         brandName: p.brand?.name || "",
         brandSlug: p.brand?.slug || "",
+        brandLocation: p.brand?.location || undefined,
         isVerifiedBrand: p.brand?.status === "verified",
         category: p.category?.name || "",
         categorySlug: p.category?.slug || "",
@@ -87,7 +89,7 @@ export const useProduct = (slug: string) => {
         .from("products")
         .select(`
           *,
-          brand:brands!inner(id, name, slug, status),
+          brand:brands!inner(id, name, slug, status, location),
           category:categories(id, name, slug)
         `)
         .eq("slug", slug)
@@ -107,6 +109,7 @@ export const useProduct = (slug: string) => {
         brandId: data.brand?.id || "",
         brandName: data.brand?.name || "",
         brandSlug: data.brand?.slug || "",
+        brandLocation: data.brand?.location || undefined,
         isVerifiedBrand: data.brand?.status === "verified",
         category: data.category?.name || "",
         categorySlug: data.category?.slug || "",

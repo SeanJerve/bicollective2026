@@ -62,6 +62,7 @@ import Vouchers from "./pages/account/Vouchers";
 import Disputes from "./pages/account/Disputes";
 import Profile from "./pages/account/Profile";
 import Wishlist from "./pages/account/Wishlist";
+import AddAddress from "./pages/account/AddAddress";
 
 // Static pages
 import HelpCenter from "./pages/static/HelpCenter";
@@ -177,6 +178,7 @@ const App = () => (
               <Route path="/account/disputes" element={<ProtectedRoute><Disputes /></ProtectedRoute>} />
               <Route path="/account/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/account/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
+              <Route path="/account/add-address" element={<ProtectedRoute><AddAddress /></ProtectedRoute>} />
 
               {/* Static Pages */}
               <Route path="/help" element={<HelpCenter />} />
