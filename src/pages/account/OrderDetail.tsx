@@ -6,8 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import PaymentProofUpload from "@/components/account/PaymentProofUpload";
 import ReviewForm from "@/components/account/ReviewForm";
+import OrderChat from "@/components/chat/OrderChat";
 
 const statusColors: Record<string, string> = {
   pending_payment: "bg-warning text-warning-foreground",
