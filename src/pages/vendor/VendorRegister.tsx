@@ -200,7 +200,8 @@ const VendorRegister = () => {
     );
   }
 
-  if (existingApplication) {
+  // If needs_resubmission, allow editing; otherwise redirect to status
+  if (existingApplication && existingApplication.status !== "needs_resubmission") {
     return (
       <PageLayout>
         <div className="section-container py-16 text-center">
