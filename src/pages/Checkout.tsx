@@ -92,7 +92,7 @@ const Checkout = () => {
   const formatPrice = (amount: number) =>
     new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(amount);
 
-  // Build checkout items - either from cart or buy now
+  // Build checkout items
   const checkoutItems = useMemo(() => {
     if (isBuyNow && buyNowItem) {
       return [{
@@ -100,8 +100,11 @@ const Checkout = () => {
         product_id: buyNowItem.product_id,
         quantity: buyNowItem.quantity,
         size: buyNowItem.size,
-        product: buyNowItem.product,
-      }];
+        product: {
+          ...buyNowItem.product,
+          slug: "",
+        },
+      }] as any[];
     }
     return items;
   }, [isBuyNow, buyNowItem, items]);
