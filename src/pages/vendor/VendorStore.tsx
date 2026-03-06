@@ -61,6 +61,8 @@ const VendorStore = () => {
             logo_url: data.logo_url || "",
             banner_url: data.banner_url || "",
             location: data.location || "",
+            store_sale_percent: data.store_sale_percent || 0,
+            store_sale_ends_at: data.store_sale_ends_at ? data.store_sale_ends_at.split("T")[0] : "",
           });
         }
       } catch (error) {
