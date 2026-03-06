@@ -57,6 +57,29 @@ const AdminDashboard = () => {
           .select("*", { count: "exact", head: true })
           .eq("status", "pending");
 
+        // Get pending applications
+        const { count: pendingApplications } = await supabase
+          .from("vendor_applications")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "pending");
+
+        // Get pending disputes
+        const { count: pendingDisputes } = await supabase
+          .from("disputes")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "pending");
+
+        // Get revenue from delivered orders
+        const { data: deliveredOrders } = await supabase
+          .from("vendor_orders")
+          .select("subtotal, shipping_fee")
+          .eq("status", "delivered");
+
+        const revenue = (deliveredOrders || []).reduce(
+          (sum, o) => sum + Number(o.subtotal) + Number(o.shipping_fee || 0),
+          0
+        );
+
         // Get recent vendors
         const { data: vendors } = await supabase
           .from("brands")
@@ -70,6 +93,9 @@ const AdminDashboard = () => {
           totalProducts: totalProducts || 0,
           totalOrders: totalOrders || 0,
           pendingReports: pendingReports || 0,
+          pendingApplications: pendingApplications || 0,
+          pendingDisputes: pendingDisputes || 0,
+          revenue,
         });
 
         setRecentVendors(vendors || []);
