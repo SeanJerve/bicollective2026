@@ -243,7 +243,7 @@ const OrderDetail = () => {
               <div className="border-t border-border-subtle pt-4 mt-4 flex justify-end">
                 <OrderChat
                   vendorOrderId={vo.id}
-                  otherUserId={vo.brand?.id || ""}
+                  otherUserId={vo.brand?.owner_id || ""}
                   otherUserName={vo.brand?.name || "Vendor"}
                 />
               </div>
