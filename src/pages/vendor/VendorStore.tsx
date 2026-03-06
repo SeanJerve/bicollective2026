@@ -19,6 +19,8 @@ const VendorStore = () => {
     logo_url: "",
     banner_url: "",
     location: "",
+    store_sale_percent: 0,
+    store_sale_ends_at: "",
   });
 
   const BICOL_LOCATIONS = [
