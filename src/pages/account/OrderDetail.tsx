@@ -49,7 +49,7 @@ const OrderDetail = () => {
             shipping_fee,
             tracking_number,
             payment_proof_url,
-            brand:brands(id, name, slug),
+            brand:brands(id, name, slug, owner_id),
             order_items(id, product_name, product_price, quantity, size, product_id)
           )
         `)
