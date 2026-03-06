@@ -356,6 +356,63 @@ const ProductForm = ({
         />
       </div>
 
+      {/* Listing Type */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
+            Listing Type
+          </label>
+          <select
+            value={formData.listingType}
+            onChange={(e) => setFormData((prev) => ({ ...prev, listingType: e.target.value }))}
+            className="input-brutal w-full"
+          >
+            <option value="regular">Regular</option>
+            <option value="preorder">Pre-order</option>
+            <option value="teaser">Teaser (Coming Soon)</option>
+          </select>
+        </div>
+        {(formData.listingType === "preorder" || formData.listingType === "teaser") && (
+          <div>
+            <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
+              Release Date
+            </label>
+            <input
+              type="date"
+              value={formData.releaseDate}
+              onChange={(e) => setFormData((prev) => ({ ...prev, releaseDate: e.target.value }))}
+              className="input-brutal w-full"
+            />
+          </div>
+        )}
+        {formData.listingType === "preorder" && (
+          <div>
+            <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
+              Pre-order Discount %
+            </label>
+            <input
+              type="number"
+              value={formData.preorderDiscountPercent}
+              onChange={(e) => setFormData((prev) => ({ ...prev, preorderDiscountPercent: Number(e.target.value) }))}
+              className="input-brutal w-full"
+              min="0"
+              max="100"
+            />
+          </div>
+        )}
+      </div>
+      <div>
+        <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
+          Description
+        </label>
+        <textarea
+          value={formData.description}
+          onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+          className="input-brutal w-full min-h-[100px] resize-y"
+          rows={4}
+        />
+      </div>
+
       {/* Stock */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
