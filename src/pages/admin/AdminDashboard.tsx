@@ -21,6 +21,9 @@ const AdminDashboard = () => {
     totalProducts: 0,
     totalOrders: 0,
     pendingReports: 0,
+    pendingApplications: 0,
+    pendingDisputes: 0,
+    revenue: 0,
   });
   const [recentVendors, setRecentVendors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
