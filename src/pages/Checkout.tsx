@@ -1,9 +1,8 @@
-import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { CheckCircle, Ticket, ChevronDown, ChevronUp } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { CheckCircle, Ticket, ChevronDown, ChevronUp, MapPin } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import ShippingCalculator, { calculateShippingFee, BICOL_PROVINCES } from "@/components/checkout/ShippingCalculator";
-import VoucherSelector from "@/components/checkout/VoucherSelector";
 import PromoCodeInput from "@/components/checkout/PromoCodeInput";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -14,41 +13,117 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 
+interface BuyNowItem {
+  product_id: string;
+  quantity: number;
+  size: string;
+  product: {
+    id: string;
+    name: string;
+    price: number;
+    image_url: string;
+    brand_id: string;
+    brand: {
+      id: string;
+      name: string;
+      slug: string;
+      location?: string;
+    };
+  };
+}
+
 const Checkout = () => {
   const { items, total, clearCart } = useCart();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
 
-  // Discount state - Model C: fully stackable with safeguards
-  const [selectedVouchers, setSelectedVouchers] = useState<any[]>([]); // multiple peso vouchers
-  const [shippingVoucher, setShippingVoucher] = useState<any>(null); // single shipping voucher
-  const [appliedPromo, setAppliedPromo] = useState<any>(null);
-  const [buyerLocation, setBuyerLocation] = useState<string>("Albay");
-  const [showVouchers, setShowVouchers] = useState(false);
+  // Buy Now mode
+  const buyNowItem: BuyNowItem | null = location.state?.buyNowItem || null;
+  const isBuyNow = !!buyNowItem;
 
-  const [formData, setFormData] = useState({
-    fullName: "", phone: "", address: "", notes: "",
+  // Address state
+  const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+
+  // Discount state
+  const [selectedVouchers, setSelectedVouchers] = useState<any[]>([]);
+  const [shippingVoucher, setShippingVoucher] = useState<any>(null);
+  const [appliedPromo, setAppliedPromo] = useState<any>(null);
+  const [showVouchers, setShowVouchers] = useState(false);
+  const [notes, setNotes] = useState("");
+
+  // Fetch user addresses
+  const { data: addresses, isLoading: addressesLoading } = useQuery({
+    queryKey: ["user-addresses", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("addresses")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("is_default", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
   });
+
+  // Redirect to add address if none exist
+  useEffect(() => {
+    if (!addressesLoading && addresses && addresses.length === 0 && user) {
+      navigate("/account/add-address?returnTo=/checkout", { replace: true });
+    }
+  }, [addresses, addressesLoading, user, navigate]);
+
+  // Set default address on load
+  useEffect(() => {
+    if (addresses && addresses.length > 0 && !selectedAddressId) {
+      const defaultAddr = addresses.find((a) => a.is_default) || addresses[0];
+      setSelectedAddressId(defaultAddr.id);
+    }
+  }, [addresses, selectedAddressId]);
+
+  const selectedAddress = addresses?.find((a) => a.id === selectedAddressId);
+  const buyerLocation = selectedAddress?.province || "Albay";
 
   const formatPrice = (amount: number) =>
     new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(amount);
 
-  // Group items by brand
-  const groupedItems = items.reduce((acc, item) => {
-    const brandId = item.product.brand_id;
-    if (!acc[brandId]) {
-      acc[brandId] = { brand: item.product.brand, items: [], subtotal: 0 };
+  // Build checkout items - either from cart or buy now
+  const checkoutItems = useMemo(() => {
+    if (isBuyNow && buyNowItem) {
+      return [{
+        id: "buy-now",
+        product_id: buyNowItem.product_id,
+        quantity: buyNowItem.quantity,
+        size: buyNowItem.size,
+        product: buyNowItem.product,
+      }];
     }
-    acc[brandId].items.push(item);
-    acc[brandId].subtotal += Number(item.product.price) * item.quantity;
-    return acc;
-  }, {} as Record<string, { brand: { id: string; name: string; slug: string; location?: string }; items: typeof items; subtotal: number }>);
+    return items;
+  }, [isBuyNow, buyNowItem, items]);
 
-  // Fetch active auto-apply and sitewide promos
+  const productSubtotal = useMemo(() => {
+    return checkoutItems.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
+  }, [checkoutItems]);
+
+  // Group items by brand
+  const groupedItems = useMemo(() => {
+    return checkoutItems.reduce((acc, item) => {
+      const brandId = item.product.brand_id;
+      if (!acc[brandId]) {
+        acc[brandId] = { brand: (item.product as any).brand, items: [], subtotal: 0 };
+      }
+      acc[brandId].items.push(item);
+      acc[brandId].subtotal += Number(item.product.price) * item.quantity;
+      return acc;
+    }, {} as Record<string, { brand: { id: string; name: string; slug: string; location?: string }; items: typeof checkoutItems; subtotal: number }>);
+  }, [checkoutItems]);
+
+  // Fetch active auto-apply promos
   const { data: autoPromos } = useQuery({
     queryKey: ["auto-apply-promos"],
     queryFn: async () => {
@@ -65,7 +140,7 @@ const Checkout = () => {
     },
   });
 
-  // Fetch user's available vouchers
+  // Fetch user vouchers
   const { data: userVouchers } = useQuery({
     queryKey: ["checkout-vouchers", user?.id],
     queryFn: async () => {
@@ -81,14 +156,9 @@ const Checkout = () => {
     enabled: !!user,
   });
 
-  // STEP 1: Product subtotal (already 'total' from cart)
-  const productSubtotal = total;
-
-  // STEP 2: Apply vendor/sitewide promos to product subtotal
+  // Promo discount
   const promoDiscount = useMemo(() => {
     let discount = 0;
-
-    // Applied promo code (vendor or sitewide)
     if (appliedPromo && appliedPromo.type !== "free_shipping") {
       if (appliedPromo.type === "percentage_discount") {
         let d = (productSubtotal * appliedPromo.discount_value) / 100;
@@ -98,13 +168,10 @@ const Checkout = () => {
         discount += appliedPromo.discount_value;
       }
     }
-
-    // Auto-apply sitewide promos
     autoPromos?.forEach((promo) => {
-      if (promo.type === "free_shipping") return; // handled in shipping
+      if (promo.type === "free_shipping") return;
       if (promo.scope === "location" && promo.target_locations && !promo.target_locations.includes(buyerLocation)) return;
       if (promo.min_order_amount && productSubtotal < Number(promo.min_order_amount)) return;
-
       if (promo.type === "percentage_discount") {
         let d = (productSubtotal * Number(promo.discount_value)) / 100;
         if (promo.max_discount_amount) d = Math.min(d, Number(promo.max_discount_amount));
@@ -113,17 +180,16 @@ const Checkout = () => {
         discount += Number(promo.discount_value);
       }
     });
-
-    return Math.min(discount, productSubtotal); // cannot go below ₱0
+    return Math.min(discount, productSubtotal);
   }, [appliedPromo, autoPromos, productSubtotal, buyerLocation]);
 
   const discountedSubtotal = Math.max(0, productSubtotal - promoDiscount);
 
-  // STEP 3: Calculate shipping fees
+  // Shipping
   const shippingByBrand = useMemo(() => {
     const fees: Record<string, { original: number; final: number }> = {};
     Object.entries(groupedItems).forEach(([brandId, group]) => {
-      const sellerLocation = (group.brand as any).location || "Albay";
+      const sellerLocation = group.brand?.location || "Albay";
       const itemCount = group.items.reduce((sum, item) => sum + item.quantity, 0);
       const original = calculateShippingFee(sellerLocation, buyerLocation, itemCount);
       fees[brandId] = { original, final: original };
@@ -135,8 +201,7 @@ const Checkout = () => {
     Object.values(shippingByBrand).reduce((sum, fee) => sum + fee.original, 0)
   , [shippingByBrand]);
 
-  // STEP 4: Apply vouchers
-  // 4A: Peso vouchers deduct from total
+  // Voucher deductions
   const pesoVoucherDeduction = useMemo(() => {
     return selectedVouchers.reduce((sum, v) => {
       if (v.type === "percentage_discount") {
@@ -148,16 +213,14 @@ const Checkout = () => {
     }, 0);
   }, [selectedVouchers, discountedSubtotal]);
 
-  // 4B: Shipping voucher - fixed ₱50 deduction (one only)
   const shippingVoucherDeduction = useMemo(() => {
     if (!shippingVoucher) return 0;
     const deduction = Number(shippingVoucher.discount_value) || 50;
-    return Math.min(deduction, totalShippingOriginal); // can't exceed actual shipping
+    return Math.min(deduction, totalShippingOriginal);
   }, [shippingVoucher, totalShippingOriginal]);
 
   const finalShipping = Math.max(0, totalShippingOriginal - shippingVoucherDeduction);
 
-  // Also check promo code for free shipping
   const promoFreeShipping = useMemo(() => {
     if (appliedPromo?.type === "free_shipping") return Math.min(50, totalShippingOriginal);
     const autoFreeShip = autoPromos?.find((p) => p.type === "free_shipping" && p.is_active);
@@ -167,13 +230,10 @@ const Checkout = () => {
 
   const effectiveShipping = Math.max(0, finalShipping - promoFreeShipping);
 
-  // STEP 5: Final total
   const grandTotal = useMemo(() => {
-    const raw = discountedSubtotal + effectiveShipping - pesoVoucherDeduction;
-    return Math.max(0, raw);
+    return Math.max(0, discountedSubtotal + effectiveShipping - pesoVoucherDeduction);
   }, [discountedSubtotal, effectiveShipping, pesoVoucherDeduction]);
 
-  // Voucher management
   const pesoVouchers = userVouchers?.filter((v) => v.type !== "free_shipping") || [];
   const shippingVouchers = userVouchers?.filter((v) => v.type === "free_shipping") || [];
 
@@ -182,7 +242,6 @@ const Checkout = () => {
     if (exists) {
       setSelectedVouchers(selectedVouchers.filter((v) => v.id !== voucher.id));
     } else {
-      // Check min order
       if (voucher.min_order_amount && productSubtotal < Number(voucher.min_order_amount)) {
         toast({ title: "Minimum not met", description: `Min order ₱${Number(voucher.min_order_amount).toLocaleString()} required`, variant: "destructive" });
         return;
@@ -199,17 +258,16 @@ const Checkout = () => {
     }
   };
 
-  const handlePromoApply = (promo: any) => {
-    setAppliedPromo(promo);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) { toast({ title: "Please sign in", variant: "destructive" }); return; }
-    if (items.length === 0) { toast({ title: "Cart is empty", variant: "destructive" }); return; }
+    if (checkoutItems.length === 0) { toast({ title: "No items to checkout", variant: "destructive" }); return; }
+    if (!selectedAddress) { toast({ title: "Please select an address", variant: "destructive" }); return; }
 
     setLoading(true);
     try {
+      const shippingAddressStr = `${selectedAddress.street}, ${selectedAddress.barangay}, ${selectedAddress.city}, ${selectedAddress.province} ${selectedAddress.zip_code}`;
+
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert({
@@ -217,17 +275,16 @@ const Checkout = () => {
           total_amount: grandTotal,
           total_shipping: effectiveShipping,
           total_discount: promoDiscount + pesoVoucherDeduction + shippingVoucherDeduction + promoFreeShipping,
-          shipping_name: formData.fullName,
-          shipping_phone: formData.phone,
-          shipping_address: `${formData.address}, ${buyerLocation}`,
-          notes: formData.notes || null,
+          shipping_name: selectedAddress.full_name,
+          shipping_phone: selectedAddress.phone,
+          shipping_address: shippingAddressStr,
+          notes: notes || null,
         })
         .select()
         .single();
 
       if (orderError) throw orderError;
 
-      // Create vendor orders
       for (const [brandId, group] of Object.entries(groupedItems)) {
         const brandShipping = shippingByBrand[brandId]?.original || 0;
         const brandShippingAfterVoucher = shippingVoucher
@@ -277,7 +334,6 @@ const Checkout = () => {
         }).eq("id", v.id);
       }
 
-      // Increment promo usage
       if (appliedPromo?.id) {
         try {
           await supabase
@@ -287,7 +343,10 @@ const Checkout = () => {
         } catch {}
       }
 
-      await clearCart();
+      // Only clear cart if NOT buy now mode
+      if (!isBuyNow) {
+        await clearCart();
+      }
       setOrderId(order.id);
       setOrderComplete(true);
     } catch (error: any) {
@@ -314,10 +373,25 @@ const Checkout = () => {
             </div>
             <div className="space-y-4">
               <button onClick={() => navigate("/account/orders")} className="btn-brutal w-full">View My Orders</button>
-              <button onClick={() => navigate("/products")} className="btn-brutal-secondary w-full">Continue Shopping</button>
+              {isBuyNow ? (
+                <button onClick={() => navigate(-1)} className="btn-brutal-secondary w-full">Back to Product</button>
+              ) : (
+                <button onClick={() => navigate("/products")} className="btn-brutal-secondary w-full">Continue Shopping</button>
+              )}
             </div>
           </div>
         </section>
+      </PageLayout>
+    );
+  }
+
+  if (addressesLoading) {
+    return (
+      <PageLayout>
+        <div className="section-container py-20 text-center">
+          <div className="skeleton-brutal h-8 w-48 mx-auto mb-4" />
+          <div className="skeleton-brutal h-4 w-64 mx-auto" />
+        </div>
       </PageLayout>
     );
   }
@@ -333,36 +407,83 @@ const Checkout = () => {
       <section className="py-12">
         <div className="section-container">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Shipping Form */}
+            {/* Shipping Address & Notes */}
             <div>
-              <h2 className="font-heading text-2xl uppercase mb-6">Shipping Information</h2>
+              <h2 className="font-heading text-2xl uppercase mb-6">Delivery Address</h2>
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label className="font-heading text-sm uppercase tracking-wide mb-2 block">Full Name</label>
-                  <input type="text" value={formData.fullName} onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} className="input-brutal" placeholder="Juan Dela Cruz" required />
+                {/* Address Selector */}
+                <div className="card-brutal p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-5 h-5" />
+                      <span className="font-heading text-sm uppercase">Select Address</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate("/account/add-address?returnTo=/checkout")}
+                      className="text-xs underline hover:text-foreground text-muted-foreground"
+                    >
+                      + Add New
+                    </button>
+                  </div>
+
+                  {addresses && addresses.length > 0 ? (
+                    <div className="space-y-2">
+                      {addresses.map((addr) => (
+                        <label
+                          key={addr.id}
+                          className={`block p-3 border-2 cursor-pointer transition-colors ${
+                            selectedAddressId === addr.id
+                              ? "border-foreground bg-secondary/50"
+                              : "border-border-subtle hover:border-foreground/50"
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <input
+                              type="radio"
+                              name="address"
+                              checked={selectedAddressId === addr.id}
+                              onChange={() => setSelectedAddressId(addr.id)}
+                              className="mt-1"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-heading text-sm">{addr.full_name}</span>
+                                {addr.is_default && (
+                                  <span className="text-xs bg-foreground text-background px-2 py-0.5">DEFAULT</span>
+                                )}
+                                <span className="text-xs text-muted-foreground">({addr.label})</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">{addr.phone}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {addr.street}, {addr.barangay}, {addr.city}, {addr.province} {addr.zip_code}
+                              </p>
+                            </div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No addresses found.</p>
+                  )}
                 </div>
-                <div>
-                  <label className="font-heading text-sm uppercase tracking-wide mb-2 block">Phone Number</label>
-                  <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input-brutal" placeholder="+63 9XX XXX XXXX" required />
-                </div>
-                <div>
-                  <label className="font-heading text-sm uppercase tracking-wide mb-2 block">Shipping Address</label>
-                  <textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input-brutal min-h-[80px]" placeholder="Street, Barangay, City" required />
-                </div>
-                <div>
-                  <label className="font-heading text-sm uppercase tracking-wide mb-2 block">Province (shipping calculation)</label>
-                  <Select value={buyerLocation} onValueChange={setBuyerLocation}>
-                    <SelectTrigger className="input-brutal"><SelectValue placeholder="Select province" /></SelectTrigger>
-                    <SelectContent>
-                      {BICOL_PROVINCES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
+
+                {/* Notes */}
                 <div>
                   <label className="font-heading text-sm uppercase tracking-wide mb-2 block">Order Notes (Optional)</label>
-                  <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="input-brutal min-h-[80px]" placeholder="Any special instructions..." />
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="input-brutal min-h-[80px]"
+                    placeholder="Any special instructions..."
+                  />
                 </div>
-                <button type="submit" disabled={loading || items.length === 0} className="btn-brutal w-full">
+
+                <button
+                  type="submit"
+                  disabled={loading || checkoutItems.length === 0 || !selectedAddress}
+                  className="btn-brutal w-full"
+                >
                   {loading ? "Placing Order..." : "Place Order"}
                 </button>
               </form>
@@ -375,12 +496,12 @@ const Checkout = () => {
                 {/* Items by brand */}
                 {Object.entries(groupedItems).map(([brandId, group]) => (
                   <div key={brandId} className="pb-6 mb-6 border-b border-border-subtle last:border-0 last:pb-0 last:mb-0">
-                    <h3 className="font-heading uppercase mb-4">{group.brand.name}</h3>
+                    <h3 className="font-heading uppercase mb-4">{group.brand?.name || "Unknown Brand"}</h3>
                     <div className="space-y-3">
                       {group.items.map((item) => (
                         <div key={item.id} className="flex gap-4">
                           <div className="w-14 h-18 bg-muted flex-shrink-0">
-                            {item.product.image_url && <img src={item.product.image_url} alt={item.product.name} className="w-full h-full object-cover" />}
+                            {(item.product as any).image_url && <img src={(item.product as any).image_url} alt={item.product.name} className="w-full h-full object-cover" />}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm truncate">{item.product.name}</p>
@@ -397,7 +518,7 @@ const Checkout = () => {
                     </div>
                     <div className="mt-2">
                       <ShippingCalculator
-                        sellerLocation={(group.brand as any).location || "Albay"}
+                        sellerLocation={group.brand?.location || "Albay"}
                         buyerLocation={buyerLocation}
                         itemCount={group.items.reduce((sum, i) => sum + i.quantity, 0)}
                         hasFreeShipping={!!shippingVoucher || appliedPromo?.type === "free_shipping"}
@@ -406,18 +527,18 @@ const Checkout = () => {
                   </div>
                 ))}
 
-                {/* PROMO CODE */}
+                {/* Promo Code */}
                 <div className="pt-4 border-t-2 border-foreground space-y-4">
                   <div>
                     <label className="font-heading text-xs uppercase tracking-wide mb-2 block">Promo Code</label>
                     <PromoCodeInput
-                      onApply={handlePromoApply}
+                      onApply={(promo: any) => setAppliedPromo(promo)}
                       appliedCode={appliedPromo?.code || null}
                       orderTotal={productSubtotal}
                     />
                   </div>
 
-                  {/* VOUCHERS SECTION */}
+                  {/* Vouchers */}
                   <div>
                     <button
                       onClick={() => setShowVouchers(!showVouchers)}
@@ -437,7 +558,6 @@ const Checkout = () => {
 
                     {showVouchers && (
                       <div className="border-2 border-t-0 border-foreground max-h-64 overflow-y-auto">
-                        {/* Peso vouchers */}
                         {pesoVouchers.length > 0 && (
                           <div>
                             <div className="px-3 py-2 bg-muted text-xs font-heading uppercase">Discount Vouchers (stackable)</div>
@@ -466,8 +586,6 @@ const Checkout = () => {
                             })}
                           </div>
                         )}
-
-                        {/* Shipping vouchers */}
                         {shippingVouchers.length > 0 && (
                           <div>
                             <div className="px-3 py-2 bg-muted text-xs font-heading uppercase">Shipping Vouchers (max 1)</div>
@@ -491,7 +609,6 @@ const Checkout = () => {
                             })}
                           </div>
                         )}
-
                         {pesoVouchers.length === 0 && shippingVouchers.length === 0 && (
                           <div className="p-4 text-center text-sm text-muted-foreground">No vouchers available</div>
                         )}
@@ -500,53 +617,46 @@ const Checkout = () => {
                   </div>
                 </div>
 
-                {/* TOTALS BREAKDOWN */}
+                {/* Totals */}
                 <div className="pt-4 border-t-2 border-foreground space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Product Subtotal</span>
                     <span>{formatPrice(productSubtotal)}</span>
                   </div>
-
                   {promoDiscount > 0 && (
                     <div className="flex justify-between text-sm text-success">
                       <span>Promo Discount</span>
                       <span>-{formatPrice(promoDiscount)}</span>
                     </div>
                   )}
-
                   {promoDiscount > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Discounted Subtotal</span>
                       <span>{formatPrice(discountedSubtotal)}</span>
                     </div>
                   )}
-
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Shipping Fee</span>
                     <span>{formatPrice(totalShippingOriginal)}</span>
                   </div>
-
                   {shippingVoucherDeduction > 0 && (
                     <div className="flex justify-between text-sm text-success">
                       <span>Shipping Voucher</span>
                       <span>-{formatPrice(shippingVoucherDeduction)}</span>
                     </div>
                   )}
-
                   {promoFreeShipping > 0 && (
                     <div className="flex justify-between text-sm text-success">
                       <span>Free Shipping Promo</span>
                       <span>-{formatPrice(promoFreeShipping)}</span>
                     </div>
                   )}
-
                   {pesoVoucherDeduction > 0 && (
                     <div className="flex justify-between text-sm text-success">
                       <span>Voucher Discount{selectedVouchers.length > 1 ? `s (${selectedVouchers.length})` : ""}</span>
                       <span>-{formatPrice(pesoVoucherDeduction)}</span>
                     </div>
                   )}
-
                   <div className="flex justify-between pt-2 border-t border-border-subtle">
                     <span className="font-heading uppercase">Grand Total</span>
                     <span className="font-heading text-2xl">{formatPrice(grandTotal)}</span>
