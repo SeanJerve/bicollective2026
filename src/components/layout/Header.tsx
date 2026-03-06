@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ShoppingBag, Menu, X, User, LogOut, LayoutDashboard, Shield, Search, Heart, Ticket, UserCog, Bell } from "lucide-react";
+import { ShoppingBag, Menu, X, User, LogOut, LayoutDashboard, Shield, Search, Heart, Ticket, UserCog, Bell, Star, Store } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -53,6 +53,7 @@ const Header = () => {
 
   const userMenuItems = [
     { href: "/account/orders", label: "My Orders", icon: ShoppingBag, badge: totalCustomer },
+    { href: "/account/to-review", label: "To Review", icon: Star },
     { href: "/account/wishlist", label: "Wishlist", icon: Heart },
     { href: "/account/vouchers", label: "My Vouchers", icon: Ticket },
     { href: "/account/profile", label: "Profile Settings", icon: UserCog },
@@ -148,6 +149,16 @@ const Header = () => {
                                 {totalVendor}
                               </span>
                             )}
+                          </Link>
+                        )}
+                        {!isVendor && !isAdmin && (
+                          <Link
+                            to="/vendor/register"
+                            onClick={() => setIsUserMenuOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary"
+                          >
+                            <Store className="w-4 h-4" />
+                            Become a Vendor
                           </Link>
                         )}
                         {isAdmin && (

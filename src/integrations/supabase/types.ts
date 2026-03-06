@@ -344,6 +344,47 @@ export type Database = {
         }
         Relationships: []
       }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_system_message: boolean
+          read_at: string | null
+          receiver_id: string
+          sender_id: string
+          vendor_order_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_system_message?: boolean
+          read_at?: string | null
+          receiver_id: string
+          sender_id: string
+          vendor_order_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_system_message?: boolean
+          read_at?: string | null
+          receiver_id?: string
+          sender_id?: string
+          vendor_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_vendor_order_id_fkey"
+            columns: ["vendor_order_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -852,6 +893,7 @@ export type Database = {
           handed_to_courier_at: string | null
           id: string
           order_id: string
+          payment_method: string | null
           payment_proof_url: string | null
           payment_reference: string | null
           promo_code_applied: string | null
@@ -875,6 +917,7 @@ export type Database = {
           handed_to_courier_at?: string | null
           id?: string
           order_id: string
+          payment_method?: string | null
           payment_proof_url?: string | null
           payment_reference?: string | null
           promo_code_applied?: string | null
@@ -898,6 +941,7 @@ export type Database = {
           handed_to_courier_at?: string | null
           id?: string
           order_id?: string
+          payment_method?: string | null
           payment_proof_url?: string | null
           payment_reference?: string | null
           promo_code_applied?: string | null

@@ -48,6 +48,14 @@ const Checkout = () => {
   const buyNowItem: BuyNowItem | null = location.state?.buyNowItem || null;
   const isBuyNow = !!buyNowItem;
 
+  // Selective cart checkout
+  const selectedCartItemIds: string[] | null = location.state?.selectedCartItemIds || null;
+
+  // Payment method state
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "gcash" | "bank_transfer">("cod");
+  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
+  const [uploadingProof, setUploadingProof] = useState(false);
+
   // Address state
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
 
@@ -108,8 +116,12 @@ const Checkout = () => {
         },
       }] as any[];
     }
+    // If selectedCartItemIds provided, filter cart items
+    if (selectedCartItemIds && selectedCartItemIds.length > 0) {
+      return items.filter((item) => selectedCartItemIds.includes(item.id));
+    }
     return items;
-  }, [isBuyNow, buyNowItem, items]);
+  }, [isBuyNow, buyNowItem, items, selectedCartItemIds]);
 
   const productSubtotal = useMemo(() => {
     return checkoutItems.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
@@ -268,9 +280,26 @@ const Checkout = () => {
     if (!user) { toast({ title: "Please sign in", variant: "destructive" }); return; }
     if (checkoutItems.length === 0) { toast({ title: "No items to checkout", variant: "destructive" }); return; }
     if (!selectedAddress) { toast({ title: "Please select an address", variant: "destructive" }); return; }
+    if (paymentMethod !== "cod" && !paymentProofFile) {
+      toast({ title: "Payment proof required", description: "Please upload proof of payment for GCash/Bank Transfer", variant: "destructive" });
+      return;
+    }
 
     setLoading(true);
     try {
+      // Upload payment proof if needed
+      let paymentProofUrl: string | null = null;
+      if (paymentProofFile && paymentMethod !== "cod") {
+        setUploadingProof(true);
+        const ext = paymentProofFile.name.split(".").pop();
+        const path = `${user.id}/${Date.now()}.${ext}`;
+        const { error: uploadErr } = await supabase.storage.from("payment-proofs").upload(path, paymentProofFile);
+        if (uploadErr) throw uploadErr;
+        const { data: urlData } = supabase.storage.from("payment-proofs").getPublicUrl(path);
+        paymentProofUrl = urlData.publicUrl;
+        setUploadingProof(false);
+      }
+
       const shippingAddressStr = `${selectedAddress.street}, ${selectedAddress.barangay}, ${selectedAddress.city}, ${selectedAddress.province} ${selectedAddress.zip_code}`;
 
       const { data: order, error: orderError } = await supabase
@@ -299,6 +328,8 @@ const Checkout = () => {
           ? Math.max(0, brandShippingAfterVoucher - Math.round(promoFreeShipping * brandShipping / totalShippingOriginal))
           : brandShippingAfterVoucher;
 
+        const initialStatus = paymentMethod === "cod" ? "pending_payment" : "payment_uploaded";
+
         const { data: vendorOrder, error: vendorOrderError } = await supabase
           .from("vendor_orders")
           .insert({
@@ -311,7 +342,9 @@ const Checkout = () => {
             discount_amount: Math.round(promoDiscount * group.subtotal / productSubtotal),
             voucher_id: selectedVouchers.length > 0 ? selectedVouchers[0].id : null,
             promo_code_applied: appliedPromo?.code || null,
-            status: "pending_payment",
+            status: initialStatus,
+            payment_method: paymentMethod,
+            payment_proof_url: paymentProofUrl,
           })
           .select()
           .single();
@@ -348,9 +381,16 @@ const Checkout = () => {
         } catch {}
       }
 
-      // Only clear cart if NOT buy now mode
+      // Only clear selected items from cart (not buy now mode)
       if (!isBuyNow) {
-        await clearCart();
+        if (selectedCartItemIds) {
+          // Only remove selected items from cart
+          for (const itemId of selectedCartItemIds) {
+            await supabase.from("cart_items").delete().eq("id", itemId);
+          }
+        } else {
+          await clearCart();
+        }
       }
       setOrderId(order.id);
       setOrderComplete(true);
@@ -359,6 +399,7 @@ const Checkout = () => {
       toast({ title: "Checkout failed", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
+      setUploadingProof(false);
     }
   };
 
@@ -473,6 +514,67 @@ const Checkout = () => {
                   )}
                 </div>
 
+                {/* Payment Method */}
+                <div>
+                  <label className="font-heading text-sm uppercase tracking-wide mb-3 block">Payment Method</label>
+                  <div className="space-y-2">
+                    {([
+                      { value: "cod", label: "Cash on Delivery (COD)", desc: "Pay when you receive your order" },
+                      { value: "gcash", label: "GCash", desc: "Upload proof of payment" },
+                      { value: "bank_transfer", label: "Bank Transfer", desc: "Upload proof of payment" },
+                    ] as const).map((method) => (
+                      <label
+                        key={method.value}
+                        className={`block p-3 border-2 cursor-pointer transition-colors ${
+                          paymentMethod === method.value
+                            ? "border-foreground bg-secondary/50"
+                            : "border-border-subtle hover:border-foreground/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            checked={paymentMethod === method.value}
+                            onChange={() => { setPaymentMethod(method.value); setPaymentProofFile(null); }}
+                          />
+                          <div>
+                            <span className="font-heading text-sm">{method.label}</span>
+                            <p className="text-xs text-muted-foreground">{method.desc}</p>
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+
+                  {/* Payment Proof Upload for GCash/Bank Transfer */}
+                  {paymentMethod !== "cod" && (
+                    <div className="mt-4 p-4 border-2 border-border-subtle">
+                      <label className="font-heading text-xs uppercase mb-2 block">
+                        Upload Proof of Payment <span className="text-destructive">*</span>
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setPaymentProofFile(e.target.files?.[0] || null)}
+                        className="w-full text-sm"
+                      />
+                      {paymentProofFile && (
+                        <div className="mt-2">
+                          <img
+                            src={URL.createObjectURL(paymentProofFile)}
+                            alt="Payment proof preview"
+                            className="w-32 h-32 object-cover border border-border-subtle"
+                          />
+                        </div>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Upload a screenshot of your {paymentMethod === "gcash" ? "GCash" : "bank transfer"} transaction.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {/* Notes */}
                 <div>
                   <label className="font-heading text-sm uppercase tracking-wide mb-2 block">Order Notes (Optional)</label>
@@ -486,10 +588,10 @@ const Checkout = () => {
 
                 <button
                   type="submit"
-                  disabled={loading || checkoutItems.length === 0 || !selectedAddress}
+                  disabled={loading || checkoutItems.length === 0 || !selectedAddress || (paymentMethod !== "cod" && !paymentProofFile)}
                   className="btn-brutal w-full"
                 >
-                  {loading ? "Placing Order..." : "Place Order"}
+                  {loading ? (uploadingProof ? "Uploading payment proof..." : "Placing Order...") : "Place Order"}
                 </button>
               </form>
             </div>
@@ -669,9 +771,13 @@ const Checkout = () => {
                 </div>
 
                 <div className="mt-6 p-4 bg-secondary">
-                  <h4 className="font-heading text-sm uppercase mb-2">Payment Instructions</h4>
+                  <h4 className="font-heading text-sm uppercase mb-2">Payment Method</h4>
                   <p className="text-sm text-muted-foreground">
-                    After placing your order, upload proof of payment (GCash or Bank Transfer) from your order history page.
+                    {paymentMethod === "cod"
+                      ? "Cash on Delivery — pay when you receive your order."
+                      : paymentMethod === "gcash"
+                      ? "GCash — your payment proof will be sent to the vendor for verification."
+                      : "Bank Transfer — your payment proof will be sent to the vendor for verification."}
                   </p>
                 </div>
               </div>

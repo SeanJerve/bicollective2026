@@ -70,6 +70,19 @@ const VendorRegister = () => {
 
         if (application) {
           setExistingApplication(application);
+          // Pre-fill form if needs_resubmission
+          if (application.status === "needs_resubmission") {
+            setFormData({
+              businessName: application.business_name || "",
+              businessType: application.business_type as BusinessType,
+              location: application.location || "",
+              contactPhone: application.contact_phone || "",
+              description: application.description || "",
+              businessPermitUrl: application.business_permit_url || null,
+              validIdUrl: application.valid_id_url || null,
+              proofOfProductsUrl: application.proof_of_products_url || null,
+            });
+          }
         }
 
         // Check if already a vendor
@@ -134,7 +147,7 @@ const VendorRegister = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.from("vendor_applications").insert({
+      const applicationData = {
         user_id: user.id,
         business_name: formData.businessName,
         business_type: formData.businessType,
@@ -144,13 +157,25 @@ const VendorRegister = () => {
         business_permit_url: formData.businessPermitUrl,
         valid_id_url: formData.validIdUrl,
         proof_of_products_url: formData.proofOfProductsUrl,
-        status: "pending",
-      });
+        status: "pending" as const,
+      };
+
+      let error;
+      if (existingApplication?.status === "needs_resubmission") {
+        // Update existing application
+        ({ error } = await supabase
+          .from("vendor_applications")
+          .update(applicationData)
+          .eq("id", existingApplication.id));
+      } else {
+        // Insert new application
+        ({ error } = await supabase.from("vendor_applications").insert(applicationData));
+      }
 
       if (error) throw error;
 
       toast({
-        title: "Application submitted!",
+        title: existingApplication ? "Application resubmitted!" : "Application submitted!",
         description: "We'll review your application and get back to you soon.",
       });
 
@@ -200,7 +225,8 @@ const VendorRegister = () => {
     );
   }
 
-  if (existingApplication) {
+  // If needs_resubmission, allow editing; otherwise redirect to status
+  if (existingApplication && existingApplication.status !== "needs_resubmission") {
     return (
       <PageLayout>
         <div className="section-container py-16 text-center">

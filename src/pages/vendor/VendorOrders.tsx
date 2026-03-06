@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Eye, CheckCircle, Truck, Package, Loader2 } from "lucide-react";
+import { Eye, CheckCircle, Truck, Package, Loader2, MessageSquare } from "lucide-react";
+import OrderChat from "@/components/chat/OrderChat";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -39,6 +40,7 @@ const VendorOrders = () => {
             *,
             order:orders (
               id,
+              customer_id,
               shipping_name,
               shipping_phone,
               shipping_address,
@@ -75,6 +77,36 @@ const VendorOrders = () => {
         .eq("id", orderId);
 
       if (error) throw error;
+
+      // Send auto system message to buyer
+      const order = orders.find((o) => o.id === orderId);
+      if (order && user) {
+        const statusMessages: Record<string, string> = {
+          paid: "✅ Your payment has been verified. We're preparing your order!",
+          processing: "📦 Your order is now being processed.",
+          shipped: `🚚 Your order has been shipped! Tracking: ${order.tracking_number || "N/A"}`,
+          delivered: "✅ Your order has been marked as delivered. Thank you for shopping!",
+        };
+        const msg = statusMessages[status];
+        if (msg) {
+          // Get customer_id from parent order
+          const { data: parentOrder } = await supabase
+            .from("orders")
+            .select("customer_id")
+            .eq("id", order.order_id)
+            .single();
+
+          if (parentOrder) {
+            await supabase.from("messages").insert({
+              sender_id: user.id,
+              receiver_id: parentOrder.customer_id,
+              vendor_order_id: orderId,
+              content: msg,
+              is_system_message: true,
+            });
+          }
+        }
+      }
 
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? { ...o, status } : o))
@@ -271,15 +303,10 @@ const VendorOrders = () => {
                 {order.payment_proof_url && (
                   <div className="mb-4 md:mb-6">
                     <h4 className="font-heading text-xs md:text-sm uppercase mb-2">
-                      Payment Proof
+                      Payment Proof ({order.payment_method === "gcash" ? "GCash" : order.payment_method === "bank_transfer" ? "Bank Transfer" : "COD"})
                     </h4>
-                    <a
-                      href={order.payment_proof_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs md:text-sm text-primary hover:underline"
-                    >
-                      View Payment Screenshot
+                    <a href={order.payment_proof_url} target="_blank" rel="noopener noreferrer">
+                      <img src={order.payment_proof_url} alt="Payment proof" className="w-32 h-32 object-cover border border-border-subtle" />
                     </a>
                   </div>
                 )}
@@ -306,8 +333,18 @@ const VendorOrders = () => {
                   )}
                   {order.status === "processing" && (
                     <button
-                      onClick={() => updateOrderStatus(order.id, "shipped")}
-                      className="btn-brutal flex items-center gap-2 text-sm"
+                      onClick={() => {
+                        if (!order.tracking_number) {
+                          toast({
+                            title: "Tracking number required",
+                            description: "Please enter and save a tracking number before marking as shipped",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        updateOrderStatus(order.id, "shipped");
+                      }}
+                      className={`btn-brutal flex items-center gap-2 text-sm ${!order.tracking_number ? "opacity-60" : ""}`}
                     >
                       <Truck className="w-4 h-4" />
                       Mark as Shipped
@@ -360,6 +397,15 @@ const VendorOrders = () => {
                     )}
                   </div>
                 )}
+
+                {/* Chat with buyer */}
+                <div className="mt-4 pt-4 border-t border-border-subtle flex justify-end">
+                  <OrderChat
+                    vendorOrderId={order.id}
+                    otherUserId={order.order?.customer_id || ""}
+                    otherUserName={order.order?.shipping_name || "Customer"}
+                  />
+                </div>
               </div>
             </div>
           ))}

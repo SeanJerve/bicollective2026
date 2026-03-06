@@ -6,8 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import PaymentProofUpload from "@/components/account/PaymentProofUpload";
 import ReviewForm from "@/components/account/ReviewForm";
+import OrderChat from "@/components/chat/OrderChat";
 
 const statusColors: Record<string, string> = {
   pending_payment: "bg-warning text-warning-foreground",
@@ -49,7 +49,7 @@ const OrderDetail = () => {
             shipping_fee,
             tracking_number,
             payment_proof_url,
-            brand:brands(id, name, slug),
+            brand:brands(id, name, slug, owner_id),
             order_items(id, product_name, product_price, quantity, size, product_id)
           )
         `)
@@ -229,18 +229,24 @@ const OrderDetail = () => {
                 </div>
               )}
 
-              {/* Payment Proof Upload for pending_payment orders */}
-              {vo.status === "pending_payment" && (
+              {/* Payment proof display */}
+              {vo.payment_proof_url && (
                 <div className="border-t border-border-subtle pt-4 mt-4">
-                  <PaymentProofUpload
-                    vendorOrderId={vo.id}
-                    currentProofUrl={vo.payment_proof_url}
-                    onUploadSuccess={() => {
-                      queryClient.invalidateQueries({ queryKey: ["order-detail", orderId] });
-                    }}
-                  />
+                  <h4 className="font-heading text-sm uppercase mb-2">Payment Proof</h4>
+                  <a href={vo.payment_proof_url} target="_blank" rel="noopener noreferrer">
+                    <img src={vo.payment_proof_url} alt="Payment proof" className="w-32 h-32 object-cover border border-border-subtle" />
+                  </a>
                 </div>
               )}
+
+              {/* Chat */}
+              <div className="border-t border-border-subtle pt-4 mt-4 flex justify-end">
+                <OrderChat
+                  vendorOrderId={vo.id}
+                  otherUserId={vo.brand?.owner_id || ""}
+                  otherUserName={vo.brand?.name || "Vendor"}
+                />
+              </div>
 
               {/* Review section for delivered orders */}
               {vo.status === "delivered" && !existingReviews?.includes(vo.id) && (
