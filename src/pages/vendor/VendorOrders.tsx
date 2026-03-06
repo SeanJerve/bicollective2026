@@ -77,6 +77,36 @@ const VendorOrders = () => {
 
       if (error) throw error;
 
+      // Send auto system message to buyer
+      const order = orders.find((o) => o.id === orderId);
+      if (order && user) {
+        const statusMessages: Record<string, string> = {
+          paid: "✅ Your payment has been verified. We're preparing your order!",
+          processing: "📦 Your order is now being processed.",
+          shipped: `🚚 Your order has been shipped! Tracking: ${order.tracking_number || "N/A"}`,
+          delivered: "✅ Your order has been marked as delivered. Thank you for shopping!",
+        };
+        const msg = statusMessages[status];
+        if (msg) {
+          // Get customer_id from parent order
+          const { data: parentOrder } = await supabase
+            .from("orders")
+            .select("customer_id")
+            .eq("id", order.order_id)
+            .single();
+
+          if (parentOrder) {
+            await supabase.from("messages").insert({
+              sender_id: user.id,
+              receiver_id: parentOrder.customer_id,
+              vendor_order_id: orderId,
+              content: msg,
+              is_system_message: true,
+            });
+          }
+        }
+      }
+
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? { ...o, status } : o))
       );
