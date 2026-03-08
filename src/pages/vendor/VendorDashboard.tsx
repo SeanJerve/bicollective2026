@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Package, ShoppingCart, DollarSign, Star, TrendingUp, AlertCircle, Ticket, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import LowStockAlert from "@/components/vendor/LowStockAlert";
 
 interface DashboardStats {
   totalProducts: number;
