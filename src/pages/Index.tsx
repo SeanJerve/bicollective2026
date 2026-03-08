@@ -16,6 +16,11 @@ const Index = () => {
   const { data: brands, isLoading: brandsLoading } = useBrands();
   const { data: categories, isLoading: categoriesLoading } = useCategories();
 
+  usePageSEO({
+    title: "",
+    description: "Shop curated collections from verified local Bicolano clothing brands. Quality fashion, community-driven commerce from the Bicol region.",
+  });
+
   const featuredProducts = products?.slice(0, 4) || [];
   const featuredBrands = brands?.slice(0, 3) || [];
 
