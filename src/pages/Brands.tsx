@@ -30,6 +30,11 @@ const Brands = () => {
   const { data: brands, isLoading } = useBrands();
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
 
+  usePageSEO({
+    title: "Brands",
+    description: "Discover verified local Bicolano clothing brands. Explore trusted fashion partners from the Bicol region.",
+  });
+
   const filteredBrands = (brands || []).filter((b) => {
     if (!selectedLocation) return true;
     return b.location?.toLowerCase().includes(selectedLocation.toLowerCase());

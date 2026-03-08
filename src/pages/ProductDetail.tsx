@@ -23,6 +23,11 @@ const ProductDetail = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  usePageSEO({
+    title: product?.name || "Product",
+    description: product?.description || `Shop ${product?.name} from ${product?.brandName} on Bicollective.`,
+  });
+
   // Reviews state
   const [reviews, setReviews] = useState<any[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(true);

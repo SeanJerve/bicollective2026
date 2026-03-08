@@ -31,6 +31,11 @@ const Products = () => {
   const searchQuery = searchParams.get("search") || "";
   const locationParam = searchParams.get("location") || "";
 
+  usePageSEO({
+    title: "Products",
+    description: "Browse curated Bicolano fashion products from verified local brands. Filter by category, brand, and location.",
+  });
+
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(
