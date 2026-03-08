@@ -40,6 +40,7 @@ const statusLabels: Record<string, string> = {
 };
 
 const AdminOrders = () => {
+  const { toast } = useToast();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
