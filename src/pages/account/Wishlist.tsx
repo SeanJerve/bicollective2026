@@ -76,9 +76,9 @@
      }
    };
  
-   const handleAddToCart = (productId: string) => {
-     addToCart(productId, 1, "M"); // Default to M size
-   };
+  const handleAddToCart = (productId: string) => {
+    addToCart(productId, 1);
+  };
  
    const formatPrice = (amount: number) =>
      new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(amount);

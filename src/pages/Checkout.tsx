@@ -446,6 +446,13 @@ const Checkout = () => {
     <PageLayout>
       <section className="py-12 border-b-2 border-foreground">
         <div className="section-container">
+          <button
+            type="button"
+            onClick={() => navigate("/cart")}
+            className="text-sm text-muted-foreground hover:text-foreground mb-3 inline-flex items-center gap-1"
+          >
+            ← Back to Cart
+          </button>
           <h1 className="font-heading text-5xl md:text-6xl uppercase">Checkout</h1>
         </div>
       </section>

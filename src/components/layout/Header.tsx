@@ -289,20 +289,20 @@ const Header = () => {
             <hr className="border-border-subtle" />
             {user ? (
               <>
-                <button
-                  onClick={() => handleNavClick("/account/orders", () => setIsMenuOpen(false))}
-                  className={`flex items-center gap-3 font-heading text-xl uppercase tracking-wide py-2 w-full text-left ${
-                    isDisabledForAdmin("/account/orders") ? "text-muted-foreground/50" : ""
-                  }`}
-                >
-                  <ShoppingBag className="w-5 h-5" />
-                  My Orders
-                  {totalCustomer > 0 && !isAdmin && (
-                    <span className="ml-2 min-w-[20px] h-[20px] bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center px-1 rounded-full">
-                      {totalCustomer}
-                    </span>
-                  )}
-                </button>
+                {!isAdmin && (
+                  <button
+                    onClick={() => handleNavClick("/account/orders", () => setIsMenuOpen(false))}
+                    className="flex items-center gap-3 font-heading text-xl uppercase tracking-wide py-2 w-full text-left"
+                  >
+                    <ShoppingBag className="w-5 h-5" />
+                    My Orders
+                    {totalCustomer > 0 && (
+                      <span className="ml-2 min-w-[20px] h-[20px] bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center px-1 rounded-full">
+                        {totalCustomer}
+                      </span>
+                    )}
+                  </button>
+                )}
                 {isVendor && !isAdmin && (
                   <Link
                     to="/vendor"
