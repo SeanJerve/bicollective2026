@@ -4,6 +4,7 @@ import { Eye, Loader2, ShoppingCart, Search, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import Pagination from "@/components/admin/Pagination";
+import AdminPaymentProof from "@/components/admin/AdminPaymentProof";
 import { useToast } from "@/hooks/use-toast";
 
 const ITEMS_PER_PAGE = 20;
@@ -57,7 +58,7 @@ const AdminOrders = () => {
     try {
       let query = supabase
         .from("orders")
-        .select(`*, vendor_orders(id, status, subtotal, brand:brands(name, slug))`)
+        .select(`*, vendor_orders(id, status, subtotal, payment_proof_url, payment_method, brand:brands(name, slug))`)
         .order("created_at", { ascending: false });
 
       const { data, error } = await query;
@@ -184,10 +185,15 @@ const AdminOrders = () => {
                     </div>
                     <span className={`px-2 py-0.5 text-xs uppercase ${statusColors[overallStatus]}`}>{statusLabels[overallStatus]}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="font-heading">{formatPrice(Number(order.total_amount))}</span>
-                    <Link to={`/account/orders/${order.id}`} className="p-2 hover:bg-secondary"><Eye className="w-4 h-4" /></Link>
-                  </div>
+                   <div className="flex items-center justify-between">
+                     <span className="font-heading">{formatPrice(Number(order.total_amount))}</span>
+                     <div className="flex items-center gap-2">
+                       {order.vendor_orders?.filter((vo: any) => vo.payment_proof_url).map((vo: any) => (
+                         <AdminPaymentProof key={vo.id} path={vo.payment_proof_url} paymentMethod={vo.payment_method} />
+                       ))}
+                       <Link to={`/account/orders/${order.id}`} className="p-2 hover:bg-secondary"><Eye className="w-4 h-4" /></Link>
+                     </div>
+                   </div>
                 </div>
               );
             })}
@@ -205,7 +211,8 @@ const AdminOrders = () => {
                     <th className="text-left p-4 font-heading text-sm uppercase">Date</th>
                     <th className="text-left p-4 font-heading text-sm uppercase">Total</th>
                     <th className="text-left p-4 font-heading text-sm uppercase">Status</th>
-                    <th className="text-right p-4 font-heading text-sm uppercase">Actions</th>
+                     <th className="text-left p-4 font-heading text-sm uppercase">Proof</th>
+                     <th className="text-right p-4 font-heading text-sm uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-subtle">
@@ -221,7 +228,12 @@ const AdminOrders = () => {
                         <td className="p-4 text-muted-foreground">{order.vendor_orders?.map((vo: any) => vo.brand?.name).filter(Boolean).join(", ") || "-"}</td>
                         <td className="p-4 text-muted-foreground">{format(new Date(order.created_at), "PP")}</td>
                         <td className="p-4 font-heading">{formatPrice(Number(order.total_amount))}</td>
-                        <td className="p-4"><span className={`px-2 py-1 text-xs uppercase ${statusColors[overallStatus]}`}>{statusLabels[overallStatus]}</span></td>
+                         <td className="p-4"><span className={`px-2 py-1 text-xs uppercase ${statusColors[overallStatus]}`}>{statusLabels[overallStatus]}</span></td>
+                         <td className="p-4">
+                           {order.vendor_orders?.filter((vo: any) => vo.payment_proof_url).map((vo: any) => (
+                             <AdminPaymentProof key={vo.id} path={vo.payment_proof_url} paymentMethod={vo.payment_method} />
+                           ))}
+                         </td>
                         <td className="p-4">
                           <div className="flex items-center justify-end">
                             <Link to={`/account/orders/${order.id}`} className="p-2 hover:bg-secondary" title="View"><Eye className="w-4 h-4" /></Link>
