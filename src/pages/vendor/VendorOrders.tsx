@@ -196,7 +196,7 @@ const VendorOrders = () => {
       case "handed_to_courier":
         return "bg-primary text-primary-foreground";
       case "for_delivery":
-        return "bg-accent text-accent-foreground";
+        return "bg-primary text-primary-foreground";
       case "shipped":
         return "bg-primary text-primary-foreground";
       case "delivered":

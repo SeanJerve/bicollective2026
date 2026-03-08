@@ -18,7 +18,7 @@ const statusColors: Record<string, string> = {
   paid: "bg-info text-info-foreground",
   processing: "bg-info text-info-foreground",
   handed_to_courier: "bg-primary text-primary-foreground",
-  for_delivery: "bg-accent text-accent-foreground",
+  for_delivery: "bg-primary text-primary-foreground",
   shipped: "bg-primary text-primary-foreground",
   delivered: "bg-success text-success-foreground",
   cancelled: "bg-destructive text-destructive-foreground",

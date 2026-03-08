@@ -42,7 +42,7 @@ const SaleBanner = () => {
   });
 
   useEffect(() => {
-    if (!activePromo) return;
+    if (!activePromo || dismissed) return;
 
     const updateCountdown = () => {
       const now = new Date();
@@ -71,7 +71,7 @@ const SaleBanner = () => {
     const interval = setInterval(updateCountdown, 1000);
 
     return () => clearInterval(interval);
-  }, [activePromo]);
+  }, [activePromo, dismissed]);
 
   if (dismissed || !activePromo) return null;
 

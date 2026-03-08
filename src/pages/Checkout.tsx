@@ -295,8 +295,8 @@ const Checkout = () => {
         const path = `${user.id}/${Date.now()}.${ext}`;
         const { error: uploadErr } = await supabase.storage.from("payment-proofs").upload(path, paymentProofFile);
         if (uploadErr) throw uploadErr;
-        const { data: urlData } = supabase.storage.from("payment-proofs").getPublicUrl(path);
-        paymentProofUrl = urlData.publicUrl;
+        // Store the path directly — use signed URLs when viewing since bucket is private
+        paymentProofUrl = path;
         setUploadingProof(false);
       }
 
