@@ -4,6 +4,7 @@ import { Eye, Loader2, ShoppingCart, Search, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import Pagination from "@/components/admin/Pagination";
+import AdminPaymentProof from "@/components/admin/AdminPaymentProof";
 import { useToast } from "@/hooks/use-toast";
 
 const ITEMS_PER_PAGE = 20;
