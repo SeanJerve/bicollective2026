@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import ReviewForm from "@/components/account/ReviewForm";
 import OrderChat from "@/components/chat/OrderChat";
+import PaymentProofUpload from "@/components/account/PaymentProofUpload";
 
 const statusColors: Record<string, string> = {
   pending_payment: "bg-warning text-warning-foreground",
