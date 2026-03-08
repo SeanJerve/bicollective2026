@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Package, Truck, MapPin, Phone, Clock, Star, XCircle, Loader2 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
