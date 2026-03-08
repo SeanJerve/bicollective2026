@@ -6,9 +6,11 @@ import ProductCardSkeleton from "@/components/marketplace/ProductCardSkeleton";
 import BrandCard from "@/components/marketplace/BrandCard";
 import BrandCardSkeleton from "@/components/marketplace/BrandCardSkeleton";
 import { useProducts, useBrands, useCategories } from "@/hooks/useProducts";
+import { useAuth } from "@/contexts/AuthContext";
 import heroBanner from "@/assets/hero-banner.jpg";
 
 const Index = () => {
+  const { isVendor } = useAuth();
   const { data: products, isLoading: productsLoading } = useProducts();
   const { data: brands, isLoading: brandsLoading } = useBrands();
   const { data: categories, isLoading: categoriesLoading } = useCategories();
@@ -188,21 +190,23 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 md:py-32 bg-secondary border-t-2 border-foreground">
-        <div className="section-container text-center px-4">
-          <h2 className="font-heading text-3xl md:text-6xl uppercase mb-4 md:mb-6">
-            Own a Local Brand?
-          </h2>
-          <p className="text-base md:text-lg text-muted-foreground max-w-xl mx-auto mb-6 md:mb-8">
-            Join Bicollective and reach thousands of customers. 
-            Get your own storefront with zero setup fees.
-          </p>
-          <Link to="/vendor/register" className="btn-brutal inline-flex items-center gap-2">
-            Become a Vendor
-            <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
-          </Link>
-        </div>
-      </section>
+      {!isVendor && (
+        <section className="py-16 md:py-32 bg-secondary border-t-2 border-foreground">
+          <div className="section-container text-center px-4">
+            <h2 className="font-heading text-3xl md:text-6xl uppercase mb-4 md:mb-6">
+              Own a Local Brand?
+            </h2>
+            <p className="text-base md:text-lg text-muted-foreground max-w-xl mx-auto mb-6 md:mb-8">
+              Join Bicollective and reach thousands of customers. 
+              Get your own storefront with zero setup fees.
+            </p>
+            <Link to="/vendor/register" className="btn-brutal inline-flex items-center gap-2">
+              Become a Vendor
+              <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
+            </Link>
+          </div>
+        </section>
+      )}
     </PageLayout>
   );
 };
