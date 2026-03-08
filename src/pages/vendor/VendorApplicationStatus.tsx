@@ -107,24 +107,11 @@ const VendorApplicationStatus = () => {
   const handleResubmit = async () => {
     if (!application || !user) return;
 
-    if (!formData.business_name.trim() || !formData.location.trim() || !formData.contact_phone.trim()) {
-      toast({
-        title: "Missing fields",
-        description: "Please fill in business name, location, and phone number.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setSubmitting(true);
     try {
       const { error } = await supabase
         .from("vendor_applications")
         .update({
-          business_name: formData.business_name.trim(),
-          location: formData.location.trim(),
-          contact_phone: formData.contact_phone.trim(),
-          description: formData.description.trim(),
           valid_id_url: formData.valid_id_url,
           business_permit_url: formData.business_permit_url,
           proof_of_products_url: formData.proof_of_products_url,
@@ -239,63 +226,13 @@ const VendorApplicationStatus = () => {
             <div className="card-brutal p-6 mt-6">
               <h3 className="font-heading text-lg uppercase mb-4 flex items-center gap-2">
                 <RefreshCw className="w-5 h-5" />
-                Update Your Application
+                Update Your Documents
               </h3>
               <p className="text-sm text-muted-foreground mb-6">
-                Update the fields below and resubmit. Only change what's needed based on the admin notes above.
+                Please re-upload or update the required documents based on the admin notes above, then resubmit.
               </p>
 
               <div className="space-y-5">
-                <div>
-                  <label className="block font-heading text-sm uppercase mb-1">
-                    Business Name <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.business_name}
-                    onChange={(e) => setFormData((f) => ({ ...f, business_name: e.target.value }))}
-                    className="w-full p-3 border-2 border-foreground bg-background text-sm"
-                    maxLength={100}
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-heading text-sm uppercase mb-1">
-                    Location <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) => setFormData((f) => ({ ...f, location: e.target.value }))}
-                    className="w-full p-3 border-2 border-foreground bg-background text-sm"
-                    placeholder="e.g. Legazpi City, Albay"
-                    maxLength={100}
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-heading text-sm uppercase mb-1">
-                    Contact Phone <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.contact_phone}
-                    onChange={(e) => setFormData((f) => ({ ...f, contact_phone: e.target.value }))}
-                    className="w-full p-3 border-2 border-foreground bg-background text-sm"
-                    maxLength={20}
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-heading text-sm uppercase mb-1">Description</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData((f) => ({ ...f, description: e.target.value }))}
-                    className="w-full p-3 border-2 border-foreground bg-background text-sm min-h-[80px]"
-                    rows={3}
-                    maxLength={500}
-                  />
-                </div>
 
                 <DocumentUpload
                   label="Valid ID"
