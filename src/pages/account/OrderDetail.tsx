@@ -266,12 +266,7 @@ const OrderDetail = () => {
 
               {/* Payment proof display */}
               {vo.payment_proof_url && (
-                <div className="border-t border-border-subtle pt-4 mt-4">
-                  <h4 className="font-heading text-sm uppercase mb-2">Payment Proof</h4>
-                  <a href={vo.payment_proof_url} target="_blank" rel="noopener noreferrer">
-                    <img src={vo.payment_proof_url} alt="Payment proof" className="w-32 h-32 object-cover border border-border-subtle" />
-                  </a>
-                </div>
+                <PaymentProofImage path={vo.payment_proof_url} />
               )}
 
               {/* Payment Proof Upload for non-COD pending orders */}
