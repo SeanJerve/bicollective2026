@@ -23,6 +23,7 @@ export interface Product {
   preorderDiscountPercent?: number;
   storeSalePercent?: number;
   storeSaleEndsAt?: string;
+  sizes?: string[];
 }
 
 export interface Brand {
