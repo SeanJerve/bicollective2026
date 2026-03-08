@@ -41,6 +41,7 @@ import VendorApplicationStatus from "./pages/vendor/VendorApplicationStatus";
 import VendorVerification from "./pages/vendor/VendorVerification";
 import VendorReviews from "./pages/vendor/VendorReviews";
 import VendorPromotions from "./pages/vendor/VendorPromotions";
+import VendorAnalytics from "./pages/vendor/VendorAnalytics";
 
 // Admin pages
 import AdminLayout from "./components/layout/AdminLayout";
