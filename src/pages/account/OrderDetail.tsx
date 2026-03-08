@@ -62,7 +62,7 @@ const PaymentProofImage = ({ path }: { path: string }) => {
     </div>
   );
 };
-
+const OrderDetail = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const { user } = useAuth();
   const queryClient = useQueryClient();
