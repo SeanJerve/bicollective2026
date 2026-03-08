@@ -120,7 +120,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           user_id: user.id,
           product_id: productId,
           quantity,
-          size,
+          size: size || null,
         });
 
         if (error) throw error;
