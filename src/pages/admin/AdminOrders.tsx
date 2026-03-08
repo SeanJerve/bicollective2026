@@ -58,7 +58,7 @@ const AdminOrders = () => {
     try {
       let query = supabase
         .from("orders")
-        .select(`*, vendor_orders(id, status, subtotal, brand:brands(name, slug))`)
+        .select(`*, vendor_orders(id, status, subtotal, payment_proof_url, payment_method, brand:brands(name, slug))`)
         .order("created_at", { ascending: false });
 
       const { data, error } = await query;
