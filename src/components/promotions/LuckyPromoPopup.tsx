@@ -131,10 +131,10 @@ const LuckyPromoPopup = () => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="card-brutal p-6 md:p-8 max-w-sm w-full text-center relative overflow-hidden">
-        <Sparkles className="absolute top-4 left-4 w-6 h-6 text-warning animate-pulse" />
-        <Sparkles className="absolute top-4 right-4 w-6 h-6 text-accent animate-pulse" />
-        <Sparkles className="absolute bottom-4 left-8 w-4 h-4 text-primary animate-pulse" />
-        <Sparkles className="absolute bottom-4 right-8 w-4 h-4 text-success animate-pulse" />
+        <Star className="absolute top-4 left-4 w-6 h-6 text-warning animate-pulse" />
+        <Star className="absolute top-4 right-4 w-6 h-6 text-accent animate-pulse" />
+        <Star className="absolute bottom-4 left-8 w-4 h-4 text-primary animate-pulse" />
+        <Star className="absolute bottom-4 right-8 w-4 h-4 text-success animate-pulse" />
 
         <button onClick={() => setIsVisible(false)} className="absolute top-2 right-2 p-1 text-muted-foreground hover:text-foreground transition-colors">
           <X className="w-5 h-5" />
