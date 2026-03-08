@@ -327,14 +327,7 @@ const VendorOrders = () => {
 
                 {/* Payment Proof */}
                 {order.payment_proof_url && (
-                  <div className="mb-4 md:mb-6">
-                    <h4 className="font-heading text-xs md:text-sm uppercase mb-2">
-                      Payment Proof ({order.payment_method === "gcash" ? "GCash" : order.payment_method === "bank_transfer" ? "Bank Transfer" : "COD"})
-                    </h4>
-                    <a href={order.payment_proof_url} target="_blank" rel="noopener noreferrer">
-                      <img src={order.payment_proof_url} alt="Payment proof" className="w-32 h-32 object-cover border border-border-subtle" />
-                    </a>
-                  </div>
+                  <VendorPaymentProofImage path={order.payment_proof_url} paymentMethod={order.payment_method} />
                 )}
 
                 {/* Actions — Full Pipeline */}
