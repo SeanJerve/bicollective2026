@@ -97,7 +97,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     fetchCart();
   }, [fetchCart]);
 
-  const addToCart = async (productId: string, quantity: number, size: string) => {
+  const addToCart = async (productId: string, quantity: number, size?: string) => {
     if (!user) {
       toast({
         title: "Please sign in",
