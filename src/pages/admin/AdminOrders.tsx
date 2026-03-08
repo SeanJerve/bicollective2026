@@ -228,7 +228,12 @@ const AdminOrders = () => {
                         <td className="p-4 text-muted-foreground">{order.vendor_orders?.map((vo: any) => vo.brand?.name).filter(Boolean).join(", ") || "-"}</td>
                         <td className="p-4 text-muted-foreground">{format(new Date(order.created_at), "PP")}</td>
                         <td className="p-4 font-heading">{formatPrice(Number(order.total_amount))}</td>
-                        <td className="p-4"><span className={`px-2 py-1 text-xs uppercase ${statusColors[overallStatus]}`}>{statusLabels[overallStatus]}</span></td>
+                         <td className="p-4"><span className={`px-2 py-1 text-xs uppercase ${statusColors[overallStatus]}`}>{statusLabels[overallStatus]}</span></td>
+                         <td className="p-4">
+                           {order.vendor_orders?.filter((vo: any) => vo.payment_proof_url).map((vo: any) => (
+                             <AdminPaymentProof key={vo.id} path={vo.payment_proof_url} paymentMethod={vo.payment_method} />
+                           ))}
+                         </td>
                         <td className="p-4">
                           <div className="flex items-center justify-end">
                             <Link to={`/account/orders/${order.id}`} className="p-2 hover:bg-secondary" title="View"><Eye className="w-4 h-4" /></Link>
