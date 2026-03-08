@@ -38,6 +38,36 @@ const statusLabels: Record<string, string> = {
 
 const Orders = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
+
+  const cancellableStatuses = ["pending_payment", "payment_uploaded", "confirmed"];
+
+  const handleCancelOrder = async (e: React.MouseEvent, orderId: string, vendorOrders: any[]) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm("Are you sure you want to cancel this entire order? This cannot be undone.")) return;
+    setCancellingOrder(orderId);
+    try {
+      for (const vo of vendorOrders) {
+        if (cancellableStatuses.includes(vo.status)) {
+          const { error } = await supabase
+            .from("vendor_orders")
+            .update({ status: "cancelled" })
+            .eq("id", vo.id);
+          if (error) throw error;
+        }
+      }
+      toast({ title: "Order cancelled", description: "Your order has been cancelled successfully." });
+      queryClient.invalidateQueries({ queryKey: ["customer-orders"] });
+    } catch (err) {
+      console.error("Cancel error:", err);
+      toast({ title: "Error", description: "Failed to cancel order.", variant: "destructive" });
+    } finally {
+      setCancellingOrder(null);
+    }
+  };
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ["customer-orders", user?.id],
