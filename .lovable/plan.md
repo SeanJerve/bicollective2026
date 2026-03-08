@@ -1,422 +1,121 @@
+# Comprehensive Audit: Functionality, Performance & Responsiveness
 
-# Comprehensive Audit & Vendor Application System Plan
-
-## Executive Summary
-
-After a thorough scan of Bicollective, here is a detailed audit of what's working, what's missing, and a complete implementation plan for the vendor application and verification system you requested.
+After a thorough review of the entire codebase, here are the issues found and proposed fixes, organized by priority.
 
 ---
 
-## PART 1: Current Status Audit
+## Critical Functionality Issues
 
-### WORKING FEATURES (100% Functional)
+### 1. Header User Menu Z-Index Conflict
 
-| Module | Feature | Status |
-|--------|---------|--------|
-| **Customer** | Browse products, brands, categories | Working |
-| **Customer** | Location-aware autocomplete search | Working |
-| **Customer** | Location filtering on catalogs | Working |
-| **Customer** | Add to cart + checkout flow | Working |
-| **Customer** | Order history at `/account/orders` | Working |
-| **Customer** | Order detail with tracking | Working |
-| **Vendor** | Dashboard with stats | Working |
-| **Vendor** | Product CRUD with image uploads | Working |
-| **Vendor** | Order management + status updates | Working |
-| **Vendor** | Store settings with location | Working |
-| **Admin** | Dashboard with platform stats | Working |
-| **Admin** | Vendor list + verify/suspend actions | Working |
-| **Admin** | Reports moderation queue | Working |
-| **Auth** | Email/password + Google Sign-In | Working |
-| **Auth** | Role-based route protection | Working |
-| **Admin** | Cannot access vendor dashboard | Working |
+The click-outside overlay in `Header.tsx` (line 373-378) uses `z-40`, but the user dropdown menu itself is `z-50`. The overlay sits *behind* the sticky header (`z-50`), so clicks on the dropdown content inadvertently close it. The overlay should be `z-[45]` or the dropdown wrapper restructured.
 
-### MISSING OR INCOMPLETE FEATURES
+**Fix:** Change the overlay z-index from `z-40` to `z-[45]` and ensure the dropdown container is positioned correctly relative to the overlay.
 
-#### Critical Missing (Required for Presentation)
+### 2. Cart Selection Not Pre-Populated
 
-| Priority | Feature | Issue |
-|----------|---------|-------|
-| **P0** | Payment Proof Upload | Customers cannot upload payment screenshots after checkout |
-| **P0** | Vendor Application Flow | No `/vendor/register` page exists - links to 404 |
-| **P0** | Vendor Verification Documents | No system for vendors to submit documents for "Verified" badge |
-| **P1** | Vendor Reviews Page | `/vendor/reviews` is in navigation but page doesn't exist |
-| **P1** | Customer Reviews | ProductDetail shows static "(24 reviews)" - not real data |
-| **P1** | Tracking Number Input | Vendors see tracking but cannot enter it |
-| **P1** | Admin Products/Orders Pages | Routes exist in nav but pages don't exist |
+In `Cart.tsx`, `selectedIds` starts as an empty `Set`. Users must manually select items before they can checkout. Most e-commerce platforms pre-select all items by default.
 
-#### Missing Static Pages (Lower Priority)
+**Fix:** Initialize `selectedIds` with all item IDs using a `useEffect` that runs when items load, so all items are selected by default.
 
-| Page | Status |
-|------|--------|
-| `/vendor/login` | 404 (should redirect to `/login`) |
-| `/vendor/guidelines` | 404 |
-| `/help` | 404 |
-| `/contact` | 404 |
-| `/faq` | 404 |
-| `/privacy` | 404 |
-| `/terms` | 404 |
-| `/returns` | 404 |
+### 3. Review Profiles Fetch Fails for Other Users
+
+In `ProductDetail.tsx` (line 57), reviews fetch profiles using `.in("user_id", userIds)`. The `profiles` table has RLS policy: `auth.uid() = user_id` (SELECT). This means a logged-in user can only see *their own* profile, not other reviewers' profiles. Reviews will show without names/avatars for other users.
+
+**Fix:** Add a SELECT policy on `profiles` for authenticated users to view `full_name` and `avatar_url` of other users, OR create a database view/function that returns reviewer display info without exposing full profile data.
+
+### 4. Checkout Race Condition with Non-COD Payments
+
+In `Checkout.tsx`, when `paymentMethod !== "cod"` and a proof file is uploaded, the `payment-proofs` bucket is non-public (`Is Public: No`), but line 298-299 calls `getPublicUrl()`. This returns a URL that won't be accessible without auth. Vendors viewing the proof in their orders dashboard won't be able to see it unless they have storage access.
+
+**Fix:** Use signed URLs or create storage RLS policies that allow brand owners to access payment proofs for their orders.
 
 ---
 
-## PART 2: Implementation Plan
+## Moderate Functionality Issues
 
-### Database Changes Required
+### 5. Vendor Orders Page Uses `useEffect` Instead of React Query
 
-A new `vendor_applications` table to store applications:
+`VendorOrders.tsx` fetches data with raw `useEffect`/`useState` instead of `useQuery`, losing caching, refetch-on-focus, and error/loading patterns used elsewhere. This is inconsistent and less performant.
 
-```text
-+-------------------------+
-|   vendor_applications   |
-+-------------------------+
-| id (uuid, PK)           |
-| user_id (uuid, FK)      |
-| business_name (text)    |
-| business_type (enum)    |
-|   - established         |
-|   - aspiring            |
-| location (text)         |
-| contact_phone (text)    |
-| description (text)      |
-| business_permit_url     |
-| valid_id_url            |
-| proof_of_products_url   |
-| status (enum)           |
-|   - pending             |
-|   - approved            |
-|   - needs_resubmission  |
-|   - rejected            |
-| admin_notes (text)      |
-| created_at              |
-| updated_at              |
-+-------------------------+
-```
+**Fix:** Refactor to use `useQuery` like other pages for consistency and automatic cache management.
 
-A new `vendor_verifications` table for verified badge submissions:
+### 6. Missing `useCallback` Dependency Warning in CartContext
 
-```text
-+---------------------------+
-|  vendor_verifications     |
-+---------------------------+
-| id (uuid, PK)             |
-| brand_id (uuid, FK)       |
-| dti_registration_url      |
-| bir_certificate_url       |
-| mayor_permit_url          |
-| additional_docs (text[])  |
-| status (enum)             |
-|   - pending               |
-|   - verified              |
-|   - needs_resubmission    |
-|   - rejected              |
-| admin_notes (text)        |
-| submitted_at              |
-| reviewed_at               |
-+---------------------------+
-```
+`CartContext.tsx` line 97: `useEffect(() => { fetchCart(); }, [user])` — `fetchCart` is not in the dependency array and is recreated on every render. This could cause stale closure issues.
 
-A new storage bucket: `vendor-documents` (private, RLS protected)
+**Fix:** Wrap `fetchCart` in `useCallback` with `[user]` dependency, or restructure to avoid the warning.
+
+### 7. Notification Counts Fire Too Many Queries
+
+`useNotifications.ts` fires 4-5 parallel count queries on every realtime event (any row change in applications, verifications, reports, disputes tables). No debouncing is applied, so rapid changes cause query storms.
+
+**Fix:** Add a debounce (e.g., 2 seconds) to the `fetchCounts` callback triggered by realtime events.
 
 ---
 
-### Implementation Tasks
+## Performance Issues
 
-#### Task 1: Vendor Application System
+### 8. Products Page Client-Side Filtering Only
 
-**1.1 Create `/vendor/register` page**
+`Products.tsx` loads ALL products then filters client-side. For large catalogs, this is inefficient. Currently acceptable with small data sets but won't scale.
 
-A multi-step form with:
-- Step 1: Account creation (or login if already registered)
-- Step 2: Business type selection
-  - "Established Business" (has permits)
-  - "Aspiring Seller" (starting out)
-- Step 3: Business information
-  - Brand/Business name
-  - Location (Bicol dropdown)
-  - Description
-  - Contact phone
-- Step 4: Document uploads (varies by type)
-  - Established: Business permit, valid ID, product photos
-  - Aspiring: Valid ID, product photos
-- Step 5: Review and submit
+**Fix (future):** Move filtering to Supabase query parameters. For now, implement a solution that can handle a small side project data set an document as a known limitation — acceptable for current data volume.
 
-**1.2 File upload component for documents**
+### 9. SaleBanner Interval Runs Even When Not Visible
 
-Uploads to `vendor-documents` bucket with user-specific paths
+`SaleBanner.tsx` runs a `setInterval` every 1 second for the countdown timer. This continues even when the banner is dismissed (the component returns `null` but the effect still runs since it's set up before the early return).
 
-**1.3 Application status tracking**
+**Fix:** Move the `useEffect` for the interval after the early return guard, or add `dismissed` to the guard logic inside the effect.
 
-Applicants can view their application status at `/vendor/application-status`
+### 10. Duplicate Brand Data Fetching in `useBrands`
+
+`useBrands()` makes two queries: one for brands, then another for product counts per brand. The second query selects `brand_id` for all active products. This could use a single query with a count join or an RPC.
+
+**Fix (minor):** Acceptable for now — optimize later if brand count grows significantly. Implement a fix that can handle our targeted number of brands as side projects which is 10 brands.
 
 ---
 
-#### Task 2: Admin Application Review System
+## Responsiveness Issues
 
-**2.1 Create `/admin/applications` page**
+### 11. Checkout Page Long Form on Mobile
 
-- List all pending applications with filters
-- View full application details
-- Actions: Approve, Request Resubmission, Reject
-- Admin notes field for follow-up instructions
+The checkout form at `Checkout.tsx` is a single long column with no visual grouping or collapsible sections. On mobile, users scroll extensively.
 
-**2.2 Approval workflow**
+**Fix:** Add collapsible accordion sections for Address, Payment Method, Vouchers, and Order Summary on mobile. Use the existing Accordion component.
 
-When approved:
-- Create brand entry with status "approved"
-- Assign vendor role to user
-- Send confirmation (UI toast for now)
+### 12. Order Detail Status Badge Colors
 
-When requesting resubmission:
-- Update status to "needs_resubmission"
-- Store admin notes with specific requirements
-- User sees instructions when they check status
+In `OrderDetail.tsx`, the `for_delivery` status uses `bg-accent text-accent-foreground`. In the default light theme, accent is `hsl(0 0% 88%)` (light gray) with black text — nearly invisible against the card background. Other pages use `bg-primary` for this status.
 
----
+**Fix:** Align `for_delivery` status color to `bg-primary text-primary-foreground` for consistency with `Orders.tsx`.
 
-#### Task 3: Vendor Verification System (for "Verified" Badge)
+### 13. Footer "Vendor Login" Link Goes to Redirect
 
-**3.1 Create `/vendor/verification` page**
+Footer shows "Vendor Login" link pointing to `/vendor/login`, which just redirects to `/login`. This is correct but the link text is misleading — there's no separate vendor login flow.
 
-For approved vendors to submit verification documents:
-- DTI/SEC Registration
-- BIR Certificate of Registration
-- Mayor's/Business Permit
-- Additional supporting documents
-
-**3.2 Create `/admin/verifications` page**
-
-Admin reviews verification submissions:
-- View all documents
-- Approve (changes brand status to "verified")
-- Request resubmission with notes
-- Reject with reason
+**Fix:** Change the label to "Vendor Sign In" or remove it entirely since vendors use the same login page.
 
 ---
 
-#### Task 4: Payment Proof Upload
+## Summary of Changes
 
-**4.1 Add upload UI to Order Detail page**
 
-For orders with "pending_payment" status:
-- Show upload button for payment screenshot
-- Upload to `payment-proofs` bucket
-- Update vendor_order status to "payment_uploaded"
+| #   | File                  | Change                                                |
+| --- | --------------------- | ----------------------------------------------------- |
+| 1   | `Header.tsx`          | Fix user menu overlay z-index                         |
+| 2   | `Cart.tsx`            | Pre-select all items on load                          |
+| 3   | DB Migration          | Add profiles SELECT policy for reviewer display names |
+| 4   | `Checkout.tsx`        | Use signed URLs for payment proof access              |
+| 5   | `VendorOrders.tsx`    | Refactor to useQuery (optional, consistency)          |
+| 6   | `CartContext.tsx`     | Add useCallback to fetchCart                          |
+| 7   | `useNotifications.ts` | Debounce realtime-triggered refetches                 |
+| 8   | -                     | No change needed now (note for scale)                 |
+| 9   | `SaleBanner.tsx`      | Fix interval cleanup when dismissed                   |
+| 10  | -                     | No change needed now                                  |
+| 11  | `Checkout.tsx`        | Add collapsible sections for mobile                   |
+| 12  | `OrderDetail.tsx`     | Fix for_delivery status color                         |
+| 13  | `Footer.tsx`          | Update "Vendor Login" label                           |
 
----
 
-#### Task 5: Missing Vendor Features
-
-**5.1 Create `/vendor/reviews` page**
-
-- Display all reviews for the vendor's products
-- Show product name, rating, comment, date
-- Read-only (vendors cannot edit)
-
-**5.2 Add tracking number input to VendorOrders**
-
-When status is "processing" or "shipped":
-- Show input field for tracking number
-- Save to vendor_orders.tracking_number
-
----
-
-#### Task 6: Missing Admin Features
-
-**6.1 Create `/admin/products` page**
-
-- List all products across all vendors
-- Filter by vendor, category, status
-- Actions: Deactivate, View
-
-**6.2 Create `/admin/orders` page**
-
-- List all orders across platform
-- Filter by status, date, vendor
-- View order details
-
----
-
-#### Task 7: Customer Reviews
-
-**7.1 Update ProductDetail to show real reviews**
-
-Query reviews table for the product and display actual data
-
-**7.2 Add review submission on OrderDetail**
-
-After order is "delivered", customer can leave a review
-
----
-
-#### Task 8: Static/Info Pages
-
-Create minimal placeholder pages for:
-- `/help` - Help center
-- `/faq` - Frequently asked questions
-- `/contact` - Contact form
-- `/privacy` - Privacy policy
-- `/terms` - Terms of service
-- `/returns` - Return policy
-- `/vendor/guidelines` - Seller guidelines
-
----
-
-### File Changes Summary
-
-| New Files | Purpose |
-|-----------|---------|
-| `src/pages/vendor/VendorRegister.tsx` | Application form |
-| `src/pages/vendor/VendorApplicationStatus.tsx` | Track application |
-| `src/pages/vendor/VendorVerification.tsx` | Submit verification docs |
-| `src/pages/vendor/VendorReviews.tsx` | View product reviews |
-| `src/pages/admin/AdminApplications.tsx` | Review applications |
-| `src/pages/admin/AdminVerifications.tsx` | Review verifications |
-| `src/pages/admin/AdminProducts.tsx` | Manage all products |
-| `src/pages/admin/AdminOrders.tsx` | View all orders |
-| `src/components/vendor/ApplicationForm.tsx` | Multi-step form |
-| `src/components/vendor/DocumentUpload.tsx` | File upload component |
-| `src/components/account/PaymentProofUpload.tsx` | Payment screenshot upload |
-| `src/components/account/ReviewForm.tsx` | Submit review |
-| `src/pages/static/HelpCenter.tsx` | Help page |
-| `src/pages/static/FAQ.tsx` | FAQ page |
-| `src/pages/static/Contact.tsx` | Contact page |
-| `src/pages/static/Privacy.tsx` | Privacy policy |
-| `src/pages/static/Terms.tsx` | Terms page |
-| `src/pages/static/Returns.tsx` | Returns page |
-| `src/pages/static/SellerGuidelines.tsx` | Vendor guidelines |
-
-| Modified Files | Changes |
-|----------------|---------|
-| `src/App.tsx` | Add new routes |
-| `src/pages/account/OrderDetail.tsx` | Add payment proof upload |
-| `src/pages/vendor/VendorOrders.tsx` | Add tracking input |
-| `src/pages/ProductDetail.tsx` | Display real reviews |
-| `src/components/layout/AdminLayout.tsx` | Add new nav items |
-| `src/components/layout/Footer.tsx` | Fix footer links |
-
----
-
-### Technical Approach
-
-**Vendor Application Flow**
-```text
-User clicks "Become a Vendor"
-         |
-         v
-   /vendor/register
-         |
-         v
-  Fill application form
-  (business type, info, documents)
-         |
-         v
-  Submit -> status: "pending"
-         |
-         v
-  Admin reviews at /admin/applications
-         |
-    +----+----+
-    |         |
- Approve   Need Changes
-    |         |
-    v         v
- Brand      Status:
- created    "needs_resubmission"
- + role     + admin notes
- assigned   shown to user
-```
-
-**Verification Flow (Separate from Application)**
-```text
-Approved vendor
-wants "Verified" badge
-         |
-         v
-   /vendor/verification
-         |
-         v
-  Upload official documents
-  (DTI, BIR, Mayor's permit)
-         |
-         v
-  Submit -> status: "pending"
-         |
-         v
-  Admin reviews at /admin/verifications
-         |
-    +----+----+
-    |         |
- Verify    Need Changes
-    |         |
-    v         v
- Brand      Status:
- status ->  "needs_resubmission"
- "verified" + admin notes
-```
-
----
-
-### Database Migration SQL
-
-```sql
--- Vendor Applications
-CREATE TYPE vendor_application_status AS ENUM (
-  'pending', 'approved', 'needs_resubmission', 'rejected'
-);
-
-CREATE TYPE business_type AS ENUM ('established', 'aspiring');
-
-CREATE TABLE vendor_applications (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  business_name TEXT NOT NULL,
-  business_type business_type NOT NULL,
-  location TEXT NOT NULL,
-  contact_phone TEXT NOT NULL,
-  description TEXT,
-  business_permit_url TEXT,
-  valid_id_url TEXT,
-  proof_of_products_url TEXT,
-  status vendor_application_status DEFAULT 'pending',
-  admin_notes TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- Vendor Verifications
-CREATE TYPE vendor_verification_status AS ENUM (
-  'pending', 'verified', 'needs_resubmission', 'rejected'
-);
-
-CREATE TABLE vendor_verifications (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  brand_id UUID REFERENCES brands(id) ON DELETE CASCADE NOT NULL,
-  dti_registration_url TEXT,
-  bir_certificate_url TEXT,
-  mayor_permit_url TEXT,
-  additional_docs TEXT[],
-  status vendor_verification_status DEFAULT 'pending',
-  admin_notes TEXT,
-  submitted_at TIMESTAMPTZ DEFAULT now(),
-  reviewed_at TIMESTAMPTZ
-);
-
--- Storage bucket
-INSERT INTO storage.buckets (id, name, public) 
-VALUES ('vendor-documents', 'vendor-documents', false);
-```
-
----
-
-### Estimated Scope
-
-| Category | Items | Effort |
-|----------|-------|--------|
-| New Pages | 17 | Medium-High |
-| Database Tables | 2 | Low |
-| Storage Bucket | 1 | Low |
-| Component Updates | 6 | Medium |
-| Route Updates | 1 | Low |
-
-This plan covers all essential functionality for a working presentation-ready system with proper vendor application, admin review, verification workflow, payment proof uploads, and missing features.
-
+I recommend implementing fixes 1-4, 6-7, 9, 12-13 first as they are the most impactful with minimal risk. Fix 5 and 11 are larger refactors that can follow.
