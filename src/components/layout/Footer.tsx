@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
+  const { isVendor } = useAuth();
 
   const footerLinks = {
     marketplace: [
@@ -9,11 +11,16 @@ const Footer = () => {
       { href: "/brands", label: "All Brands" },
       { href: "/categories", label: "Categories" },
     ],
-    forVendors: [
-      { href: "/vendor/register", label: "Become a Vendor" },
-      { href: "/vendor/login", label: "Vendor Login" },
-      { href: "/vendor/guidelines", label: "Seller Guidelines" },
-    ],
+    forVendors: isVendor
+      ? [
+          { href: "/vendor/dashboard", label: "Vendor Dashboard" },
+          { href: "/vendor/guidelines", label: "Seller Guidelines" },
+        ]
+      : [
+          { href: "/vendor/register", label: "Become a Vendor" },
+          { href: "/vendor/login", label: "Vendor Login" },
+          { href: "/vendor/guidelines", label: "Seller Guidelines" },
+        ],
     support: [
       { href: "/help", label: "Help Center" },
       { href: "/contact", label: "Contact Us" },
