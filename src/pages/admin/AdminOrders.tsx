@@ -185,10 +185,15 @@ const AdminOrders = () => {
                     </div>
                     <span className={`px-2 py-0.5 text-xs uppercase ${statusColors[overallStatus]}`}>{statusLabels[overallStatus]}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="font-heading">{formatPrice(Number(order.total_amount))}</span>
-                    <Link to={`/account/orders/${order.id}`} className="p-2 hover:bg-secondary"><Eye className="w-4 h-4" /></Link>
-                  </div>
+                   <div className="flex items-center justify-between">
+                     <span className="font-heading">{formatPrice(Number(order.total_amount))}</span>
+                     <div className="flex items-center gap-2">
+                       {order.vendor_orders?.filter((vo: any) => vo.payment_proof_url).map((vo: any) => (
+                         <AdminPaymentProof key={vo.id} path={vo.payment_proof_url} paymentMethod={vo.payment_method} />
+                       ))}
+                       <Link to={`/account/orders/${order.id}`} className="p-2 hover:bg-secondary"><Eye className="w-4 h-4" /></Link>
+                     </div>
+                   </div>
                 </div>
               );
             })}
