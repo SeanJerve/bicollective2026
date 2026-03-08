@@ -33,6 +33,7 @@ const ImageGallery = ({ mainImage, images = [], alt }: ImageGalleryProps) => {
           <img
             src={allImages[activeIndex]}
             alt={`${alt} ${activeIndex + 1}`}
+            loading="lazy"
             className="w-full h-full object-cover"
           />
         </div>

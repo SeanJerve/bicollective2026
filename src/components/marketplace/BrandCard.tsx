@@ -44,6 +44,7 @@ const BrandCard = ({
             <img
               src={logo}
               alt={`${name} logo`}
+              loading="lazy"
               className="w-full h-full object-cover"
             />
           </div>
