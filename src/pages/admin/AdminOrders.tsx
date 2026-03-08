@@ -137,6 +137,9 @@ const AdminOrders = () => {
             View all platform orders ({filteredOrders.length} total)
           </p>
         </div>
+        <button onClick={exportCSV} className="btn-brutal flex items-center gap-2 text-sm" disabled={filteredOrders.length === 0}>
+          <Download className="w-4 h-4" /> Export CSV
+        </button>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
