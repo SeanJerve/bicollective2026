@@ -289,6 +289,30 @@ const OrderDetail = () => {
                 />
               </div>
 
+              {/* Cancel button for cancellable orders */}
+              {cancellableStatuses.includes(vo.status) && (
+                <div className="border-t border-border-subtle pt-4 mt-4">
+                  <button
+                    onClick={() => handleCancelVendorOrder(vo.id)}
+                    disabled={cancellingOrder === vo.id}
+                    className="btn-brutal-secondary w-full flex items-center justify-center gap-2 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                  >
+                    {cancellingOrder === vo.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <XCircle className="w-4 h-4" />
+                    )}
+                    Cancel This Order
+                  </button>
+                </div>
+              )}
+              {vo.status === "processing" && (
+                <div className="border-t border-border-subtle pt-4 mt-4">
+                  <p className="text-xs text-muted-foreground italic">
+                    This order is being processed and can no longer be cancelled.
+                  </p>
+                </div>
+              )}
               {/* Review section for delivered orders */}
               {vo.status === "delivered" && !existingReviews?.includes(vo.id) && (
                 <div className="border-t border-border-subtle pt-4 mt-4">
