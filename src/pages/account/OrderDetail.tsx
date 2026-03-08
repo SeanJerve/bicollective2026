@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Package, Truck, MapPin, Phone, Clock, Star } from "lucide-react";
+import { Package, Truck, MapPin, Phone, Clock, Star, XCircle, Loader2 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 import ReviewForm from "@/components/account/ReviewForm";
 import OrderChat from "@/components/chat/OrderChat";
 import PaymentProofUpload from "@/components/account/PaymentProofUpload";
@@ -37,6 +38,29 @@ const OrderDetail = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [reviewingVendorOrder, setReviewingVendorOrder] = useState<string | null>(null);
+  const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const cancellableStatuses = ["pending_payment", "payment_uploaded", "confirmed"];
+
+  const handleCancelVendorOrder = async (vendorOrderId: string) => {
+    if (!confirm("Are you sure you want to cancel this order? This cannot be undone.")) return;
+    setCancellingOrder(vendorOrderId);
+    try {
+      const { error } = await supabase
+        .from("vendor_orders")
+        .update({ status: "cancelled" })
+        .eq("id", vendorOrderId);
+      if (error) throw error;
+      toast({ title: "Order cancelled", description: "Your order has been cancelled successfully." });
+      queryClient.invalidateQueries({ queryKey: ["order-detail", orderId] });
+    } catch (err) {
+      console.error("Cancel error:", err);
+      toast({ title: "Error", description: "Failed to cancel order. Please try again.", variant: "destructive" });
+    } finally {
+      setCancellingOrder(null);
+    }
+  };
 
   const { data: order, isLoading } = useQuery({
     queryKey: ["order-detail", orderId],
@@ -265,6 +289,30 @@ const OrderDetail = () => {
                 />
               </div>
 
+              {/* Cancel button for cancellable orders */}
+              {cancellableStatuses.includes(vo.status) && (
+                <div className="border-t border-border-subtle pt-4 mt-4">
+                  <button
+                    onClick={() => handleCancelVendorOrder(vo.id)}
+                    disabled={cancellingOrder === vo.id}
+                    className="btn-brutal-secondary w-full flex items-center justify-center gap-2 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                  >
+                    {cancellingOrder === vo.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <XCircle className="w-4 h-4" />
+                    )}
+                    Cancel This Order
+                  </button>
+                </div>
+              )}
+              {vo.status === "processing" && (
+                <div className="border-t border-border-subtle pt-4 mt-4">
+                  <p className="text-xs text-muted-foreground italic">
+                    This order is being processed and can no longer be cancelled.
+                  </p>
+                </div>
+              )}
               {/* Review section for delivered orders */}
               {vo.status === "delivered" && !existingReviews?.includes(vo.id) && (
                 <div className="border-t border-border-subtle pt-4 mt-4">
