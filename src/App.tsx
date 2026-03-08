@@ -41,6 +41,7 @@ import VendorApplicationStatus from "./pages/vendor/VendorApplicationStatus";
 import VendorVerification from "./pages/vendor/VendorVerification";
 import VendorReviews from "./pages/vendor/VendorReviews";
 import VendorPromotions from "./pages/vendor/VendorPromotions";
+import VendorAnalytics from "./pages/vendor/VendorAnalytics";
 
 // Admin pages
 import AdminLayout from "./components/layout/AdminLayout";
@@ -56,6 +57,7 @@ import AdminDisputes from "./pages/admin/AdminDisputes";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminVouchers from "./pages/admin/AdminVouchers";
 import AdminLuckyPromo from "./pages/admin/AdminLuckyPromo";
+import AdminUsers from "./pages/admin/AdminUsers";
 
 // Customer pages extension
 import Vouchers from "./pages/account/Vouchers";
@@ -149,6 +151,7 @@ const App = () => (
                 <Route path="verification" element={<VendorVerification />} />
                 <Route path="reviews" element={<VendorReviews />} />
                 <Route path="promotions" element={<VendorPromotions />} />
+                <Route path="analytics" element={<VendorAnalytics />} />
               </Route>
 
               {/* Admin Routes */}
@@ -172,6 +175,7 @@ const App = () => (
                 <Route path="lucky-promo" element={<AdminLuckyPromo />} />
                 <Route path="disputes" element={<AdminDisputes />} />
                 <Route path="analytics" element={<AdminAnalytics />} />
+                <Route path="users" element={<AdminUsers />} />
               </Route>
 
               {/* Customer Account Routes */}

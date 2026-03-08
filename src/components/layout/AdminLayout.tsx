@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, Package, ShoppingCart, Flag, BadgeCheck, LogOut, Tag, Ticket, Gift, BarChart3, AlertTriangle, Menu, X } from "lucide-react";
+import { LayoutDashboard, Users, Package, ShoppingCart, Flag, BadgeCheck, LogOut, Tag, Ticket, Gift, BarChart3, AlertTriangle, Menu, X, UserCog } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
 
@@ -11,7 +11,7 @@ const AdminLayout = () => {
   const { counts } = useNotifications();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const comingSoonItems = ["/admin/analytics"];
+  const comingSoonItems: string[] = [];
 
   const navItems = [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -25,7 +25,8 @@ const AdminLayout = () => {
     { href: "/admin/lucky-promo", label: "Lucky Promo", icon: Gift },
     { href: "/admin/reports", label: "Reports", icon: Flag, badge: counts.pendingReports },
     { href: "/admin/disputes", label: "Disputes", icon: AlertTriangle, badge: counts.pendingDisputes },
-    { href: "/admin/analytics", label: "Analytics", icon: BarChart3, comingSoon: true },
+    { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/admin/users", label: "Users", icon: UserCog },
   ];
 
   const isActive = (path: string, exact?: boolean) => {
@@ -33,11 +34,7 @@ const AdminLayout = () => {
     return location.pathname.startsWith(path);
   };
 
-  const handleNavClick = (e: React.MouseEvent, item: typeof navItems[0]) => {
-    if (item.comingSoon) {
-      e.preventDefault();
-      navigate("/coming-soon");
-    }
+  const handleNavClick = (_e: React.MouseEvent, _item: typeof navItems[0]) => {
     setSidebarOpen(false);
   };
 
@@ -79,12 +76,10 @@ const AdminLayout = () => {
             {navItems.map((item) => (
               <li key={item.href}>
                 <Link
-                  to={item.comingSoon ? "#" : item.href}
+                  to={item.href}
                   onClick={(e) => handleNavClick(e, item)}
                   className={`flex items-center gap-3 px-4 py-3 font-heading text-sm uppercase tracking-wide transition-colors relative ${
-                    item.comingSoon
-                      ? "opacity-40 cursor-not-allowed"
-                      : isActive(item.href, item.exact)
+                    isActive(item.href, item.exact)
                       ? "bg-background text-foreground"
                       : "hover:bg-background/10"
                   }`}

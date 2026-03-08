@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, ShoppingCart, Store, Star, Settings, LogOut, Tag, Menu, X } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Store, Star, Settings, LogOut, Tag, Menu, X, BarChart3 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
 
@@ -17,6 +17,7 @@ const VendorLayout = () => {
     { href: "/vendor/promotions", label: "Promotions", icon: Tag },
     { href: "/vendor/store", label: "Store Settings", icon: Store },
     { href: "/vendor/reviews", label: "Reviews", icon: Star, badge: counts.newReviews },
+    { href: "/vendor/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/vendor/verification", label: "Verification", icon: Settings },
   ];
 

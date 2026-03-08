@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Eye, Loader2, ShoppingCart, Search } from "lucide-react";
+import { Eye, Loader2, ShoppingCart, Search, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import Pagination from "@/components/admin/Pagination";
+import { useToast } from "@/hooks/use-toast";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -36,6 +37,7 @@ const statusLabels: Record<string, string> = {
 };
 
 const AdminOrders = () => {
+  const { toast } = useToast();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -75,6 +77,31 @@ const AdminOrders = () => {
     }
   };
 
+  const exportCSV = () => {
+    const headers = ["Order ID", "Customer", "Phone", "Date", "Total", "Status", "Vendors"];
+    const rows = filteredOrders.map((o) => {
+      const status = getOverallStatus(o.vendor_orders);
+      return [
+        o.id,
+        o.shipping_name,
+        o.shipping_phone,
+        format(new Date(o.created_at), "yyyy-MM-dd"),
+        Number(o.total_amount).toFixed(2),
+        statusLabels[status] || status,
+        o.vendor_orders?.map((vo: any) => vo.brand?.name).filter(Boolean).join("; ") || "",
+      ];
+    });
+    const csv = [headers, ...rows].map((r) => r.map((c: string) => `"${c}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `orders-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: `Exported ${filteredOrders.length} orders` });
+  };
+
   const formatPrice = (amount: number) =>
     new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(amount);
 
@@ -110,6 +137,9 @@ const AdminOrders = () => {
             View all platform orders ({filteredOrders.length} total)
           </p>
         </div>
+        <button onClick={exportCSV} className="btn-brutal flex items-center gap-2 text-sm" disabled={filteredOrders.length === 0}>
+          <Download className="w-4 h-4" /> Export CSV
+        </button>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
