@@ -222,9 +222,11 @@ const VendorOrders = () => {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-6">
-        {[
+      {[
           { value: "all", label: "All" },
+          { value: "pending_payment", label: "Pending Payment" },
           { value: "payment_uploaded", label: "Payment Uploaded" },
+          { value: "confirmed", label: "COD Confirmed" },
           { value: "paid", label: "Paid" },
           { value: "processing", label: "Processing" },
           { value: "shipped", label: "Shipped" },
