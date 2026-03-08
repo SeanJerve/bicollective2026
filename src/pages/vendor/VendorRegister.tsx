@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Check, Building2, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Building2, Rocket, Loader2 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import DocumentUpload from "@/components/vendor/DocumentUpload";
 import { supabase } from "@/integrations/supabase/client";
