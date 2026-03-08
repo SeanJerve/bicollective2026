@@ -17,6 +17,7 @@ const VendorLayout = () => {
     { href: "/vendor/promotions", label: "Promotions", icon: Tag },
     { href: "/vendor/store", label: "Store Settings", icon: Store },
     { href: "/vendor/reviews", label: "Reviews", icon: Star, badge: counts.newReviews },
+    { href: "/vendor/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/vendor/verification", label: "Verification", icon: Settings },
   ];
 
