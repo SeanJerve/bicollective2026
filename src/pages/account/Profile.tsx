@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { User, Phone, MapPin, Save, Loader2, Plus, Trash2, Star } from "lucide-react";
+import { User, Phone, MapPin, Save, Loader2, Plus, Trash2, Star, Lock, Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PageLayout from "@/components/layout/PageLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const Profile = () => {
   const { user } = useAuth();
@@ -18,6 +19,13 @@ const Profile = () => {
     full_name: "",
     phone: "",
   });
+
+  // Password change state
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
 
   // Fetch profile
   useEffect(() => {
@@ -123,6 +131,32 @@ const Profile = () => {
     }
   };
 
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+      toast({ title: "Password too short", description: "Must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ title: "Passwords don't match", variant: "destructive" });
+      return;
+    }
+
+    setSavingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast({ title: "Password updated", description: "Your password has been changed successfully" });
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordOpen(false);
+    } catch (error: any) {
+      toast({ title: "Failed to update password", description: error.message, variant: "destructive" });
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
   if (loading) {
     return (
       <PageLayout>
@@ -202,6 +236,72 @@ const Profile = () => {
                 {saving ? "Saving..." : "Save Changes"}
               </button>
             </form>
+          </div>
+
+          {/* Password Change */}
+          <div className="card-brutal mb-8">
+            <Collapsible open={passwordOpen} onOpenChange={setPasswordOpen}>
+              <CollapsibleTrigger className="w-full p-6 flex items-center justify-between text-left">
+                <div className="flex items-center gap-3">
+                  <Lock className="w-5 h-5" />
+                  <span className="font-heading text-lg uppercase">Change Password</span>
+                </div>
+                <span className="text-xs text-muted-foreground">{passwordOpen ? "Close" : "Expand"}</span>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <form onSubmit={handlePasswordChange} className="p-6 pt-0 space-y-4">
+                  <div>
+                    <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
+                      New Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="input-brutal pl-12 pr-12"
+                        placeholder="Min 6 characters"
+                        minLength={6}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
+                      Confirm Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="input-brutal pl-12"
+                        placeholder="Re-enter password"
+                        minLength={6}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={savingPassword}
+                    className="btn-brutal w-full flex items-center justify-center gap-2"
+                  >
+                    {savingPassword ? <Loader2 className="w-5 h-5 animate-spin" /> : <Lock className="w-5 h-5" />}
+                    {savingPassword ? "Updating..." : "Update Password"}
+                  </button>
+                </form>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
 
           {/* Addresses Section */}
