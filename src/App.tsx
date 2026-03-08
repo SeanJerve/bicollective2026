@@ -151,6 +151,7 @@ const App = () => (
                 <Route path="verification" element={<VendorVerification />} />
                 <Route path="reviews" element={<VendorReviews />} />
                 <Route path="promotions" element={<VendorPromotions />} />
+                <Route path="analytics" element={<VendorAnalytics />} />
               </Route>
 
               {/* Admin Routes */}
