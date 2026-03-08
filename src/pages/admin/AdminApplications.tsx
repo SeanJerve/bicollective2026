@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Eye, Check, X, RotateCcw, Loader2, FileText, Building2, Sparkles, Trash2, Image } from "lucide-react";
+import { Eye, Check, X, RotateCcw, Loader2, FileText, Building2, Rocket, Trash2, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -178,7 +178,7 @@ const AdminApplications = () => {
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      {app.business_type === "established" ? <Building2 className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+{app.business_type === "established" ? <Building2 className="w-4 h-4" /> : <Rocket className="w-4 h-4" />}
                       <span className="font-medium">{app.business_name}</span>
                     </div>
                     <p className="text-xs text-muted-foreground">{app.location}</p>
@@ -214,7 +214,7 @@ const AdminApplications = () => {
                   {applications.map((app) => (
                     <tr key={app.id}>
                       <td className="p-4 font-medium">{app.business_name}</td>
-                      <td className="p-4"><span className="flex items-center gap-2 capitalize">{app.business_type === "established" ? <Building2 className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}{app.business_type}</span></td>
+                      <td className="p-4"><span className="flex items-center gap-2 capitalize">{app.business_type === "established" ? <Building2 className="w-4 h-4" /> : <Rocket className="w-4 h-4" />}{app.business_type}</span></td>
                       <td className="p-4 text-muted-foreground">{app.location}</td>
                       <td className="p-4 text-muted-foreground">{format(new Date(app.created_at), "PP")}</td>
                       <td className="p-4"><span className={`px-2 py-1 text-xs uppercase ${statusColors[app.status as keyof typeof statusColors]}`}>{app.status.replace("_", " ")}</span></td>
