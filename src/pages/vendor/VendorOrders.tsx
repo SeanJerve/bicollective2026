@@ -315,13 +315,22 @@ const VendorOrders = () => {
 
                 {/* Actions */}
                 <div className="flex flex-wrap gap-2">
-                  {order.status === "payment_uploaded" && (
+                 {order.status === "payment_uploaded" && (
                     <button
                       onClick={() => updateOrderStatus(order.id, "paid")}
                       className="btn-brutal flex items-center gap-2 text-sm"
                     >
                       <CheckCircle className="w-4 h-4" />
                       Verify Payment
+                    </button>
+                  )}
+                  {order.status === "confirmed" && (
+                    <button
+                      onClick={() => updateOrderStatus(order.id, "processing")}
+                      className="btn-brutal flex items-center gap-2 text-sm"
+                    >
+                      <Package className="w-4 h-4" />
+                      Confirm &amp; Process (COD)
                     </button>
                   )}
                   {order.status === "paid" && (
