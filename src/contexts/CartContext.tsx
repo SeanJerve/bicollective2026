@@ -28,7 +28,7 @@ interface CartContextType {
   loading: boolean;
   itemCount: number;
   total: number;
-  addToCart: (productId: string, quantity: number, size: string) => Promise<void>;
+  addToCart: (productId: string, quantity: number, size?: string) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -97,7 +97,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     fetchCart();
   }, [fetchCart]);
 
-  const addToCart = async (productId: string, quantity: number, size: string) => {
+  const addToCart = async (productId: string, quantity: number, size?: string) => {
     if (!user) {
       toast({
         title: "Please sign in",
@@ -120,7 +120,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           user_id: user.id,
           product_id: productId,
           quantity,
-          size,
+          size: size || null,
         });
 
         if (error) throw error;
