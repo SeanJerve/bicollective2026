@@ -175,6 +175,7 @@ const App = () => (
                 <Route path="lucky-promo" element={<AdminLuckyPromo />} />
                 <Route path="disputes" element={<AdminDisputes />} />
                 <Route path="analytics" element={<AdminAnalytics />} />
+                <Route path="users" element={<AdminUsers />} />
               </Route>
 
               {/* Customer Account Routes */}
