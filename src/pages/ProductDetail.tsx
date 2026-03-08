@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
+import usePageSEO from "@/hooks/usePageSEO";
 
 const ProductDetail = () => {
   const { slug } = useParams();
