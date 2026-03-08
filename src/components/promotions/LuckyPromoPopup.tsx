@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Gift, X, Sparkles, Loader2, Truck } from "lucide-react";
+import { Gift, X, Star, Loader2, Truck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
