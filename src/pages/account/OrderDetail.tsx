@@ -240,6 +240,19 @@ const OrderDetail = () => {
                 </div>
               )}
 
+              {/* Payment Proof Upload for non-COD pending orders */}
+              {vo.status === "pending_payment" && vo.payment_method !== "cod" && !vo.payment_proof_url && (
+                <div className="border-t border-border-subtle pt-4 mt-4">
+                  <PaymentProofUpload
+                    vendorOrderId={vo.id}
+                    currentProofUrl={vo.payment_proof_url}
+                    onUploadSuccess={() => {
+                      queryClient.invalidateQueries({ queryKey: ["order-detail", orderId] });
+                    }}
+                  />
+                </div>
+              )}
+
               {/* Chat */}
               <div className="border-t border-border-subtle pt-4 mt-4 flex justify-end">
                 <OrderChat

@@ -121,7 +121,7 @@ const ProductDetail = () => {
     }
   };
 
-  const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
+  const sizes = product?.sizes?.length ? product.sizes : ["XS", "S", "M", "L", "XL", "XXL"];
 
   const formatPrice = (amount: number) => {
     return new Intl.NumberFormat("en-PH", {

@@ -180,6 +180,8 @@ const VendorOrders = () => {
         return "bg-muted text-muted-foreground";
       case "payment_uploaded":
         return "bg-secondary text-secondary-foreground border-2 border-foreground";
+      case "confirmed":
+        return "bg-info text-info-foreground";
       case "paid":
         return "bg-success text-success-foreground";
       case "processing":
