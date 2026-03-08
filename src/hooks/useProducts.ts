@@ -23,6 +23,7 @@ export interface Product {
   preorderDiscountPercent?: number;
   storeSalePercent?: number;
   storeSaleEndsAt?: string;
+  sizes?: string[];
 }
 
 export interface Brand {
@@ -85,6 +86,7 @@ export const useProducts = () => {
         preorderDiscountPercent: p.preorder_discount_percent || undefined,
         storeSalePercent: p.brand?.store_sale_percent || undefined,
         storeSaleEndsAt: p.brand?.store_sale_ends_at || undefined,
+        sizes: p.sizes || undefined,
       }));
     },
   });
@@ -130,6 +132,7 @@ export const useProduct = (slug: string) => {
         preorderDiscountPercent: data.preorder_discount_percent || undefined,
         storeSalePercent: data.brand?.store_sale_percent || undefined,
         storeSaleEndsAt: data.brand?.store_sale_ends_at || undefined,
+        sizes: data.sizes || undefined,
       };
     },
     enabled: !!slug,

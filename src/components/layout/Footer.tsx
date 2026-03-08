@@ -13,7 +13,7 @@ const Footer = () => {
     ],
     forVendors: isVendor
       ? [
-          { href: "/vendor/dashboard", label: "Vendor Dashboard" },
+          { href: "/vendor", label: "Vendor Dashboard" },
           { href: "/vendor/guidelines", label: "Seller Guidelines" },
         ]
       : [

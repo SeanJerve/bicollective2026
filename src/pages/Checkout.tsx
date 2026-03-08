@@ -328,7 +328,7 @@ const Checkout = () => {
           ? Math.max(0, brandShippingAfterVoucher - Math.round(promoFreeShipping * brandShipping / totalShippingOriginal))
           : brandShippingAfterVoucher;
 
-        const initialStatus = paymentMethod === "cod" ? "pending_payment" : "payment_uploaded";
+        const initialStatus = paymentMethod === "cod" ? "confirmed" : (paymentProofUrl ? "payment_uploaded" : "pending_payment");
 
         const { data: vendorOrder, error: vendorOrderError } = await supabase
           .from("vendor_orders")

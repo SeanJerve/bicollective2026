@@ -180,6 +180,8 @@ const VendorOrders = () => {
         return "bg-muted text-muted-foreground";
       case "payment_uploaded":
         return "bg-secondary text-secondary-foreground border-2 border-foreground";
+      case "confirmed":
+        return "bg-info text-info-foreground";
       case "paid":
         return "bg-success text-success-foreground";
       case "processing":
@@ -222,9 +224,11 @@ const VendorOrders = () => {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-6">
-        {[
+      {[
           { value: "all", label: "All" },
+          { value: "pending_payment", label: "Pending Payment" },
           { value: "payment_uploaded", label: "Payment Uploaded" },
+          { value: "confirmed", label: "COD Confirmed" },
           { value: "paid", label: "Paid" },
           { value: "processing", label: "Processing" },
           { value: "shipped", label: "Shipped" },
@@ -313,13 +317,22 @@ const VendorOrders = () => {
 
                 {/* Actions */}
                 <div className="flex flex-wrap gap-2">
-                  {order.status === "payment_uploaded" && (
+                 {order.status === "payment_uploaded" && (
                     <button
                       onClick={() => updateOrderStatus(order.id, "paid")}
                       className="btn-brutal flex items-center gap-2 text-sm"
                     >
                       <CheckCircle className="w-4 h-4" />
                       Verify Payment
+                    </button>
+                  )}
+                  {order.status === "confirmed" && (
+                    <button
+                      onClick={() => updateOrderStatus(order.id, "processing")}
+                      className="btn-brutal flex items-center gap-2 text-sm"
+                    >
+                      <Package className="w-4 h-4" />
+                      Confirm &amp; Process (COD)
                     </button>
                   )}
                   {order.status === "paid" && (

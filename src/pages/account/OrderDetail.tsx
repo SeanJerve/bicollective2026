@@ -8,10 +8,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import ReviewForm from "@/components/account/ReviewForm";
 import OrderChat from "@/components/chat/OrderChat";
+import PaymentProofUpload from "@/components/account/PaymentProofUpload";
 
 const statusColors: Record<string, string> = {
   pending_payment: "bg-warning text-warning-foreground",
   payment_uploaded: "bg-info text-info-foreground",
+  confirmed: "bg-info text-info-foreground",
   paid: "bg-info text-info-foreground",
   processing: "bg-info text-info-foreground",
   shipped: "bg-primary text-primary-foreground",
@@ -22,6 +24,7 @@ const statusColors: Record<string, string> = {
 const statusLabels: Record<string, string> = {
   pending_payment: "Pending Payment",
   payment_uploaded: "Payment Uploaded",
+  confirmed: "Confirmed",
   paid: "Paid",
   processing: "Processing",
   shipped: "Shipped",
@@ -49,6 +52,7 @@ const OrderDetail = () => {
             shipping_fee,
             tracking_number,
             payment_proof_url,
+            payment_method,
             brand:brands(id, name, slug, owner_id),
             order_items(id, product_name, product_price, quantity, size, product_id)
           )
@@ -236,6 +240,19 @@ const OrderDetail = () => {
                   <a href={vo.payment_proof_url} target="_blank" rel="noopener noreferrer">
                     <img src={vo.payment_proof_url} alt="Payment proof" className="w-32 h-32 object-cover border border-border-subtle" />
                   </a>
+                </div>
+              )}
+
+              {/* Payment Proof Upload for non-COD pending orders */}
+              {vo.status === "pending_payment" && vo.payment_method !== "cod" && !vo.payment_proof_url && (
+                <div className="border-t border-border-subtle pt-4 mt-4">
+                  <PaymentProofUpload
+                    vendorOrderId={vo.id}
+                    currentProofUrl={vo.payment_proof_url}
+                    onUploadSuccess={() => {
+                      queryClient.invalidateQueries({ queryKey: ["order-detail", orderId] });
+                    }}
+                  />
                 </div>
               )}
 
