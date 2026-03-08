@@ -107,15 +107,6 @@ const VendorApplicationStatus = () => {
   const handleResubmit = async () => {
     if (!application || !user) return;
 
-    if (!formData.business_name.trim() || !formData.location.trim() || !formData.contact_phone.trim()) {
-      toast({
-        title: "Missing fields",
-        description: "Please fill in business name, location, and phone number.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setSubmitting(true);
     try {
       const { error } = await supabase
