@@ -39,7 +39,30 @@ const statusLabels: Record<string, string> = {
   disputed: "Disputed",
 };
 
-const OrderDetail = () => {
+// Helper to render payment proof with signed URL
+const PaymentProofImage = ({ path }: { path: string }) => {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    // If path is already a full URL (legacy), use directly
+    if (path.startsWith("http")) {
+      setUrl(path);
+      return;
+    }
+    supabase.storage.from("payment-proofs").createSignedUrl(path, 3600).then(({ data }) => {
+      if (data) setUrl(data.signedUrl);
+    });
+  }, [path]);
+  if (!url) return null;
+  return (
+    <div className="border-t border-border-subtle pt-4 mt-4">
+      <h4 className="font-heading text-sm uppercase mb-2">Payment Proof</h4>
+      <a href={url} target="_blank" rel="noopener noreferrer">
+        <img src={url} alt="Payment proof" className="w-32 h-32 object-cover border border-border-subtle" />
+      </a>
+    </div>
+  );
+};
+
   const { orderId } = useParams<{ orderId: string }>();
   const { user } = useAuth();
   const queryClient = useQueryClient();
