@@ -86,6 +86,7 @@ export const useProducts = () => {
         preorderDiscountPercent: p.preorder_discount_percent || undefined,
         storeSalePercent: p.brand?.store_sale_percent || undefined,
         storeSaleEndsAt: p.brand?.store_sale_ends_at || undefined,
+        sizes: p.sizes || undefined,
       }));
     },
   });
