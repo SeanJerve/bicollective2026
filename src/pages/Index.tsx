@@ -7,6 +7,7 @@ import BrandCard from "@/components/marketplace/BrandCard";
 import BrandCardSkeleton from "@/components/marketplace/BrandCardSkeleton";
 import { useProducts, useBrands, useCategories } from "@/hooks/useProducts";
 import { useAuth } from "@/contexts/AuthContext";
+import usePageSEO from "@/hooks/usePageSEO";
 import heroBanner from "@/assets/hero-banner.jpg";
 
 const Index = () => {
