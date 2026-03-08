@@ -6,9 +6,11 @@ import ProductCardSkeleton from "@/components/marketplace/ProductCardSkeleton";
 import BrandCard from "@/components/marketplace/BrandCard";
 import BrandCardSkeleton from "@/components/marketplace/BrandCardSkeleton";
 import { useProducts, useBrands, useCategories } from "@/hooks/useProducts";
+import { useAuth } from "@/contexts/AuthContext";
 import heroBanner from "@/assets/hero-banner.jpg";
 
 const Index = () => {
+  const { isVendor } = useAuth();
   const { data: products, isLoading: productsLoading } = useProducts();
   const { data: brands, isLoading: brandsLoading } = useBrands();
   const { data: categories, isLoading: categoriesLoading } = useCategories();
