@@ -56,22 +56,19 @@ const PaymentProofUpload = ({
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from("payment-proofs")
-        .getPublicUrl(filePath);
-
-      // Update vendor order with proof URL and status
+      // Store the path — use signed URLs when viewing since bucket is private
+      // Update vendor order with proof path and status
       const { error: updateError } = await supabase
         .from("vendor_orders")
         .update({
-          payment_proof_url: urlData.publicUrl,
+          payment_proof_url: filePath,
           status: "payment_uploaded",
         })
         .eq("id", vendorOrderId);
 
       if (updateError) throw updateError;
 
-      setProofUrl(urlData.publicUrl);
+      setProofUrl(filePath);
 
       toast({
         title: "Payment proof uploaded",

@@ -18,7 +18,7 @@ const Footer = () => {
         ]
       : [
           { href: "/vendor/register", label: "Become a Vendor" },
-          { href: "/vendor/login", label: "Vendor Login" },
+          { href: "/login", label: "Sign In as Vendor" },
           { href: "/vendor/guidelines", label: "Seller Guidelines" },
         ],
     support: [

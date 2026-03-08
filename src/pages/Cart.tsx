@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
@@ -28,7 +28,13 @@ const Cart = () => {
     }, {} as Record<string, { brand: { id: string; name: string; slug: string }; items: typeof items; subtotal: number }>);
   }, [items]);
 
-  // Select all items on first render if none selected
+  // Pre-select all items when they load
+  useEffect(() => {
+    if (items.length > 0 && selectedIds.size === 0) {
+      setSelectedIds(new Set(items.map((i) => i.id)));
+    }
+  }, [items]);
+
   const toggleItem = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);

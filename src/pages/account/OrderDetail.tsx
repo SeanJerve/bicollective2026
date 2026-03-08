@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Package, Truck, MapPin, Phone, Clock, Star, XCircle, Loader2 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
@@ -18,7 +18,7 @@ const statusColors: Record<string, string> = {
   paid: "bg-info text-info-foreground",
   processing: "bg-info text-info-foreground",
   handed_to_courier: "bg-primary text-primary-foreground",
-  for_delivery: "bg-accent text-accent-foreground",
+  for_delivery: "bg-primary text-primary-foreground",
   shipped: "bg-primary text-primary-foreground",
   delivered: "bg-success text-success-foreground",
   cancelled: "bg-destructive text-destructive-foreground",
@@ -39,12 +39,36 @@ const statusLabels: Record<string, string> = {
   disputed: "Disputed",
 };
 
+// Helper to render payment proof with signed URL
+const PaymentProofImage = ({ path }: { path: string }) => {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    // If path is already a full URL (legacy), use directly
+    if (path.startsWith("http")) {
+      setUrl(path);
+      return;
+    }
+    supabase.storage.from("payment-proofs").createSignedUrl(path, 3600).then(({ data }) => {
+      if (data) setUrl(data.signedUrl);
+    });
+  }, [path]);
+  if (!url) return null;
+  return (
+    <div className="border-t border-border-subtle pt-4 mt-4">
+      <h4 className="font-heading text-sm uppercase mb-2">Payment Proof</h4>
+      <a href={url} target="_blank" rel="noopener noreferrer">
+        <img src={url} alt="Payment proof" className="w-32 h-32 object-cover border border-border-subtle" />
+      </a>
+    </div>
+  );
+};
 const OrderDetail = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [reviewingVendorOrder, setReviewingVendorOrder] = useState<string | null>(null);
   const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   const cancellableStatuses = ["pending_payment", "payment_uploaded", "confirmed"];
@@ -265,12 +289,7 @@ const OrderDetail = () => {
 
               {/* Payment proof display */}
               {vo.payment_proof_url && (
-                <div className="border-t border-border-subtle pt-4 mt-4">
-                  <h4 className="font-heading text-sm uppercase mb-2">Payment Proof</h4>
-                  <a href={vo.payment_proof_url} target="_blank" rel="noopener noreferrer">
-                    <img src={vo.payment_proof_url} alt="Payment proof" className="w-32 h-32 object-cover border border-border-subtle" />
-                  </a>
-                </div>
+                <PaymentProofImage path={vo.payment_proof_url} />
               )}
 
               {/* Payment Proof Upload for non-COD pending orders */}

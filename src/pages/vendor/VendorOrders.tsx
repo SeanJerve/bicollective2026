@@ -5,6 +5,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
+// Helper to render payment proof with signed URL
+const VendorPaymentProofImage = ({ path, paymentMethod }: { path: string; paymentMethod: string }) => {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (path.startsWith("http")) { setUrl(path); return; }
+    supabase.storage.from("payment-proofs").createSignedUrl(path, 3600).then(({ data }) => {
+      if (data) setUrl(data.signedUrl);
+    });
+  }, [path]);
+  if (!url) return null;
+  const label = paymentMethod === "gcash" ? "GCash" : paymentMethod === "bank_transfer" ? "Bank Transfer" : "COD";
+  return (
+    <div className="mb-4 md:mb-6">
+      <h4 className="font-heading text-xs md:text-sm uppercase mb-2">Payment Proof ({label})</h4>
+      <a href={url} target="_blank" rel="noopener noreferrer">
+        <img src={url} alt="Payment proof" className="w-32 h-32 object-cover border border-border-subtle" />
+      </a>
+    </div>
+  );
+};
+
 const VendorOrders = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -196,7 +217,7 @@ const VendorOrders = () => {
       case "handed_to_courier":
         return "bg-primary text-primary-foreground";
       case "for_delivery":
-        return "bg-accent text-accent-foreground";
+        return "bg-primary text-primary-foreground";
       case "shipped":
         return "bg-primary text-primary-foreground";
       case "delivered":
@@ -327,14 +348,7 @@ const VendorOrders = () => {
 
                 {/* Payment Proof */}
                 {order.payment_proof_url && (
-                  <div className="mb-4 md:mb-6">
-                    <h4 className="font-heading text-xs md:text-sm uppercase mb-2">
-                      Payment Proof ({order.payment_method === "gcash" ? "GCash" : order.payment_method === "bank_transfer" ? "Bank Transfer" : "COD"})
-                    </h4>
-                    <a href={order.payment_proof_url} target="_blank" rel="noopener noreferrer">
-                      <img src={order.payment_proof_url} alt="Payment proof" className="w-32 h-32 object-cover border border-border-subtle" />
-                    </a>
-                  </div>
+                  <VendorPaymentProofImage path={order.payment_proof_url} paymentMethod={order.payment_method} />
                 )}
 
                 {/* Actions — Full Pipeline */}

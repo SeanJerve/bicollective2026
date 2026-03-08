@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -94,6 +94,15 @@ export const useNotifications = () => {
     }
   }, [user, isAdmin, isVendor]);
 
+  // Debounced version for realtime events
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedFetchCounts = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetchCounts();
+    }, 2000);
+  }, [fetchCounts]);
+
   useEffect(() => {
     fetchCounts();
 
@@ -105,10 +114,10 @@ export const useNotifications = () => {
     if (isAdmin) {
       const adminChannel = supabase
         .channel("admin-notifications")
-        .on("postgres_changes", { event: "*", schema: "public", table: "vendor_applications" }, fetchCounts)
-        .on("postgres_changes", { event: "*", schema: "public", table: "vendor_verifications" }, fetchCounts)
-        .on("postgres_changes", { event: "*", schema: "public", table: "reports" }, fetchCounts)
-        .on("postgres_changes", { event: "*", schema: "public", table: "disputes" }, fetchCounts)
+        .on("postgres_changes", { event: "*", schema: "public", table: "vendor_applications" }, debouncedFetchCounts)
+        .on("postgres_changes", { event: "*", schema: "public", table: "vendor_verifications" }, debouncedFetchCounts)
+        .on("postgres_changes", { event: "*", schema: "public", table: "reports" }, debouncedFetchCounts)
+        .on("postgres_changes", { event: "*", schema: "public", table: "disputes" }, debouncedFetchCounts)
         .subscribe();
       channels.push(adminChannel);
     }
@@ -116,9 +125,9 @@ export const useNotifications = () => {
     if (isVendor && !isAdmin) {
       const vendorChannel = supabase
         .channel("vendor-notifications")
-        .on("postgres_changes", { event: "*", schema: "public", table: "vendor_orders" }, fetchCounts)
-        .on("postgres_changes", { event: "*", schema: "public", table: "reviews" }, fetchCounts)
-        .on("postgres_changes", { event: "*", schema: "public", table: "products" }, fetchCounts)
+        .on("postgres_changes", { event: "*", schema: "public", table: "vendor_orders" }, debouncedFetchCounts)
+        .on("postgres_changes", { event: "*", schema: "public", table: "reviews" }, debouncedFetchCounts)
+        .on("postgres_changes", { event: "*", schema: "public", table: "products" }, debouncedFetchCounts)
         .subscribe();
       channels.push(vendorChannel);
     }
@@ -126,15 +135,16 @@ export const useNotifications = () => {
     if (!isAdmin) {
       const customerChannel = supabase
         .channel("customer-notifications")
-        .on("postgres_changes", { event: "*", schema: "public", table: "vendor_orders" }, fetchCounts)
+        .on("postgres_changes", { event: "*", schema: "public", table: "vendor_orders" }, debouncedFetchCounts)
         .subscribe();
       channels.push(customerChannel);
     }
 
     return () => {
       channels.forEach((ch) => supabase.removeChannel(ch));
+      if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [user, isAdmin, isVendor, fetchCounts]);
+  }, [user, isAdmin, isVendor, fetchCounts, debouncedFetchCounts]);
 
   const dismiss = (key: keyof NotificationCounts) => {
     dismissedKeys.add(key);
