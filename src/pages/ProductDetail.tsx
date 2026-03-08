@@ -59,11 +59,10 @@ const ProductDetail = () => {
             profile: profileMap.get(r.user_id) || null,
           }));
 
-        if (!error && data) {
-          setReviews(data);
-          setReviewCount(data.length);
-          if (data.length > 0) {
-            const avg = data.reduce((sum, r) => sum + r.rating, 0) / data.length;
+          setReviews(enriched);
+          setReviewCount(enriched.length);
+          if (enriched.length > 0) {
+            const avg = enriched.reduce((sum, r) => sum + r.rating, 0) / enriched.length;
             setAverageRating(avg);
           }
         }
