@@ -11,7 +11,7 @@ const AdminLayout = () => {
   const { counts } = useNotifications();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const comingSoonItems = ["/admin/analytics"];
+  const comingSoonItems: string[] = [];
 
   const navItems = [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
