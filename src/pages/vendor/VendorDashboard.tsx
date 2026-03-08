@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Package, ShoppingCart, DollarSign, Star, TrendingUp, AlertCircle, Ticket, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import LowStockAlert from "@/components/vendor/LowStockAlert";
 
 interface DashboardStats {
   totalProducts: number;
@@ -204,6 +205,8 @@ const VendorDashboard = () => {
         <h1 className="font-heading text-2xl md:text-4xl uppercase">Dashboard</h1>
         <p className="text-muted-foreground mt-1 text-sm md:text-base">Welcome back, {brand.name}</p>
       </div>
+
+      <LowStockAlert brandId={brand.id} />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
