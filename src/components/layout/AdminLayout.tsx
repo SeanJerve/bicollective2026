@@ -34,11 +34,7 @@ const AdminLayout = () => {
     return location.pathname.startsWith(path);
   };
 
-  const handleNavClick = (e: React.MouseEvent, item: typeof navItems[0]) => {
-    if (item.comingSoon) {
-      e.preventDefault();
-      navigate("/coming-soon");
-    }
+  const handleNavClick = (_e: React.MouseEvent, _item: typeof navItems[0]) => {
     setSidebarOpen(false);
   };
 
