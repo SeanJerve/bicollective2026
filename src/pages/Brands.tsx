@@ -5,6 +5,7 @@ import PageLayout from "@/components/layout/PageLayout";
 import BrandCard from "@/components/marketplace/BrandCard";
 import BrandCardSkeleton from "@/components/marketplace/BrandCardSkeleton";
 import { useBrands } from "@/hooks/useProducts";
+import usePageSEO from "@/hooks/usePageSEO";
 
 const BICOL_LOCATIONS = [
   "All Locations",
