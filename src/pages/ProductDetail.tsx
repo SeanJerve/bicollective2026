@@ -40,13 +40,24 @@ const ProductDetail = () => {
       try {
         const { data, error } = await supabase
           .from("reviews")
-          .select(`
-            *,
-            profile:profiles!reviews_user_id_fkey(full_name, avatar_url)
-          `)
+          .select("*")
           .eq("product_id", product.id)
           .eq("is_visible", true)
           .order("created_at", { ascending: false });
+
+        if (!error && data) {
+          // Fetch profiles for reviewers
+          const userIds = [...new Set(data.map((r) => r.user_id))];
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("user_id, full_name, avatar_url")
+            .in("user_id", userIds);
+
+          const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) || []);
+          const enriched = data.map((r) => ({
+            ...r,
+            profile: profileMap.get(r.user_id) || null,
+          }));
 
         if (!error && data) {
           setReviews(data);
