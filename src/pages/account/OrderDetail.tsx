@@ -17,9 +17,12 @@ const statusColors: Record<string, string> = {
   confirmed: "bg-info text-info-foreground",
   paid: "bg-info text-info-foreground",
   processing: "bg-info text-info-foreground",
+  handed_to_courier: "bg-primary text-primary-foreground",
+  for_delivery: "bg-accent text-accent-foreground",
   shipped: "bg-primary text-primary-foreground",
   delivered: "bg-success text-success-foreground",
   cancelled: "bg-destructive text-destructive-foreground",
+  disputed: "bg-warning text-warning-foreground",
 };
 
 const statusLabels: Record<string, string> = {
@@ -28,9 +31,12 @@ const statusLabels: Record<string, string> = {
   confirmed: "Confirmed",
   paid: "Paid",
   processing: "Processing",
+  handed_to_courier: "With Courier",
+  for_delivery: "Out for Delivery",
   shipped: "Shipped",
   delivered: "Delivered",
   cancelled: "Cancelled",
+  disputed: "Disputed",
 };
 
 const OrderDetail = () => {
