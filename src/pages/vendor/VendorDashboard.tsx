@@ -206,6 +206,8 @@ const VendorDashboard = () => {
         <p className="text-muted-foreground mt-1 text-sm md:text-base">Welcome back, {brand.name}</p>
       </div>
 
+      <LowStockAlert brandId={brand.id} />
+
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
         <div className="card-brutal p-6">
