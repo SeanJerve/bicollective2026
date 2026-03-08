@@ -45,6 +45,7 @@ const OrderDetail = () => {
   const queryClient = useQueryClient();
   const [reviewingVendorOrder, setReviewingVendorOrder] = useState<string | null>(null);
   const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   const cancellableStatuses = ["pending_payment", "payment_uploaded", "confirmed"];
