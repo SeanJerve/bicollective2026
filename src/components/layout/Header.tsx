@@ -129,7 +129,7 @@ const Header = () => {
                           >
                             <item.icon className="w-4 h-4" />
                             {item.label}
-                            {item.badge && item.badge > 0 && !isAdmin && (
+                            {(item.badge ?? 0) > 0 && !isAdmin && (
                               <span className="ml-auto min-w-[18px] h-[18px] bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 rounded-full">
                                 {item.badge}
                               </span>

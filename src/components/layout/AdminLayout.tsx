@@ -68,7 +68,7 @@ const AdminLayout = () => {
                 >
                   <item.icon className="w-5 h-5" />
                   {item.label}
-                  {item.badge && item.badge > 0 && (
+                  {(item.badge ?? 0) > 0 && (
                     <span className="ml-auto min-w-[20px] h-[20px] bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 rounded-full">
                       {item.badge}
                     </span>

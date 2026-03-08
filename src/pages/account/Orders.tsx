@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Package, ChevronRight } from "lucide-react";
+import { Package, ChevronRight, XCircle, Loader2 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 const statusColors: Record<string, string> = {
   pending_payment: "bg-warning text-warning-foreground",
@@ -36,6 +38,36 @@ const statusLabels: Record<string, string> = {
 
 const Orders = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
+
+  const cancellableStatuses = ["pending_payment", "payment_uploaded", "confirmed"];
+
+  const handleCancelOrder = async (e: React.MouseEvent, orderId: string, vendorOrders: any[]) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm("Are you sure you want to cancel this entire order? This cannot be undone.")) return;
+    setCancellingOrder(orderId);
+    try {
+      for (const vo of vendorOrders) {
+        if (cancellableStatuses.includes(vo.status)) {
+          const { error } = await supabase
+            .from("vendor_orders")
+            .update({ status: "cancelled" })
+            .eq("id", vo.id);
+          if (error) throw error;
+        }
+      }
+      toast({ title: "Order cancelled", description: "Your order has been cancelled successfully." });
+      queryClient.invalidateQueries({ queryKey: ["customer-orders"] });
+    } catch (err) {
+      console.error("Cancel error:", err);
+      toast({ title: "Error", description: "Failed to cancel order.", variant: "destructive" });
+    } finally {
+      setCancellingOrder(null);
+    }
+  };
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ["customer-orders", user?.id],
@@ -105,49 +137,69 @@ const Orders = () => {
               {orders.map((order) => {
                 const overallStatus =
                   order.vendor_orders?.[0]?.status || "pending_payment";
+                const canCancel = order.vendor_orders?.some((vo: any) =>
+                  cancellableStatuses.includes(vo.status)
+                );
                 return (
-                  <Link
-                    key={order.id}
-                    to={`/account/orders/${order.id}`}
-                    className="card-brutal p-4 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:shadow-brutal-hover transition-shadow"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-secondary flex items-center justify-center flex-shrink-0">
-                        <Package className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <p className="font-heading text-sm uppercase">
-                          Order #{order.id.slice(0, 8)}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {format(new Date(order.created_at), "PPP")}
-                        </p>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {order.vendor_orders?.map((vo: any) => (
-                            <span
-                              key={vo.id}
-                              className="text-xs bg-secondary px-2 py-0.5"
-                            >
-                              {vo.brand?.name}
-                            </span>
-                          ))}
+                  <div key={order.id} className="card-brutal hover:shadow-brutal-hover transition-shadow">
+                    <Link
+                      to={`/account/orders/${order.id}`}
+                      className="p-4 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 block"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 bg-secondary flex items-center justify-center flex-shrink-0">
+                          <Package className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <p className="font-heading text-sm uppercase">
+                            Order #{order.id.slice(0, 8)}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {format(new Date(order.created_at), "PPP")}
+                          </p>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {order.vendor_orders?.map((vo: any) => (
+                              <span
+                                key={vo.id}
+                                className="text-xs bg-secondary px-2 py-0.5"
+                              >
+                                {vo.brand?.name}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="font-heading">{formatPrice(Number(order.total_amount))}</p>
-                        <span
-                          className={`inline-block mt-1 px-2 py-0.5 text-xs uppercase ${
-                            statusColors[overallStatus] || "bg-secondary"
-                          }`}
-                        >
-                          {statusLabels[overallStatus] || overallStatus}
-                        </span>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="font-heading">{formatPrice(Number(order.total_amount))}</p>
+                          <span
+                            className={`inline-block mt-1 px-2 py-0.5 text-xs uppercase ${
+                              statusColors[overallStatus] || "bg-secondary"
+                            }`}
+                          >
+                            {statusLabels[overallStatus] || overallStatus}
+                          </span>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
                       </div>
-                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                    </div>
-                  </Link>
+                    </Link>
+                    {canCancel && (
+                      <div className="px-4 md:px-6 pb-4 md:pb-6 pt-0">
+                        <button
+                          onClick={(e) => handleCancelOrder(e, order.id, order.vendor_orders || [])}
+                          disabled={cancellingOrder === order.id}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm border-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors font-heading uppercase"
+                        >
+                          {cancellingOrder === order.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <XCircle className="w-4 h-4" />
+                          )}
+                          Cancel Order
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
