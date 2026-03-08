@@ -26,6 +26,7 @@ const VendorPaymentProofImage = ({ path, paymentMethod }: { path: string; paymen
   );
 };
 
+const VendorOrders = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [orders, setOrders] = useState<any[]>([]);
