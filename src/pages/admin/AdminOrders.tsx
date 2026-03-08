@@ -211,7 +211,8 @@ const AdminOrders = () => {
                     <th className="text-left p-4 font-heading text-sm uppercase">Date</th>
                     <th className="text-left p-4 font-heading text-sm uppercase">Total</th>
                     <th className="text-left p-4 font-heading text-sm uppercase">Status</th>
-                    <th className="text-right p-4 font-heading text-sm uppercase">Actions</th>
+                     <th className="text-left p-4 font-heading text-sm uppercase">Proof</th>
+                     <th className="text-right p-4 font-heading text-sm uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-subtle">
