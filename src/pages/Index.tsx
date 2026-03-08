@@ -22,15 +22,8 @@ const Index = () => {
     <PageLayout>
       {/* Hero Section */}
       <section className="relative min-h-[60vh] md:min-h-[80vh] flex items-center border-b-2 border-foreground overflow-hidden">
-        {/* Background Image */}
-        <div className="absolute inset-0">
-          <img
-            src={heroBanner}
-            alt="Bicollective - Local Bicolano Fashion"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-background/60" />
-        </div>
+        {/* Plain Background */}
+        <div className="absolute inset-0 bg-background" />
 
         {/* Content */}
         <div className="relative section-container py-12 md:py-20">
