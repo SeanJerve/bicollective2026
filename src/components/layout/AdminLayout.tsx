@@ -76,12 +76,10 @@ const AdminLayout = () => {
             {navItems.map((item) => (
               <li key={item.href}>
                 <Link
-                  to={item.comingSoon ? "#" : item.href}
+                  to={item.href}
                   onClick={(e) => handleNavClick(e, item)}
                   className={`flex items-center gap-3 px-4 py-3 font-heading text-sm uppercase tracking-wide transition-colors relative ${
-                    item.comingSoon
-                      ? "opacity-40 cursor-not-allowed"
-                      : isActive(item.href, item.exact)
+                    isActive(item.href, item.exact)
                       ? "bg-background text-foreground"
                       : "hover:bg-background/10"
                   }`}
