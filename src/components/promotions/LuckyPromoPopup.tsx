@@ -154,7 +154,7 @@ const LuckyPromoPopup = () => {
         ) : (
           <>
             <div className="w-20 h-20 mx-auto mb-4 bg-success flex items-center justify-center">
-              {reward?.type === "free_shipping" ? <Truck className="w-10 h-10 text-white" /> : <Sparkles className="w-10 h-10 text-white" />}
+              {reward?.type === "free_shipping" ? <Truck className="w-10 h-10 text-white" /> : <Gift className="w-10 h-10 text-white" />}
             </div>
             <h2 className="font-heading text-2xl uppercase mb-2">Congratulations!</h2>
             <div className="bg-secondary p-4 mb-4">

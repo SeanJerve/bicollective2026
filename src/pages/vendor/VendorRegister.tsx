@@ -345,7 +345,7 @@ const VendorRegister = () => {
                 >
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 bg-foreground text-background flex items-center justify-center">
-                      <Sparkles className="w-6 h-6" />
+                      <Rocket className="w-6 h-6" />
                     </div>
                     <div>
                       <h3 className="font-heading uppercase mb-1">Aspiring Seller</h3>

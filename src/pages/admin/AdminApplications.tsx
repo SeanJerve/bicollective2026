@@ -214,7 +214,7 @@ const AdminApplications = () => {
                   {applications.map((app) => (
                     <tr key={app.id}>
                       <td className="p-4 font-medium">{app.business_name}</td>
-                      <td className="p-4"><span className="flex items-center gap-2 capitalize">{app.business_type === "established" ? <Building2 className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}{app.business_type}</span></td>
+                      <td className="p-4"><span className="flex items-center gap-2 capitalize">{app.business_type === "established" ? <Building2 className="w-4 h-4" /> : <Rocket className="w-4 h-4" />}{app.business_type}</span></td>
                       <td className="p-4 text-muted-foreground">{app.location}</td>
                       <td className="p-4 text-muted-foreground">{format(new Date(app.created_at), "PP")}</td>
                       <td className="p-4"><span className={`px-2 py-1 text-xs uppercase ${statusColors[app.status as keyof typeof statusColors]}`}>{app.status.replace("_", " ")}</span></td>
