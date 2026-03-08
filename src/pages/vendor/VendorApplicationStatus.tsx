@@ -112,10 +112,6 @@ const VendorApplicationStatus = () => {
       const { error } = await supabase
         .from("vendor_applications")
         .update({
-          business_name: formData.business_name.trim(),
-          location: formData.location.trim(),
-          contact_phone: formData.contact_phone.trim(),
-          description: formData.description.trim(),
           valid_id_url: formData.valid_id_url,
           business_permit_url: formData.business_permit_url,
           proof_of_products_url: formData.proof_of_products_url,
