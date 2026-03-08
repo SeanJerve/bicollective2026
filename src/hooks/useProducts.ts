@@ -132,6 +132,7 @@ export const useProduct = (slug: string) => {
         preorderDiscountPercent: data.preorder_discount_percent || undefined,
         storeSalePercent: data.brand?.store_sale_percent || undefined,
         storeSaleEndsAt: data.brand?.store_sale_ends_at || undefined,
+        sizes: data.sizes || undefined,
       };
     },
     enabled: !!slug,
