@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Clock, CheckCircle, AlertCircle, XCircle, RefreshCw, Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Clock, CheckCircle, AlertCircle, XCircle, RefreshCw, Loader2, Save } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
+import DocumentUpload from "@/components/vendor/DocumentUpload";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
 const statusConfig = {
@@ -38,10 +40,23 @@ const statusConfig = {
 };
 
 const VendorApplicationStatus = () => {
-  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
   const [application, setApplication] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  // Resubmission form state
+  const [showResubmitForm, setShowResubmitForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    business_name: "",
+    location: "",
+    contact_phone: "",
+    description: "",
+    valid_id_url: null as string | null,
+    business_permit_url: null as string | null,
+    proof_of_products_url: null as string | null,
+  });
 
   useEffect(() => {
     const fetchApplication = async () => {
@@ -61,6 +76,24 @@ const VendorApplicationStatus = () => {
 
         if (error) throw error;
         setApplication(data);
+
+        // Pre-fill form with existing data
+        if (data) {
+          setFormData({
+            business_name: data.business_name || "",
+            location: data.location || "",
+            contact_phone: data.contact_phone || "",
+            description: data.description || "",
+            valid_id_url: data.valid_id_url,
+            business_permit_url: data.business_permit_url,
+            proof_of_products_url: data.proof_of_products_url,
+          });
+
+          // Auto-show form if needs resubmission
+          if (data.status === "needs_resubmission") {
+            setShowResubmitForm(true);
+          }
+        }
       } catch (error) {
         console.error("Error fetching application:", error);
       } finally {
@@ -70,6 +103,56 @@ const VendorApplicationStatus = () => {
 
     fetchApplication();
   }, [user]);
+
+  const handleResubmit = async () => {
+    if (!application || !user) return;
+
+    if (!formData.business_name.trim() || !formData.location.trim() || !formData.contact_phone.trim()) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill in business name, location, and phone number.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("vendor_applications")
+        .update({
+          business_name: formData.business_name.trim(),
+          location: formData.location.trim(),
+          contact_phone: formData.contact_phone.trim(),
+          description: formData.description.trim(),
+          valid_id_url: formData.valid_id_url,
+          business_permit_url: formData.business_permit_url,
+          proof_of_products_url: formData.proof_of_products_url,
+          status: "pending" as any,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", application.id);
+
+      if (error) throw error;
+
+      setApplication({ ...application, ...formData, status: "pending" });
+      setShowResubmitForm(false);
+
+      toast({
+        title: "Application resubmitted",
+        description: "Your updated application has been submitted for review.",
+      });
+    } catch (error: any) {
+      console.error("Error resubmitting:", error);
+      toast({
+        title: "Resubmission failed",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (authLoading || loading) {
     return (
@@ -151,42 +234,145 @@ const VendorApplicationStatus = () => {
             )}
           </div>
 
-          {/* Application Details */}
-          <div className="card-brutal p-6 mt-6">
-            <h3 className="font-heading text-lg uppercase mb-4">Application Details</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">Business Name</span>
-                <p className="font-medium">{application.business_name}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Business Type</span>
-                <p className="font-medium capitalize">{application.business_type}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Location</span>
-                <p className="font-medium">{application.location}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Submitted</span>
-                <p className="font-medium">
-                  {format(new Date(application.created_at), "PPP")}
-                </p>
+          {/* Inline Resubmission Form */}
+          {application.status === "needs_resubmission" && showResubmitForm && (
+            <div className="card-brutal p-6 mt-6">
+              <h3 className="font-heading text-lg uppercase mb-4 flex items-center gap-2">
+                <RefreshCw className="w-5 h-5" />
+                Update Your Application
+              </h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Update the fields below and resubmit. Only change what's needed based on the admin notes above.
+              </p>
+
+              <div className="space-y-5">
+                <div>
+                  <label className="block font-heading text-sm uppercase mb-1">
+                    Business Name <span className="text-destructive">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.business_name}
+                    onChange={(e) => setFormData((f) => ({ ...f, business_name: e.target.value }))}
+                    className="w-full p-3 border-2 border-foreground bg-background text-sm"
+                    maxLength={100}
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-heading text-sm uppercase mb-1">
+                    Location <span className="text-destructive">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.location}
+                    onChange={(e) => setFormData((f) => ({ ...f, location: e.target.value }))}
+                    className="w-full p-3 border-2 border-foreground bg-background text-sm"
+                    placeholder="e.g. Legazpi City, Albay"
+                    maxLength={100}
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-heading text-sm uppercase mb-1">
+                    Contact Phone <span className="text-destructive">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.contact_phone}
+                    onChange={(e) => setFormData((f) => ({ ...f, contact_phone: e.target.value }))}
+                    className="w-full p-3 border-2 border-foreground bg-background text-sm"
+                    maxLength={20}
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-heading text-sm uppercase mb-1">Description</label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData((f) => ({ ...f, description: e.target.value }))}
+                    className="w-full p-3 border-2 border-foreground bg-background text-sm min-h-[80px]"
+                    rows={3}
+                    maxLength={500}
+                  />
+                </div>
+
+                <DocumentUpload
+                  label="Valid ID"
+                  description="Re-upload your government-issued ID if requested"
+                  bucket="vendor-documents"
+                  folder={`applications/${user.id}`}
+                  value={formData.valid_id_url || undefined}
+                  onChange={(url) => setFormData((f) => ({ ...f, valid_id_url: url }))}
+                />
+
+                <DocumentUpload
+                  label="Business Permit"
+                  description="DTI/SEC registration or barangay business permit"
+                  bucket="vendor-documents"
+                  folder={`applications/${user.id}`}
+                  value={formData.business_permit_url || undefined}
+                  onChange={(url) => setFormData((f) => ({ ...f, business_permit_url: url }))}
+                />
+
+                <DocumentUpload
+                  label="Proof of Products"
+                  description="Photos of your products or catalog"
+                  bucket="vendor-documents"
+                  folder={`applications/${user.id}`}
+                  accept="image/*"
+                  value={formData.proof_of_products_url || undefined}
+                  onChange={(url) => setFormData((f) => ({ ...f, proof_of_products_url: url }))}
+                />
+
+                <button
+                  onClick={handleResubmit}
+                  disabled={submitting}
+                  className="btn-brutal w-full flex items-center justify-center gap-2"
+                >
+                  {submitting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  {submitting ? "Submitting..." : "Resubmit Application"}
+                </button>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Application Details (show when not editing) */}
+          {!(application.status === "needs_resubmission" && showResubmitForm) && (
+            <div className="card-brutal p-6 mt-6">
+              <h3 className="font-heading text-lg uppercase mb-4">Application Details</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Business Name</span>
+                  <p className="font-medium">{application.business_name}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Business Type</span>
+                  <p className="font-medium capitalize">{application.business_type}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Location</span>
+                  <p className="font-medium">{application.location}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Submitted</span>
+                  <p className="font-medium">
+                    {format(new Date(application.created_at), "PPP")}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="mt-8 flex flex-col sm:flex-row gap-4">
             {application.status === "approved" && (
               <Link to="/vendor" className="btn-brutal flex-1 text-center">
                 Go to Dashboard
-              </Link>
-            )}
-            {application.status === "needs_resubmission" && (
-              <Link to="/vendor/register" className="btn-brutal flex-1 text-center flex items-center justify-center gap-2">
-                <RefreshCw className="w-4 h-4" />
-                Update Application
               </Link>
             )}
             {application.status === "rejected" && (
