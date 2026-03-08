@@ -77,6 +77,31 @@ const AdminOrders = () => {
     }
   };
 
+  const exportCSV = () => {
+    const headers = ["Order ID", "Customer", "Phone", "Date", "Total", "Status", "Vendors"];
+    const rows = filteredOrders.map((o) => {
+      const status = getOverallStatus(o.vendor_orders);
+      return [
+        o.id,
+        o.shipping_name,
+        o.shipping_phone,
+        format(new Date(o.created_at), "yyyy-MM-dd"),
+        Number(o.total_amount).toFixed(2),
+        statusLabels[status] || status,
+        o.vendor_orders?.map((vo: any) => vo.brand?.name).filter(Boolean).join("; ") || "",
+      ];
+    });
+    const csv = [headers, ...rows].map((r) => r.map((c: string) => `"${c}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `orders-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: `Exported ${filteredOrders.length} orders` });
+  };
+
   const formatPrice = (amount: number) =>
     new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(amount);
 
