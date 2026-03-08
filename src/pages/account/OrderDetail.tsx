@@ -43,6 +43,29 @@ const OrderDetail = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [reviewingVendorOrder, setReviewingVendorOrder] = useState<string | null>(null);
+  const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const cancellableStatuses = ["pending_payment", "payment_uploaded", "confirmed"];
+
+  const handleCancelVendorOrder = async (vendorOrderId: string) => {
+    if (!confirm("Are you sure you want to cancel this order? This cannot be undone.")) return;
+    setCancellingOrder(vendorOrderId);
+    try {
+      const { error } = await supabase
+        .from("vendor_orders")
+        .update({ status: "cancelled" })
+        .eq("id", vendorOrderId);
+      if (error) throw error;
+      toast({ title: "Order cancelled", description: "Your order has been cancelled successfully." });
+      queryClient.invalidateQueries({ queryKey: ["order-detail", orderId] });
+    } catch (err) {
+      console.error("Cancel error:", err);
+      toast({ title: "Error", description: "Failed to cancel order. Please try again.", variant: "destructive" });
+    } finally {
+      setCancellingOrder(null);
+    }
+  };
 
   const { data: order, isLoading } = useQuery({
     queryKey: ["order-detail", orderId],
