@@ -143,8 +143,8 @@ const LuckyPromoPopup = () => {
             </div>
             <h2 className="font-heading text-2xl uppercase mb-2">Lucky You!</h2>
             <p className="text-muted-foreground mb-6">You've been browsing for a while. Here's a special reward just for you!</p>
-            <button onClick={handleClaim} disabled={loading} className="btn-brutal w-full text-lg">
-              {loading ? (<><Loader2 className="w-5 h-5 animate-spin mr-2" />Opening...</>) : (<><Gift className="w-5 h-5 mr-2" />Claim Your Reward</>)}
+            <button onClick={handleClaim} disabled={loading} className="btn-brutal w-full text-lg flex items-center justify-center gap-2">
+              {loading ? (<><Loader2 className="w-5 h-5 animate-spin" />Opening...</>) : (<><Gift className="w-5 h-5" />Claim Your Reward</>)}
             </button>
           </>
         ) : (
