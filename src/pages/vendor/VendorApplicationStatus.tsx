@@ -239,63 +239,13 @@ const VendorApplicationStatus = () => {
             <div className="card-brutal p-6 mt-6">
               <h3 className="font-heading text-lg uppercase mb-4 flex items-center gap-2">
                 <RefreshCw className="w-5 h-5" />
-                Update Your Application
+                Update Your Documents
               </h3>
               <p className="text-sm text-muted-foreground mb-6">
-                Update the fields below and resubmit. Only change what's needed based on the admin notes above.
+                Please re-upload or update the required documents based on the admin notes above, then resubmit.
               </p>
 
               <div className="space-y-5">
-                <div>
-                  <label className="block font-heading text-sm uppercase mb-1">
-                    Business Name <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.business_name}
-                    onChange={(e) => setFormData((f) => ({ ...f, business_name: e.target.value }))}
-                    className="w-full p-3 border-2 border-foreground bg-background text-sm"
-                    maxLength={100}
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-heading text-sm uppercase mb-1">
-                    Location <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) => setFormData((f) => ({ ...f, location: e.target.value }))}
-                    className="w-full p-3 border-2 border-foreground bg-background text-sm"
-                    placeholder="e.g. Legazpi City, Albay"
-                    maxLength={100}
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-heading text-sm uppercase mb-1">
-                    Contact Phone <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.contact_phone}
-                    onChange={(e) => setFormData((f) => ({ ...f, contact_phone: e.target.value }))}
-                    className="w-full p-3 border-2 border-foreground bg-background text-sm"
-                    maxLength={20}
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-heading text-sm uppercase mb-1">Description</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData((f) => ({ ...f, description: e.target.value }))}
-                    className="w-full p-3 border-2 border-foreground bg-background text-sm min-h-[80px]"
-                    rows={3}
-                    maxLength={500}
-                  />
-                </div>
 
                 <DocumentUpload
                   label="Valid ID"
