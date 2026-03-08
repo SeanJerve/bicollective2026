@@ -1,19 +1,23 @@
-import { useEffect, useState } from "react";
-import { Eye, CheckCircle, Truck, Package, Loader2, MessageSquare, HandMetal, MapPin } from "lucide-react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { CheckCircle, Truck, Package, Loader2, HandMetal, MapPin, AlertCircle } from "lucide-react";
 import OrderChat from "@/components/chat/OrderChat";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Helper to render payment proof with signed URL
 const VendorPaymentProofImage = ({ path, paymentMethod }: { path: string; paymentMethod: string }) => {
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    if (path.startsWith("http")) { setUrl(path); return; }
-    supabase.storage.from("payment-proofs").createSignedUrl(path, 3600).then(({ data }) => {
-      if (data) setUrl(data.signedUrl);
-    });
-  }, [path]);
+  const { data: url } = useQuery({
+    queryKey: ["signed-url", path],
+    queryFn: async () => {
+      if (path.startsWith("http")) return path;
+      const { data } = await supabase.storage.from("payment-proofs").createSignedUrl(path, 3600);
+      return data?.signedUrl || null;
+    },
+    staleTime: 30 * 60 * 1000,
+  });
   if (!url) return null;
   const label = paymentMethod === "gcash" ? "GCash" : paymentMethod === "bank_transfer" ? "Bank Transfer" : "COD";
   return (
@@ -29,66 +33,58 @@ const VendorPaymentProofImage = ({ path, paymentMethod }: { path: string; paymen
 const VendorOrders = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [orders, setOrders] = useState<any[]>([]);
-  const [brand, setBrand] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<string>("all");
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
   const [updatingTracking, setUpdatingTracking] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      if (!user) return;
+  const { data: brand, isLoading: brandLoading } = useQuery({
+    queryKey: ["vendor-brand", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("brands")
+        .select("*")
+        .eq("owner_id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
 
-      try {
-        const { data: brandData } = await supabase
-          .from("brands")
-          .select("*")
-          .eq("owner_id", user.id)
-          .single();
+  const { data: orders = [], isLoading: ordersLoading } = useQuery({
+    queryKey: ["vendor-orders", brand?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vendor_orders")
+        .select(`
+          *,
+          order:orders (
+            id,
+            customer_id,
+            shipping_name,
+            shipping_phone,
+            shipping_address,
+            notes,
+            created_at
+          ),
+          items:order_items (
+            id,
+            product_name,
+            product_price,
+            quantity,
+            size
+          )
+        `)
+        .eq("brand_id", brand!.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!brand,
+  });
 
-        if (!brandData) {
-          setLoading(false);
-          return;
-        }
-
-        setBrand(brandData);
-
-        const { data: ordersData } = await supabase
-          .from("vendor_orders")
-          .select(`
-            *,
-            order:orders (
-              id,
-              customer_id,
-              shipping_name,
-              shipping_phone,
-              shipping_address,
-              notes,
-              created_at
-            ),
-            items:order_items (
-              id,
-              product_name,
-              product_price,
-              quantity,
-              size
-            )
-          `)
-          .eq("brand_id", brandData.id)
-          .order("created_at", { ascending: false });
-
-        setOrders(ordersData || []);
-      } catch (error) {
-        console.error("Error fetching orders:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrders();
-  }, [user]);
+  const loading = brandLoading || ordersLoading;
 
   const updateOrderStatus = async (orderId: string, status: string, timestampField?: string) => {
     try {
@@ -136,9 +132,7 @@ const VendorOrders = () => {
         }
       }
 
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, status, ...updateData } : o))
-      );
+      queryClient.invalidateQueries({ queryKey: ["vendor-orders", brand?.id] });
 
       toast({
         title: "Order updated",
@@ -175,9 +169,7 @@ const VendorOrders = () => {
 
       if (error) throw error;
 
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, tracking_number: trackingNumber } : o))
-      );
+      queryClient.invalidateQueries({ queryKey: ["vendor-orders", brand?.id] });
 
       toast({
         title: "Tracking updated",
@@ -242,6 +234,23 @@ const VendorOrders = () => {
         <div className="animate-pulse space-y-6">
           <div className="h-8 w-48 skeleton-brutal" />
           <div className="h-64 skeleton-brutal" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!brand) {
+    return (
+      <div className="p-4 md:p-8">
+        <div className="card-brutal p-6 md:p-8 text-center">
+          <AlertCircle className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="font-heading text-xl md:text-2xl uppercase mb-4">No Store Found</h2>
+          <p className="text-muted-foreground mb-6 text-sm md:text-base">
+            You haven't set up your vendor store yet. Set up your store first to start receiving orders.
+          </p>
+          <Link to="/vendor/store" className="btn-brutal">
+            Set Up Store
+          </Link>
         </div>
       </div>
     );
