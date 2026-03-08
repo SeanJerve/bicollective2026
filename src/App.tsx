@@ -56,6 +56,7 @@ import AdminDisputes from "./pages/admin/AdminDisputes";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminVouchers from "./pages/admin/AdminVouchers";
 import AdminLuckyPromo from "./pages/admin/AdminLuckyPromo";
+import AdminUsers from "./pages/admin/AdminUsers";
 
 // Customer pages extension
 import Vouchers from "./pages/account/Vouchers";
