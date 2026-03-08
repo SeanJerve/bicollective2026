@@ -7,6 +7,7 @@ import BrandCard from "@/components/marketplace/BrandCard";
 import BrandCardSkeleton from "@/components/marketplace/BrandCardSkeleton";
 import { useProducts, useBrands, useCategories } from "@/hooks/useProducts";
 import { useAuth } from "@/contexts/AuthContext";
+import usePageSEO from "@/hooks/usePageSEO";
 import heroBanner from "@/assets/hero-banner.jpg";
 
 const Index = () => {
@@ -14,6 +15,11 @@ const Index = () => {
   const { data: products, isLoading: productsLoading } = useProducts();
   const { data: brands, isLoading: brandsLoading } = useBrands();
   const { data: categories, isLoading: categoriesLoading } = useCategories();
+
+  usePageSEO({
+    title: "",
+    description: "Shop curated collections from verified local Bicolano clothing brands. Quality fashion, community-driven commerce from the Bicol region.",
+  });
 
   const featuredProducts = products?.slice(0, 4) || [];
   const featuredBrands = brands?.slice(0, 3) || [];

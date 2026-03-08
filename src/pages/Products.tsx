@@ -5,6 +5,7 @@ import PageLayout from "@/components/layout/PageLayout";
 import ProductCard from "@/components/marketplace/ProductCard";
 import ProductCardSkeleton from "@/components/marketplace/ProductCardSkeleton";
 import { useProducts, useBrands, useCategories } from "@/hooks/useProducts";
+import usePageSEO from "@/hooks/usePageSEO";
 
 const BICOL_LOCATIONS = [
   "All Locations",
@@ -29,6 +30,11 @@ const Products = () => {
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get("search") || "";
   const locationParam = searchParams.get("location") || "";
+
+  usePageSEO({
+    title: "Products",
+    description: "Browse curated Bicolano fashion products from verified local brands. Filter by category, brand, and location.",
+  });
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);

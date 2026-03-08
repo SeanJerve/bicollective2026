@@ -5,6 +5,7 @@ import PageLayout from "@/components/layout/PageLayout";
 import BrandCard from "@/components/marketplace/BrandCard";
 import BrandCardSkeleton from "@/components/marketplace/BrandCardSkeleton";
 import { useBrands } from "@/hooks/useProducts";
+import usePageSEO from "@/hooks/usePageSEO";
 
 const BICOL_LOCATIONS = [
   "All Locations",
@@ -28,6 +29,11 @@ const BICOL_LOCATIONS = [
 const Brands = () => {
   const { data: brands, isLoading } = useBrands();
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+
+  usePageSEO({
+    title: "Brands",
+    description: "Discover verified local Bicolano clothing brands. Explore trusted fashion partners from the Bicol region.",
+  });
 
   const filteredBrands = (brands || []).filter((b) => {
     if (!selectedLocation) return true;

@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
+import usePageSEO from "@/hooks/usePageSEO";
 
 const ProductDetail = () => {
   const { slug } = useParams();
@@ -21,6 +22,11 @@ const ProductDetail = () => {
   const { addToCart } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  usePageSEO({
+    title: product?.name || "Product",
+    description: product?.description || `Shop ${product?.name} from ${product?.brandName} on Bicollective.`,
+  });
 
   // Reviews state
   const [reviews, setReviews] = useState<any[]>([]);
