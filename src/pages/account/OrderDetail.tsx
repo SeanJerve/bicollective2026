@@ -13,6 +13,7 @@ import PaymentProofUpload from "@/components/account/PaymentProofUpload";
 const statusColors: Record<string, string> = {
   pending_payment: "bg-warning text-warning-foreground",
   payment_uploaded: "bg-info text-info-foreground",
+  confirmed: "bg-info text-info-foreground",
   paid: "bg-info text-info-foreground",
   processing: "bg-info text-info-foreground",
   shipped: "bg-primary text-primary-foreground",
@@ -23,6 +24,7 @@ const statusColors: Record<string, string> = {
 const statusLabels: Record<string, string> = {
   pending_payment: "Pending Payment",
   payment_uploaded: "Payment Uploaded",
+  confirmed: "Confirmed",
   paid: "Paid",
   processing: "Processing",
   shipped: "Shipped",
