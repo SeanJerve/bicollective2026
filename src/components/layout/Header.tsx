@@ -119,17 +119,15 @@ const Header = () => {
                         <p className="text-sm font-medium truncate">{user.email}</p>
                       </div>
                       <div className="py-2">
-                        {userMenuItems.map((item) => (
+                        {!isAdmin && userMenuItems.map((item) => (
                           <button
                             key={item.href}
                             onClick={() => handleNavClick(item.href, () => setIsUserMenuOpen(false))}
-                            className={`flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary w-full text-left ${
-                              isDisabledForAdmin(item.href) ? "text-muted-foreground/50" : ""
-                            }`}
+                            className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary w-full text-left"
                           >
                             <item.icon className="w-4 h-4" />
                             {item.label}
-                            {(item.badge ?? 0) > 0 && !isAdmin && (
+                            {(item.badge ?? 0) > 0 && (
                               <span className="ml-auto min-w-[18px] h-[18px] bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 rounded-full">
                                 {item.badge}
                               </span>
