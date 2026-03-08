@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Eye, Check, X, RotateCcw, Loader2, FileText, Building2, Sparkles, Trash2, Image } from "lucide-react";
+import { Eye, Check, X, RotateCcw, Loader2, FileText, Building2, Rocket, Trash2, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
