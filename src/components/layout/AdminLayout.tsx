@@ -1,16 +1,16 @@
+import { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, Package, ShoppingCart, Flag, BadgeCheck, LogOut, Tag, Ticket, Gift, BarChart3, AlertTriangle } from "lucide-react";
+import { LayoutDashboard, Users, Package, ShoppingCart, Flag, BadgeCheck, LogOut, Tag, Ticket, Gift, BarChart3, AlertTriangle, Menu, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
-import NotificationBadge from "@/components/ui/notification-badge";
 
 const AdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const { counts } = useNotifications();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Items that are "coming soon" for admin
   const comingSoonItems = ["/admin/analytics"];
 
   const navItems = [
@@ -38,12 +38,35 @@ const AdminLayout = () => {
       e.preventDefault();
       navigate("/coming-soon");
     }
+    setSidebarOpen(false);
   };
 
   return (
     <div className="min-h-screen flex">
+      {/* Mobile header */}
+      <div className="fixed top-0 left-0 right-0 z-40 bg-foreground text-background flex items-center justify-between px-4 py-3 md:hidden">
+        <Link to="/" className="font-heading text-lg tracking-tight">
+          BICOLLECTIVE
+        </Link>
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1">
+          {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+      </div>
+
+      {/* Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-foreground text-background border-r-2 border-foreground flex flex-col">
+      <aside
+        className={`fixed md:sticky top-0 left-0 z-50 md:z-auto h-screen w-64 bg-foreground text-background border-r-2 border-foreground flex flex-col transition-transform duration-200 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        }`}
+      >
         <div className="p-6 border-b border-background/20">
           <Link to="/" className="font-heading text-xl tracking-tight">
             BICOLLECTIVE
@@ -51,7 +74,7 @@ const AdminLayout = () => {
           <p className="text-sm opacity-60 mt-1">Admin Panel</p>
         </div>
 
-        <nav className="flex-1 p-4">
+        <nav className="flex-1 p-4 overflow-y-auto">
           <ul className="space-y-2">
             {navItems.map((item) => (
               <li key={item.href}>
@@ -95,7 +118,7 @@ const AdminLayout = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 bg-background overflow-auto">
+      <main className="flex-1 bg-background overflow-auto pt-14 md:pt-0">
         <Outlet />
       </main>
     </div>

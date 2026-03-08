@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Eye, CheckCircle, Truck, Package, Loader2, MessageSquare } from "lucide-react";
+import { Eye, CheckCircle, Truck, Package, Loader2, MessageSquare, HandMetal, MapPin } from "lucide-react";
 import OrderChat from "@/components/chat/OrderChat";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -69,11 +69,16 @@ const VendorOrders = () => {
     fetchOrders();
   }, [user]);
 
-  const updateOrderStatus = async (orderId: string, status: "pending_payment" | "payment_uploaded" | "paid" | "processing" | "shipped" | "delivered" | "cancelled") => {
+  const updateOrderStatus = async (orderId: string, status: string, timestampField?: string) => {
     try {
+      const updateData: any = { status };
+      if (timestampField) {
+        updateData[timestampField] = new Date().toISOString();
+      }
+
       const { error } = await supabase
         .from("vendor_orders")
-        .update({ status })
+        .update(updateData)
         .eq("id", orderId);
 
       if (error) throw error;
@@ -84,12 +89,14 @@ const VendorOrders = () => {
         const statusMessages: Record<string, string> = {
           paid: "✅ Your payment has been verified. We're preparing your order!",
           processing: "📦 Your order is now being processed.",
+          confirmed: "✅ Your order has been confirmed!",
+          handed_to_courier: "📦 Your order has been handed to the courier.",
+          for_delivery: "🚚 Your order is out for delivery!",
           shipped: `🚚 Your order has been shipped! Tracking: ${order.tracking_number || "N/A"}`,
-          delivered: "✅ Your order has been marked as delivered. Thank you for shopping!",
+          delivered: "✅ Your order has been delivered. Thank you for shopping!",
         };
         const msg = statusMessages[status];
         if (msg) {
-          // Get customer_id from parent order
           const { data: parentOrder } = await supabase
             .from("orders")
             .select("customer_id")
@@ -109,12 +116,12 @@ const VendorOrders = () => {
       }
 
       setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, status } : o))
+        prev.map((o) => (o.id === orderId ? { ...o, status, ...updateData } : o))
       );
 
       toast({
         title: "Order updated",
-        description: `Order status changed to ${status.replace("_", " ")}`,
+        description: `Order status changed to ${status.replace(/_/g, " ")}`,
       });
     } catch (error) {
       console.error("Error updating order:", error);
@@ -186,12 +193,18 @@ const VendorOrders = () => {
         return "bg-success text-success-foreground";
       case "processing":
         return "bg-primary text-primary-foreground";
+      case "handed_to_courier":
+        return "bg-primary text-primary-foreground";
+      case "for_delivery":
+        return "bg-accent text-accent-foreground";
       case "shipped":
         return "bg-primary text-primary-foreground";
       case "delivered":
         return "bg-success text-success-foreground";
       case "cancelled":
         return "bg-destructive text-destructive-foreground";
+      case "disputed":
+        return "bg-warning text-warning-foreground";
       default:
         return "bg-muted text-muted-foreground";
     }
@@ -224,15 +237,19 @@ const VendorOrders = () => {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-6">
-      {[
+        {[
           { value: "all", label: "All" },
           { value: "pending_payment", label: "Pending Payment" },
           { value: "payment_uploaded", label: "Payment Uploaded" },
           { value: "confirmed", label: "COD Confirmed" },
           { value: "paid", label: "Paid" },
           { value: "processing", label: "Processing" },
+          { value: "handed_to_courier", label: "With Courier" },
+          { value: "for_delivery", label: "Out for Delivery" },
           { value: "shipped", label: "Shipped" },
           { value: "delivered", label: "Delivered" },
+          { value: "cancelled", label: "Cancelled" },
+          { value: "disputed", label: "Disputed" },
         ].map((f) => (
           <button
             key={f.value}
@@ -261,6 +278,11 @@ const VendorOrders = () => {
                     <p className="text-xs md:text-sm text-muted-foreground">
                       {new Date(order.created_at).toLocaleDateString()}
                     </p>
+                    {order.payment_method && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Payment: {order.payment_method === "cod" ? "COD" : order.payment_method === "gcash" ? "GCash" : "Bank Transfer"}
+                      </p>
+                    )}
                   </div>
                   <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:gap-0">
                     <span
@@ -315,9 +337,9 @@ const VendorOrders = () => {
                   </div>
                 )}
 
-                {/* Actions */}
+                {/* Actions — Full Pipeline */}
                 <div className="flex flex-wrap gap-2">
-                 {order.status === "payment_uploaded" && (
+                  {order.status === "payment_uploaded" && (
                     <button
                       onClick={() => updateOrderStatus(order.id, "paid")}
                       className="btn-brutal flex items-center gap-2 text-sm"
@@ -346,26 +368,35 @@ const VendorOrders = () => {
                   )}
                   {order.status === "processing" && (
                     <button
-                      onClick={() => {
-                        if (!order.tracking_number) {
-                          toast({
-                            title: "Tracking number required",
-                            description: "Please enter and save a tracking number before marking as shipped",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                        updateOrderStatus(order.id, "shipped");
-                      }}
-                      className={`btn-brutal flex items-center gap-2 text-sm ${!order.tracking_number ? "opacity-60" : ""}`}
+                      onClick={() => updateOrderStatus(order.id, "handed_to_courier", "handed_to_courier_at")}
+                      className="btn-brutal flex items-center gap-2 text-sm"
                     >
-                      <Truck className="w-4 h-4" />
-                      Mark as Shipped
+                      <HandMetal className="w-4 h-4" />
+                      Hand to Courier
                     </button>
                   )}
+                  {order.status === "handed_to_courier" && (
+                    <button
+                      onClick={() => updateOrderStatus(order.id, "for_delivery", "for_delivery_at")}
+                      className="btn-brutal flex items-center gap-2 text-sm"
+                    >
+                      <MapPin className="w-4 h-4" />
+                      Out for Delivery
+                    </button>
+                  )}
+                  {order.status === "for_delivery" && (
+                    <button
+                      onClick={() => updateOrderStatus(order.id, "delivered", "delivered_at")}
+                      className="btn-brutal flex items-center gap-2 text-sm"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Mark as Delivered
+                    </button>
+                  )}
+                  {/* Legacy shipped → delivered path */}
                   {order.status === "shipped" && (
                     <button
-                      onClick={() => updateOrderStatus(order.id, "delivered")}
+                      onClick={() => updateOrderStatus(order.id, "delivered", "delivered_at")}
                       className="btn-brutal flex items-center gap-2 text-sm"
                     >
                       <CheckCircle className="w-4 h-4" />
@@ -375,7 +406,7 @@ const VendorOrders = () => {
                 </div>
 
                 {/* Tracking Number Input */}
-                {(order.status === "processing" || order.status === "shipped") && (
+                {["processing", "handed_to_courier", "for_delivery", "shipped"].includes(order.status) && (
                   <div className="mt-4 pt-4 border-t border-border-subtle">
                     <h4 className="font-heading text-xs md:text-sm uppercase mb-2">
                       Tracking Number
