@@ -286,9 +286,6 @@ const ProductDetail = () => {
               <div className="mb-6 md:mb-8">
                 <div className="flex items-center justify-between mb-2 md:mb-3">
                   <span className="font-heading uppercase text-xs md:text-sm">Select Size</span>
-                  <button className="text-xs md:text-sm text-muted-foreground hover:text-foreground underline">
-                    Size Guide
-                  </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {sizes.map((size) => (
