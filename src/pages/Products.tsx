@@ -132,7 +132,7 @@ const Products = () => {
       </section>
 
       {/* Filters & Products */}
-      <section className="py-8 md:py-12">
+      <section className="py-4 md:py-12">
         <div className="section-container">
           <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
             {/* Mobile Filter Toggle */}
