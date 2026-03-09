@@ -33,7 +33,7 @@ const Header = () => {
   const handleSignOut = async () => {
     await signOut();
     setIsUserMenuOpen(false);
-    navigate("/");
+    navigate("/login");
   };
 
   // For admin users, gray out customer features and redirect to 404
