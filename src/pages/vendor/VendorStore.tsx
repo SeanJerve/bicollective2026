@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import DocumentUpload from "@/components/vendor/DocumentUpload";
 
 const VendorStore = () => {
   const { user, refreshRoles } = useAuth();
@@ -263,40 +264,40 @@ const VendorStore = () => {
             </p>
           </div>
 
+          {/* Logo Upload */}
           <div>
-            <label className="font-heading text-xs md:text-sm uppercase tracking-wide mb-2 block">
-              Logo URL
-            </label>
-            <input
-              type="url"
-              value={formData.logo_url}
-              onChange={(e) =>
-                setFormData({ ...formData, logo_url: e.target.value })
-              }
-              className="input-brutal text-sm md:text-base"
-              placeholder="https://..."
+            <DocumentUpload
+              label="Brand Logo"
+              description="Square image recommended (500×500px). JPG or PNG."
+              bucket="brand-assets"
+              folder={user?.id || "unknown"}
+              accept="image/*"
+              value={formData.logo_url || undefined}
+              onChange={(url) => setFormData({ ...formData, logo_url: url || "" })}
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Square image recommended (500x500px)
-            </p>
+            {formData.logo_url && (
+              <div className="mt-2 w-16 h-16 border border-border-subtle overflow-hidden bg-muted">
+                <img src={formData.logo_url} alt="Logo preview" className="w-full h-full object-cover" />
+              </div>
+            )}
           </div>
 
+          {/* Banner Upload */}
           <div>
-            <label className="font-heading text-xs md:text-sm uppercase tracking-wide mb-2 block">
-              Banner URL
-            </label>
-            <input
-              type="url"
-              value={formData.banner_url}
-              onChange={(e) =>
-                setFormData({ ...formData, banner_url: e.target.value })
-              }
-              className="input-brutal text-sm md:text-base"
-              placeholder="https://..."
+            <DocumentUpload
+              label="Store Banner"
+              description="Wide image recommended (1200×400px). JPG or PNG."
+              bucket="brand-assets"
+              folder={user?.id || "unknown"}
+              accept="image/*"
+              value={formData.banner_url || undefined}
+              onChange={(url) => setFormData({ ...formData, banner_url: url || "" })}
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Wide image recommended (1200x400px)
-            </p>
+            {formData.banner_url && (
+              <div className="mt-2 w-full h-24 border border-border-subtle overflow-hidden bg-muted">
+                <img src={formData.banner_url} alt="Banner preview" className="w-full h-full object-cover" />
+              </div>
+            )}
           </div>
 
           {/* Store-wide Sale */}

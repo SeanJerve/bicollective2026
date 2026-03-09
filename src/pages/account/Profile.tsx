@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { User, Phone, MapPin, Save, Loader2, Plus, Trash2, Star, Lock, Eye, EyeOff } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { User, Phone, MapPin, Save, Loader2, Plus, Trash2, Star, Lock, Eye, EyeOff, Camera, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PageLayout from "@/components/layout/PageLayout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,6 +19,9 @@ const Profile = () => {
     full_name: "",
     phone: "",
   });
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Password change state
   const [passwordOpen, setPasswordOpen] = useState(false);
@@ -44,6 +47,7 @@ const Profile = () => {
             full_name: data.full_name || "",
             phone: data.phone || "",
           });
+          setAvatarUrl(data.avatar_url || null);
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -68,6 +72,70 @@ const Profile = () => {
     },
     enabled: !!user,
   });
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Maximum file size is 5MB", variant: "destructive" });
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("profile-pictures")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("profile-pictures")
+        .getPublicUrl(filePath);
+
+      const newUrl = urlData.publicUrl;
+
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: newUrl, updated_at: new Date().toISOString() })
+        .eq("user_id", user.id);
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(newUrl);
+      toast({ title: "Profile picture updated" });
+    } catch (error: any) {
+      console.error("Avatar upload error:", error);
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!user) return;
+    setUploadingAvatar(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ avatar_url: null, updated_at: new Date().toISOString() })
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      setAvatarUrl(null);
+      toast({ title: "Profile picture removed" });
+    } catch (error: any) {
+      toast({ title: "Failed to remove", description: error.message, variant: "destructive" });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,6 +249,55 @@ const Profile = () => {
           <h1 className="font-heading text-3xl md:text-4xl uppercase mb-6">
             Profile Settings
           </h1>
+
+          {/* Avatar Section */}
+          <div className="card-brutal p-6 md:p-8 mb-8">
+            <div className="flex items-center gap-5">
+              <div className="relative group">
+                <div className="w-20 h-20 md:w-24 md:h-24 border-2 border-foreground bg-muted overflow-hidden flex items-center justify-center flex-shrink-0">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-8 h-8 md:w-10 md:h-10 text-muted-foreground" />
+                  )}
+                </div>
+                {uploadingAvatar && (
+                  <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="btn-brutal-secondary flex items-center gap-2 text-xs px-3 py-2"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  {avatarUrl ? "Change Photo" : "Upload Photo"}
+                </button>
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveAvatar}
+                    disabled={uploadingAvatar}
+                    className="text-xs text-destructive hover:underline flex items-center gap-1"
+                  >
+                    <X className="w-3 h-3" />
+                    Remove
+                  </button>
+                )}
+              </div>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="hidden"
+              />
+            </div>
+          </div>
 
           {/* Basic Info */}
           <div className="card-brutal p-6 md:p-8 mb-8">

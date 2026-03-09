@@ -55,12 +55,26 @@ const VendorRegister = () => {
 
   useEffect(() => {
     const checkExistingApplication = async () => {
+      if (authLoading) return;
+      
       if (!user) {
         setCheckingApplication(false);
         return;
       }
 
       try {
+        // Check if already a vendor first
+        const { data: brand } = await supabase
+          .from("brands")
+          .select("id")
+          .eq("owner_id", user.id)
+          .maybeSingle();
+
+        if (brand) {
+          navigate("/vendor");
+          return;
+        }
+
         // Check for existing application
         const { data: application } = await supabase
           .from("vendor_applications")
@@ -84,18 +98,6 @@ const VendorRegister = () => {
             });
           }
         }
-
-        // Check if already a vendor
-        const { data: brand } = await supabase
-          .from("brands")
-          .select("id")
-          .eq("owner_id", user.id)
-          .maybeSingle();
-
-        if (brand) {
-          navigate("/vendor");
-          return;
-        }
       } catch (error) {
         console.error("Error checking application:", error);
       } finally {
@@ -104,7 +106,7 @@ const VendorRegister = () => {
     };
 
     checkExistingApplication();
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   const handleSubmit = async () => {
     if (!user) {
