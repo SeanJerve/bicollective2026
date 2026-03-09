@@ -33,6 +33,7 @@ const Cart = lazy(() => import("./pages/Cart"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const Orders = lazy(() => import("./pages/account/Orders"));
 const OrderDetail = lazy(() => import("./pages/account/OrderDetail"));
+const Messages = lazy(() => import("./pages/account/Messages"));
 
 // Vendor pages
 const VendorLayout = lazy(() => import("./components/layout/VendorLayout"));
