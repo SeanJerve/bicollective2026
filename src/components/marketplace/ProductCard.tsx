@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { BadgeCheck, Clock, ShoppingBag, Zap } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import QuickAddDrawer from "./QuickAddDrawer";
