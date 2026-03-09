@@ -33,6 +33,7 @@ const Cart = lazy(() => import("./pages/Cart"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const Orders = lazy(() => import("./pages/account/Orders"));
 const OrderDetail = lazy(() => import("./pages/account/OrderDetail"));
+const Messages = lazy(() => import("./pages/account/Messages"));
 
 // Vendor pages
 const VendorLayout = lazy(() => import("./components/layout/VendorLayout"));
@@ -46,6 +47,7 @@ const VendorVerification = lazy(() => import("./pages/vendor/VendorVerification"
 const VendorReviews = lazy(() => import("./pages/vendor/VendorReviews"));
 const VendorPromotions = lazy(() => import("./pages/vendor/VendorPromotions"));
 const VendorAnalytics = lazy(() => import("./pages/vendor/VendorAnalytics"));
+const VendorMessages = lazy(() => import("./pages/vendor/VendorMessages"));
 
 // Admin pages
 const AdminLayout = lazy(() => import("./components/layout/AdminLayout"));
@@ -142,6 +144,14 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/account/messages"
+                  element={
+                    <ProtectedRoute>
+                      <Messages />
+                    </ProtectedRoute>
+                  }
+                />
 
                 {/* Vendor Application Routes */}
                 <Route path="/vendor/register" element={<VendorRegister />} />
@@ -165,6 +175,7 @@ const App = () => (
                   <Route path="reviews" element={<VendorReviews />} />
                   <Route path="promotions" element={<VendorPromotions />} />
                   <Route path="analytics" element={<VendorAnalytics />} />
+                  <Route path="messages" element={<VendorMessages />} />
                 </Route>
 
                 {/* Admin Routes */}
