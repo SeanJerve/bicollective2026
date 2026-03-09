@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
 const LuckyPromoPopup = () => {
-  const { user } = useAuth();
+  const { user, isAdmin, isVendor } = useAuth();
   const { toast } = useToast();
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(false);
