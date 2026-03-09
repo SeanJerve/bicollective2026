@@ -43,6 +43,7 @@ const ProductCard = ({
 }: ProductCardProps) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   const formatPrice = (amount: number) => {
     return new Intl.NumberFormat("en-PH", {
