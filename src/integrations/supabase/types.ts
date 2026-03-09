@@ -163,7 +163,6 @@ export type Database = {
           id: string
           image_url: string | null
           name: string
-          product_count: number | null
           slug: string
         }
         Insert: {
@@ -171,7 +170,6 @@ export type Database = {
           id?: string
           image_url?: string | null
           name: string
-          product_count?: number | null
           slug: string
         }
         Update: {
@@ -179,7 +177,6 @@ export type Database = {
           id?: string
           image_url?: string | null
           name?: string
-          product_count?: number | null
           slug?: string
         }
         Relationships: []
@@ -766,6 +763,7 @@ export type Database = {
           created_at: string
           id: string
           is_visible: boolean | null
+          media_urls: string[] | null
           product_id: string | null
           rating: number
           user_id: string
@@ -777,6 +775,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_visible?: boolean | null
+          media_urls?: string[] | null
           product_id?: string | null
           rating: number
           user_id: string
@@ -788,6 +787,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_visible?: boolean | null
+          media_urls?: string[] | null
           product_id?: string | null
           rating?: number
           user_id?: string
