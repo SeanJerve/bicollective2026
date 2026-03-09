@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, ShoppingCart, Store, Star, Settings, LogOut, Tag, Menu, X, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Store, Star, Settings, LogOut, Tag, Menu, X, BarChart3, MessageSquare } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
 
