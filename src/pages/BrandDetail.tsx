@@ -45,7 +45,7 @@ const BrandDetail = () => {
       {/* Brand Header */}
       <section className="border-b-2 border-foreground">
         {/* Banner */}
-        <div className="h-32 md:h-64 bg-gradient-to-br from-muted to-accent overflow-hidden">
+        <div className="aspect-[4/1] md:aspect-[5/1] bg-gradient-to-br from-muted to-accent overflow-hidden">
           {brand.banner && (
             <img
               src={brand.banner}
