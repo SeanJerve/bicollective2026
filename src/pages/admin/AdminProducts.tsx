@@ -37,6 +37,7 @@ const AdminProducts = () => {
       let query = supabase
         .from("products")
         .select(`*, brand:brands(name, slug), category:categories(name)`)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (filter === "active") query = query.eq("is_active", true);
@@ -65,12 +66,16 @@ const AdminProducts = () => {
   };
 
   const deleteProduct = async (productId: string) => {
-    if (!confirm("Permanently delete this product? This cannot be undone.")) return;
+    if (!confirm("Delete this product? It will be archived and hidden from the marketplace.")) return;
     try {
-      const { error } = await supabase.from("products").delete().eq("id", productId);
+      // Soft delete - set deleted_at timestamp instead of hard delete
+      const { error } = await supabase
+        .from("products")
+        .update({ deleted_at: new Date().toISOString(), is_active: false })
+        .eq("id", productId);
       if (error) throw error;
       setProducts((prev) => prev.filter((p) => p.id !== productId));
-      toast({ title: "Product deleted permanently" });
+      toast({ title: "Product archived", description: "Product has been removed from the marketplace" });
     } catch (error: any) {
       toast({ title: "Error", description: error.message || "Failed to delete", variant: "destructive" });
     }

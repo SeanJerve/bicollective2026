@@ -63,6 +63,7 @@ export type Database = {
         Row: {
           banner_url: string | null
           created_at: string
+          deleted_at: string | null
           description: string | null
           id: string
           location: string | null
@@ -82,6 +83,7 @@ export type Database = {
         Insert: {
           banner_url?: string | null
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           location?: string | null
@@ -101,6 +103,7 @@ export type Database = {
         Update: {
           banner_url?: string | null
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           location?: string | null
@@ -503,6 +506,7 @@ export type Database = {
           brand_id: string
           category_id: string | null
           created_at: string
+          deleted_at: string | null
           description: string | null
           id: string
           image_url: string | null
@@ -524,6 +528,7 @@ export type Database = {
           brand_id: string
           category_id?: string | null
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
@@ -545,6 +550,7 @@ export type Database = {
           brand_id?: string
           category_id?: string | null
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
