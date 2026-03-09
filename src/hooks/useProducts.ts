@@ -273,12 +273,25 @@ export const useCategories = () => {
 
       if (error) throw error;
 
+      // Get product counts per category
+      const categoryIds = (data || []).map((c) => c.id);
+      const { data: productCounts } = await supabase
+        .from("products")
+        .select("category_id")
+        .eq("is_active", true)
+        .in("category_id", categoryIds);
+
+      const countMap: Record<string, number> = {};
+      (productCounts || []).forEach((p) => {
+        if (p.category_id) countMap[p.category_id] = (countMap[p.category_id] || 0) + 1;
+      });
+
       return (data || []).map((c) => ({
         id: c.id,
         name: c.name,
         slug: c.slug,
         image: c.image_url || undefined,
-        productCount: c.product_count || 0,
+        productCount: countMap[c.id] || 0,
       }));
     },
   });

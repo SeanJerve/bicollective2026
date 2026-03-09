@@ -96,7 +96,8 @@ const ToReview = () => {
         vendor_order_id: vendorOrder.id,
         rating,
         comment: comment.trim() || null,
-      });
+        media_urls: mediaUrls.length > 0 ? mediaUrls : [],
+      } as any);
 
       if (error) throw error;
 

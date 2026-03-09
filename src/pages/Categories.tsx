@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
 import PageLayout from "@/components/layout/PageLayout";
 import CategoryCard from "@/components/marketplace/CategoryCard";
-import { categories } from "@/data/mockData";
+import { useCategories } from "@/hooks/useProducts";
 
 const Categories = () => {
+  const { data: categories, isLoading } = useCategories();
+
   return (
     <PageLayout>
       {/* Header */}
@@ -26,16 +28,28 @@ const Categories = () => {
       {/* Categories Grid */}
       <section className="py-12">
         <div className="section-container">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {categories.map((category) => (
-              <CategoryCard
-                key={category.id}
-                name={category.name}
-                slug={category.slug}
-                productCount={category.productCount}
-              />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="skeleton-brutal h-32" />
+              ))}
+            </div>
+          ) : categories && categories.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {categories.map((category) => (
+                <CategoryCard
+                  key={category.id}
+                  name={category.name}
+                  slug={category.slug}
+                  productCount={category.productCount}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No categories available yet.</p>
+            </div>
+          )}
         </div>
       </section>
     </PageLayout>
