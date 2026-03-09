@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface ProtectedRouteProps {
@@ -16,6 +16,7 @@ const ProtectedRoute = ({
   requireAdmin = false,
 }: ProtectedRouteProps) => {
   const { user, loading, isVendor, isAdmin } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -26,7 +27,7 @@ const ProtectedRoute = ({
   }
 
   if (requireAuth && !user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
   if (requireVendor && !isVendor && !isAdmin) {
