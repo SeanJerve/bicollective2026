@@ -37,6 +37,7 @@ const AdminProducts = () => {
       let query = supabase
         .from("products")
         .select(`*, brand:brands(name, slug), category:categories(name)`)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (filter === "active") query = query.eq("is_active", true);

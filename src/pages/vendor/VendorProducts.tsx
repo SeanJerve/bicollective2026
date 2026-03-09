@@ -65,6 +65,7 @@ const VendorProducts = () => {
       .from("products")
       .select(`*, category:categories (name)`)
       .eq("brand_id", brand.id)
+      .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
     setProducts(data || []);
