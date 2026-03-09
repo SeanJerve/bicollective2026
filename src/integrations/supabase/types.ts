@@ -1189,6 +1189,14 @@ export type Database = {
         Returns: number
       }
       get_brand_owner: { Args: { _brand_id: string }; Returns: string }
+      get_profile_display_name: {
+        Args: { _user_id: string }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
