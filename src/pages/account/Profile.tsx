@@ -496,6 +496,80 @@ const Profile = () => {
               </div>
             )}
           </div>
+
+          {/* Account Deletion */}
+          <div className="card-brutal border-destructive mt-8">
+            <Collapsible open={deleteOpen} onOpenChange={setDeleteOpen}>
+              <CollapsibleTrigger className="w-full p-6 flex items-center justify-between text-left">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-destructive" />
+                  <span className="font-heading text-lg uppercase text-destructive">Delete Account</span>
+                </div>
+                <span className="text-xs text-muted-foreground">{deleteOpen ? "Close" : "Expand"}</span>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="p-6 pt-0 space-y-4">
+                  <div className="bg-destructive/10 border-2 border-destructive/20 p-4">
+                    <p className="text-sm font-medium text-destructive mb-2">⚠️ This action is permanent and cannot be undone.</p>
+                    <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                      <li>Your profile and personal data will be anonymized</li>
+                      <li>Your addresses, wishlist, and cart will be deleted</li>
+                      <li>If you are a vendor, your store and products will be archived</li>
+                      <li>Your past reviews will remain but be anonymized</li>
+                      <li>You must have no active orders to proceed</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Type <strong>DELETE</strong> to confirm
+                    </label>
+                    <input
+                      type="text"
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      placeholder="DELETE"
+                      className="input-brutal w-full"
+                    />
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (deleteConfirmText !== "DELETE") {
+                        toast({ title: "Please type DELETE to confirm", variant: "destructive" });
+                        return;
+                      }
+                      setDeleting(true);
+                      try {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        if (!session) throw new Error("Not authenticated");
+
+                        const res = await supabase.functions.invoke("delete-account", {
+                          headers: { Authorization: `Bearer ${session.access_token}` },
+                        });
+
+                        if (res.error) throw new Error(res.error.message || "Deletion failed");
+                        
+                        const responseData = res.data;
+                        if (responseData?.error) throw new Error(responseData.error);
+
+                        await supabase.auth.signOut();
+                        toast({ title: "Account deleted", description: "Your account has been permanently deleted." });
+                        navigate("/");
+                      } catch (error: any) {
+                        toast({ title: "Deletion failed", description: error.message, variant: "destructive" });
+                      } finally {
+                        setDeleting(false);
+                      }
+                    }}
+                    disabled={deleting || deleteConfirmText !== "DELETE"}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-destructive text-destructive-foreground font-heading uppercase text-sm border-2 border-foreground hover:opacity-90 disabled:opacity-50 transition-opacity"
+                  >
+                    {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    {deleting ? "Deleting Account..." : "Permanently Delete My Account"}
+                  </button>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
         </div>
       </section>
     </PageLayout>
