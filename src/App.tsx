@@ -144,6 +144,14 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/account/messages"
+                  element={
+                    <ProtectedRoute>
+                      <Messages />
+                    </ProtectedRoute>
+                  }
+                />
 
                 {/* Vendor Application Routes */}
                 <Route path="/vendor/register" element={<VendorRegister />} />
