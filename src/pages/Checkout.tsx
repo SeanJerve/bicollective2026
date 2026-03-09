@@ -287,6 +287,28 @@ const Checkout = () => {
 
     setLoading(true);
     try {
+      // Stock validation — prevent race conditions
+      const stockCheckItems = checkoutItems.map((item: any) => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+      }));
+
+      const { data: outOfStock, error: stockError } = await supabase.rpc("validate_stock", {
+        items: stockCheckItems,
+      });
+
+      if (stockError) throw stockError;
+
+      if (outOfStock && Array.isArray(outOfStock) && outOfStock.length > 0) {
+        const names = outOfStock.map((i: any) => `${i.product_name} (${i.available} left)`).join(", ");
+        toast({
+          title: "Some items are out of stock",
+          description: `Insufficient stock: ${names}. Please update your cart.`,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
       // Upload payment proof if needed
       let paymentProofUrl: string | null = null;
       if (paymentProofFile && paymentMethod !== "cod") {

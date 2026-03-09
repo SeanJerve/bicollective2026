@@ -38,13 +38,20 @@ const AdminLayout = () => {
     setSidebarOpen(false);
   };
 
+  const currentPage = navItems.find((item) =>
+    item.exact ? location.pathname === item.href : location.pathname.startsWith(item.href) && item.href !== "/admin"
+  ) || navItems[0];
+
   return (
     <div className="min-h-screen flex">
       {/* Mobile header */}
       <div className="fixed top-0 left-0 right-0 z-40 bg-foreground text-background flex items-center justify-between px-4 py-3 md:hidden">
-        <Link to="/" className="font-heading text-lg tracking-tight">
-          BICOLLECTIVE
-        </Link>
+        <div className="min-w-0">
+          <Link to="/" className="font-heading text-lg tracking-tight">
+            BICOLLECTIVE
+          </Link>
+          <p className="text-xs opacity-60 truncate">{currentPage.label}</p>
+        </div>
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1">
           {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
