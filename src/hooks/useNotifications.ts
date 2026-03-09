@@ -14,6 +14,8 @@ interface NotificationCounts {
   lowStockProducts: number;
   // Customer counts
   orderUpdates: number;
+  // Shared
+  unreadMessages: number;
 }
 
 const EMPTY_COUNTS: NotificationCounts = {
@@ -25,6 +27,7 @@ const EMPTY_COUNTS: NotificationCounts = {
   newReviews: 0,
   lowStockProducts: 0,
   orderUpdates: 0,
+  unreadMessages: 0,
 };
 
 // Track dismissed notifications per session
@@ -74,7 +77,7 @@ export const useNotifications = () => {
       }
 
       if (!isAdmin) {
-        // Customer: count orders with recent status changes (non-delivered, non-cancelled)
+        // Customer: count orders with recent status changes
         const { count: orderUpdates } = await supabase
           .from("orders")
           .select(`
@@ -85,6 +88,14 @@ export const useNotifications = () => {
           .in("vendor_orders.status", ["payment_uploaded", "paid", "confirmed", "handed_to_courier", "for_delivery", "shipped"]);
         newCounts.orderUpdates = orderUpdates || 0;
       }
+
+      // Unread messages for all authenticated users
+      const { count: unreadMessages } = await supabase
+        .from("messages")
+        .select("*", { count: "exact", head: true })
+        .eq("receiver_id", user.id)
+        .is("read_at", null);
+      newCounts.unreadMessages = unreadMessages || 0;
 
       setCounts(newCounts);
     } catch (error) {
@@ -106,7 +117,6 @@ export const useNotifications = () => {
   useEffect(() => {
     fetchCounts();
 
-    // Set up realtime subscriptions for updates
     if (!user) return;
 
     const channels: ReturnType<typeof supabase.channel>[] = [];
@@ -139,6 +149,23 @@ export const useNotifications = () => {
         .subscribe();
       channels.push(customerChannel);
     }
+
+    // Listen to new messages for unread badge — all authenticated users
+    const messagesChannel = supabase
+      .channel("messages-notifications")
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "messages",
+        filter: `receiver_id=eq.${user.id}`,
+      }, debouncedFetchCounts)
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "messages",
+      }, debouncedFetchCounts)
+      .subscribe();
+    channels.push(messagesChannel);
 
     return () => {
       channels.forEach((ch) => supabase.removeChannel(ch));
