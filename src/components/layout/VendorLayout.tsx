@@ -21,6 +21,11 @@ const VendorLayout = () => {
     { href: "/vendor/verification", label: "Verification", icon: Settings },
   ];
 
+  const isActive = (path: string, exact?: boolean) => {
+    if (exact) return location.pathname === path;
+    return location.pathname.startsWith(path);
+  };
+
   const currentPage = navItems.find((item) =>
     item.exact ? location.pathname === item.href : location.pathname.startsWith(item.href) && item.href !== "/vendor"
   ) || navItems[0];
