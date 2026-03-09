@@ -110,7 +110,10 @@ const AdminLayout = () => {
             <p className="text-sm truncate">{user?.email}</p>
           </div>
           <button
-            onClick={signOut}
+            onClick={async () => {
+              await signOut();
+              navigate("/login");
+            }}
             className="flex items-center gap-3 px-4 py-3 w-full font-heading text-sm uppercase tracking-wide hover:bg-background/10 transition-colors"
           >
             <LogOut className="w-5 h-5" />

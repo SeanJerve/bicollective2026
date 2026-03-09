@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ChevronDown, SlidersHorizontal, X, MapPin } from "lucide-react";
+import { ChevronDown, SlidersHorizontal, X, MapPin, LayoutGrid, List } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import ProductCard from "@/components/marketplace/ProductCard";
 import ProductCardSkeleton from "@/components/marketplace/ProductCardSkeleton";
@@ -26,6 +26,8 @@ const BICOL_LOCATIONS = [
   "Catanduanes",
 ];
 
+const INITIAL_SHOW_COUNT = 3;
+
 const Products = () => {
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get("search") || "";
@@ -37,12 +39,14 @@ const Products = () => {
   });
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(
     locationParam || null
   );
   const [sortBy, setSortBy] = useState("newest");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [showAllLocations, setShowAllLocations] = useState(false);
 
   const { data: products, isLoading: productsLoading } = useProducts();
   const { data: brands } = useBrands();
@@ -54,7 +58,6 @@ const Products = () => {
 
   const filteredProducts = (products || []).filter((product) => {
     if (selectedCategory && product.categorySlug !== selectedCategory) return false;
-    if (selectedBrand && product.brandSlug !== selectedBrand) return false;
     if (selectedLocation) {
       const brandData = brands?.find((b) => b.slug === product.brandSlug);
       if (!brandData?.location?.toLowerCase().includes(selectedLocation.toLowerCase())) {
@@ -66,7 +69,9 @@ const Products = () => {
       if (
         !product.name.toLowerCase().includes(lowerQ) &&
         !product.brandName.toLowerCase().includes(lowerQ) &&
-        !product.category.toLowerCase().includes(lowerQ)
+        !product.category.toLowerCase().includes(lowerQ) &&
+        !(product.brandLocation || "").toLowerCase().includes(lowerQ) &&
+        !(product.description || "").toLowerCase().includes(lowerQ)
       ) {
         return false;
       }
@@ -87,11 +92,22 @@ const Products = () => {
 
   const clearFilters = () => {
     setSelectedCategory(null);
-    setSelectedBrand(null);
     setSelectedLocation(null);
   };
 
-  const hasActiveFilters = selectedCategory || selectedBrand || selectedLocation || searchQuery;
+  const hasActiveFilters = selectedCategory || selectedLocation || searchQuery;
+
+  const displayedCategories = showAllCategories
+    ? categories
+    : categories?.slice(0, INITIAL_SHOW_COUNT);
+
+  const allLocations = BICOL_LOCATIONS.slice(1); // exclude "All Locations"
+  const displayedLocations = showAllLocations
+    ? allLocations
+    : allLocations.slice(0, INITIAL_SHOW_COUNT);
+
+  const formatPrice = (amount: number) =>
+    new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(amount);
 
   return (
     <PageLayout>
@@ -128,7 +144,7 @@ const Products = () => {
               Filters
               {hasActiveFilters && (
                 <span className="w-5 h-5 bg-foreground text-background text-xs flex items-center justify-center">
-                  {(selectedCategory ? 1 : 0) + (selectedBrand ? 1 : 0) + (selectedLocation ? 1 : 0)}
+                  {(selectedCategory ? 1 : 0) + (selectedLocation ? 1 : 0)}
                 </span>
               )}
             </button>
@@ -148,7 +164,7 @@ const Products = () => {
                         All Categories
                       </button>
                     </li>
-                    {categories?.map((cat) => (
+                    {displayedCategories?.map((cat) => (
                       <li key={cat.id}>
                         <button
                           onClick={() => setSelectedCategory(cat.slug)}
@@ -159,31 +175,14 @@ const Products = () => {
                       </li>
                     ))}
                   </ul>
-                </div>
-
-                {/* Brands */}
-                <div>
-                  <h3 className="font-heading uppercase text-sm tracking-wide mb-4">Brands</h3>
-                  <ul className="space-y-2">
-                    <li>
-                      <button
-                        onClick={() => setSelectedBrand(null)}
-                        className={`text-sm ${!selectedBrand ? "font-medium border-b-2 border-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                      >
-                        All Brands
-                      </button>
-                    </li>
-                    {brands?.map((brand) => (
-                      <li key={brand.id}>
-                        <button
-                          onClick={() => setSelectedBrand(brand.slug)}
-                          className={`text-sm ${selectedBrand === brand.slug ? "font-medium border-b-2 border-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                        >
-                          {brand.name}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                  {(categories?.length || 0) > INITIAL_SHOW_COUNT && (
+                    <button
+                      onClick={() => setShowAllCategories(!showAllCategories)}
+                      className="text-xs text-muted-foreground hover:text-foreground mt-2 bg-transparent border-none p-0 cursor-pointer"
+                    >
+                      {showAllCategories ? "View less" : `View more (${(categories?.length || 0) - INITIAL_SHOW_COUNT})`}
+                    </button>
+                  )}
                 </div>
 
                 {/* Location */}
@@ -193,12 +192,19 @@ const Products = () => {
                     Location
                   </h3>
                   <ul className="space-y-2">
-                    {BICOL_LOCATIONS.map((loc) => (
+                    <li>
+                      <button
+                        onClick={() => setSelectedLocation(null)}
+                        className={`text-sm ${!selectedLocation ? "font-medium border-b-2 border-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                      >
+                        All Locations
+                      </button>
+                    </li>
+                    {displayedLocations.map((loc) => (
                       <li key={loc}>
                         <button
-                          onClick={() => setSelectedLocation(loc === "All Locations" ? null : loc)}
+                          onClick={() => setSelectedLocation(loc)}
                           className={`text-sm ${
-                            (loc === "All Locations" && !selectedLocation) ||
                             selectedLocation === loc
                               ? "font-medium border-b-2 border-foreground"
                               : "text-muted-foreground hover:text-foreground"
@@ -209,6 +215,14 @@ const Products = () => {
                       </li>
                     ))}
                   </ul>
+                  {allLocations.length > INITIAL_SHOW_COUNT && (
+                    <button
+                      onClick={() => setShowAllLocations(!showAllLocations)}
+                      className="text-xs text-muted-foreground hover:text-foreground mt-2 bg-transparent border-none p-0 cursor-pointer"
+                    >
+                      {showAllLocations ? "View less" : `View more (${allLocations.length - INITIAL_SHOW_COUNT})`}
+                    </button>
+                  )}
                 </div>
 
                 {hasActiveFilters && (
@@ -247,7 +261,7 @@ const Products = () => {
                             All Categories
                           </button>
                         </li>
-                        {categories?.map((cat) => (
+                        {displayedCategories?.map((cat) => (
                           <li key={cat.id}>
                             <button
                               onClick={() => setSelectedCategory(cat.slug)}
@@ -258,31 +272,14 @@ const Products = () => {
                           </li>
                         ))}
                       </ul>
-                    </div>
-
-                    {/* Brands */}
-                    <div>
-                      <h3 className="font-heading uppercase text-sm tracking-wide mb-4">Brands</h3>
-                      <ul className="space-y-3">
-                        <li>
-                          <button
-                            onClick={() => setSelectedBrand(null)}
-                            className={`text-sm ${!selectedBrand ? "font-medium" : "text-muted-foreground"}`}
-                          >
-                            All Brands
-                          </button>
-                        </li>
-                        {brands?.map((brand) => (
-                          <li key={brand.id}>
-                            <button
-                              onClick={() => setSelectedBrand(brand.slug)}
-                              className={`text-sm ${selectedBrand === brand.slug ? "font-medium" : "text-muted-foreground"}`}
-                            >
-                              {brand.name}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
+                      {(categories?.length || 0) > INITIAL_SHOW_COUNT && (
+                        <button
+                          onClick={() => setShowAllCategories(!showAllCategories)}
+                          className="text-xs text-muted-foreground hover:text-foreground mt-2 bg-transparent border-none p-0 cursor-pointer"
+                        >
+                          {showAllCategories ? "View less" : `View more (${(categories?.length || 0) - INITIAL_SHOW_COUNT})`}
+                        </button>
+                      )}
                     </div>
 
                     {/* Location */}
@@ -292,15 +289,20 @@ const Products = () => {
                         Location
                       </h3>
                       <ul className="space-y-3">
-                        {BICOL_LOCATIONS.map((loc) => (
+                        <li>
+                          <button
+                            onClick={() => setSelectedLocation(null)}
+                            className={`text-sm ${!selectedLocation ? "font-medium" : "text-muted-foreground"}`}
+                          >
+                            All Locations
+                          </button>
+                        </li>
+                        {displayedLocations.map((loc) => (
                           <li key={loc}>
                             <button
-                              onClick={() => setSelectedLocation(loc === "All Locations" ? null : loc)}
+                              onClick={() => setSelectedLocation(loc)}
                               className={`text-sm ${
-                                (loc === "All Locations" && !selectedLocation) ||
-                                selectedLocation === loc
-                                  ? "font-medium"
-                                  : "text-muted-foreground"
+                                selectedLocation === loc ? "font-medium" : "text-muted-foreground"
                               }`}
                             >
                               {loc}
@@ -308,6 +310,14 @@ const Products = () => {
                           </li>
                         ))}
                       </ul>
+                      {allLocations.length > INITIAL_SHOW_COUNT && (
+                        <button
+                          onClick={() => setShowAllLocations(!showAllLocations)}
+                          className="text-xs text-muted-foreground hover:text-foreground mt-2 bg-transparent border-none p-0 cursor-pointer"
+                        >
+                          {showAllLocations ? "View less" : `View more (${allLocations.length - INITIAL_SHOW_COUNT})`}
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -338,14 +348,6 @@ const Products = () => {
                       </button>
                     </span>
                   )}
-                  {selectedBrand && (
-                    <span className="inline-flex items-center gap-1 px-2 md:px-3 py-1 bg-secondary text-xs md:text-sm border border-border-subtle">
-                      {brands?.find((b) => b.slug === selectedBrand)?.name}
-                      <button onClick={() => setSelectedBrand(null)}>
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  )}
                   {selectedLocation && (
                     <span className="inline-flex items-center gap-1 px-2 md:px-3 py-1 bg-secondary text-xs md:text-sm border border-border-subtle">
                       <MapPin className="w-3 h-3" />
@@ -357,17 +359,41 @@ const Products = () => {
                   )}
                 </div>
 
-                <div className="relative w-full sm:w-auto">
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="w-full sm:w-auto appearance-none bg-background border-2 border-foreground px-3 md:px-4 py-2 pr-10 font-heading text-xs md:text-sm uppercase cursor-pointer"
-                  >
-                    <option value="newest">Newest</option>
-                    <option value="price-low">Price: Low to High</option>
-                    <option value="price-high">Price: High to Low</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" />
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  {/* Sort By */}
+                  <div className="flex items-center gap-2 flex-1 sm:flex-initial">
+                    <span className="text-xs text-muted-foreground font-heading uppercase whitespace-nowrap">Sort by:</span>
+                    <div className="relative flex-1 sm:flex-initial">
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="w-full sm:w-auto appearance-none bg-background border-2 border-foreground px-3 md:px-4 py-2 pr-10 font-heading text-xs md:text-sm uppercase cursor-pointer"
+                      >
+                        <option value="newest">Newest</option>
+                        <option value="price-low">Price: Low to High</option>
+                        <option value="price-high">Price: High to Low</option>
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {/* View Toggle */}
+                  <div className="flex border-2 border-foreground">
+                    <button
+                      onClick={() => setViewMode("grid")}
+                      className={`p-2 transition-colors ${viewMode === "grid" ? "bg-foreground text-background" : "bg-background text-foreground hover:bg-secondary"}`}
+                      aria-label="Grid view"
+                    >
+                      <LayoutGrid className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode("list")}
+                      className={`p-2 transition-colors border-l-2 border-foreground ${viewMode === "list" ? "bg-foreground text-background" : "bg-background text-foreground hover:bg-secondary"}`}
+                      aria-label="List view"
+                    >
+                      <List className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -379,11 +405,60 @@ const Products = () => {
                   ))}
                 </div>
               ) : sortedProducts.length > 0 ? (
-                <div className="product-grid">
-                  {sortedProducts.map((product) => (
-                    <ProductCard key={product.id} {...product} />
-                  ))}
-                </div>
+                viewMode === "grid" ? (
+                  <div className="product-grid">
+                    {sortedProducts.map((product) => (
+                      <ProductCard key={product.id} {...product} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {sortedProducts.map((product) => (
+                      <Link
+                        key={product.id}
+                        to={`/products/${product.slug}`}
+                        className="card-brutal flex gap-4 p-4 group hover:shadow-brutal-hover transition-shadow"
+                      >
+                        <div className="w-24 h-24 md:w-32 md:h-32 flex-shrink-0 bg-muted overflow-hidden">
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            loading="lazy"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
+                            {product.brandName}
+                          </p>
+                          <h3 className="font-heading text-sm md:text-lg uppercase tracking-tight leading-tight mb-1 line-clamp-2">
+                            {product.name}
+                          </h3>
+                          {product.category && (
+                            <span className="text-xs text-muted-foreground">{product.category}</span>
+                          )}
+                          <div className="flex items-center gap-2 mt-2">
+                            {product.listingType === "teaser" ? (
+                              <span className="font-heading text-sm md:text-base text-muted-foreground">Price TBA</span>
+                            ) : (
+                              <>
+                                <span className="font-heading text-sm md:text-base">{formatPrice(product.price)}</span>
+                                {product.originalPrice && product.originalPrice > product.price && (
+                                  <span className="text-xs text-muted-foreground line-through">
+                                    {formatPrice(product.originalPrice)}
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </div>
+                          {!product.inStock && product.listingType === "regular" && (
+                            <span className="text-xs text-destructive mt-1 inline-block">Out of Stock</span>
+                          )}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )
               ) : (
                 <div className="text-center py-16 md:py-20">
                   <h3 className="font-heading text-xl md:text-2xl uppercase mb-2">No Products Found</h3>

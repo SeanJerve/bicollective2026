@@ -13,7 +13,7 @@ const LuckyPromoPopup = () => {
   const [reward, setReward] = useState<{ code: string; value: number; type: "discount" | "free_shipping" } | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || isAdmin || isVendor) return;
 
     const init = async () => {
       // Fetch admin settings
