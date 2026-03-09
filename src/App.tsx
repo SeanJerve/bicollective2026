@@ -47,6 +47,7 @@ const VendorVerification = lazy(() => import("./pages/vendor/VendorVerification"
 const VendorReviews = lazy(() => import("./pages/vendor/VendorReviews"));
 const VendorPromotions = lazy(() => import("./pages/vendor/VendorPromotions"));
 const VendorAnalytics = lazy(() => import("./pages/vendor/VendorAnalytics"));
+const VendorMessages = lazy(() => import("./pages/vendor/VendorMessages"));
 
 // Admin pages
 const AdminLayout = lazy(() => import("./components/layout/AdminLayout"));
