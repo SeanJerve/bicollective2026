@@ -1,5 +1,8 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { BadgeCheck, Clock, Zap } from "lucide-react";
+import { BadgeCheck, Clock, ShoppingBag, Zap } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import QuickAddDrawer from "./QuickAddDrawer";
 
 interface ProductCardProps {
   id: string;
@@ -17,9 +20,11 @@ interface ProductCardProps {
   preorderDiscountPercent?: number;
   storeSalePercent?: number;
   storeSaleEndsAt?: string;
+  sizes?: string[];
 }
 
 const ProductCard = ({
+  id,
   name,
   slug,
   price,
@@ -34,7 +39,11 @@ const ProductCard = ({
   preorderDiscountPercent,
   storeSalePercent,
   storeSaleEndsAt,
+  sizes,
 }: ProductCardProps) => {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const isMobile = useIsMobile();
+
   const formatPrice = (amount: number) => {
     return new Intl.NumberFormat("en-PH", {
       style: "currency",
@@ -43,88 +52,115 @@ const ProductCard = ({
   };
 
   const isStoreSaleActive = storeSalePercent && storeSalePercent > 0 && storeSaleEndsAt && new Date(storeSaleEndsAt) > new Date();
+  const canAddToCart = inStock && listingType !== "teaser";
 
   return (
-    <article className="group">
-      <Link to={`/products/${slug}`} className="block">
-        <div className="card-brutal overflow-hidden">
-          {/* Image Container */}
-          <div className="relative aspect-[3/4] bg-muted overflow-hidden">
-            <img
-              src={image}
-              alt={name}
-              loading="lazy"
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-            />
-            {!inStock && listingType === "regular" && (
-              <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-                <span className="font-heading uppercase tracking-wide text-sm">
-                  Out of Stock
-                </span>
-              </div>
-            )}
-            {listingType === "teaser" && (
-              <div className="absolute top-3 right-3 px-2 py-1 bg-muted border border-foreground text-xs font-heading uppercase flex items-center gap-1">
-                <Clock className="w-3 h-3" /> Coming Soon
-              </div>
-            )}
-            {listingType === "preorder" && (
-              <div className="absolute top-3 right-3 px-2 py-1 bg-accent border border-foreground text-xs font-heading uppercase flex items-center gap-1">
-                <Zap className="w-3 h-3" /> Pre-order
-              </div>
-            )}
-            {isStoreSaleActive && (
-              <div className="absolute top-3 left-3 px-2 py-1 bg-destructive text-destructive-foreground text-xs font-heading uppercase">
-                {storeSalePercent}% OFF
-              </div>
-            )}
-            {category && !isStoreSaleActive && (
-              <span className="absolute top-3 left-3 badge-category">
-                {category}
-              </span>
-            )}
-          </div>
-
-          {/* Content */}
-          <div className="p-4">
-            {/* Brand */}
-            <Link
-              to={`/brands/${brandSlug}`}
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center gap-1.5 mb-2 group/brand"
-            >
-              <span className="text-xs uppercase tracking-wide text-muted-foreground group-hover/brand:text-foreground transition-colors">
-                {brandName}
-              </span>
-              {isVerifiedBrand && (
-                <BadgeCheck className="w-3.5 h-3.5 text-success" />
+    <>
+      <article className="group">
+        <Link to={`/products/${slug}`} className="block">
+          <div className="card-brutal overflow-hidden">
+            {/* Image Container */}
+            <div className="relative aspect-[3/4] bg-muted overflow-hidden">
+              <img
+                src={image}
+                alt={name}
+                loading="lazy"
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+              {!inStock && listingType === "regular" && (
+                <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                  <span className="font-heading uppercase tracking-wide text-xs md:text-sm">
+                    Out of Stock
+                  </span>
+                </div>
               )}
-            </Link>
+              {listingType === "teaser" && (
+                <div className="absolute top-2 right-2 md:top-3 md:right-3 px-1.5 py-0.5 md:px-2 md:py-1 bg-muted border border-foreground text-[10px] md:text-xs font-heading uppercase flex items-center gap-1">
+                  <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" /> Coming Soon
+                </div>
+              )}
+              {listingType === "preorder" && (
+                <div className="absolute top-2 right-2 md:top-3 md:right-3 px-1.5 py-0.5 md:px-2 md:py-1 bg-accent border border-foreground text-[10px] md:text-xs font-heading uppercase flex items-center gap-1">
+                  <Zap className="w-2.5 h-2.5 md:w-3 md:h-3" /> Pre-order
+                </div>
+              )}
+              {isStoreSaleActive && (
+                <div className="absolute top-2 left-2 md:top-3 md:left-3 px-1.5 py-0.5 md:px-2 md:py-1 bg-destructive text-destructive-foreground text-[10px] md:text-xs font-heading uppercase">
+                  {storeSalePercent}% OFF
+                </div>
+              )}
+              {category && !isStoreSaleActive && (
+                <span className="absolute top-2 left-2 md:top-3 md:left-3 badge-category text-[10px] md:text-xs">
+                  {category}
+                </span>
+              )}
 
-            {/* Product Name */}
-            <h3 className="font-heading text-lg uppercase tracking-tight leading-tight mb-2 line-clamp-2">
-              {name}
-            </h3>
-
-            {/* Price */}
-            <div className="flex items-center gap-2">
-              {listingType === "teaser" ? (
-                <span className="font-heading text-lg text-muted-foreground">Price TBA</span>
-              ) : (
-                <>
-                  <span className="font-heading text-lg">{formatPrice(price)}</span>
-                  {originalPrice && originalPrice > price && (
-                    <span className="text-sm text-muted-foreground line-through">
-                      {formatPrice(originalPrice)}
-                    </span>
-                  )}
-                </>
+              {/* Mobile Quick Add Button */}
+              {isMobile && canAddToCart && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDrawerOpen(true);
+                  }}
+                  className="absolute bottom-2 right-2 w-8 h-8 bg-foreground text-background flex items-center justify-center shadow-brutal-sm border border-foreground active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all z-10"
+                  aria-label="Quick add to cart"
+                >
+                  <ShoppingBag className="w-3.5 h-3.5" />
+                </button>
               )}
             </div>
+
+            {/* Content */}
+            <div className="p-2.5 md:p-4">
+              {/* Brand */}
+              <Link
+                to={`/brands/${brandSlug}`}
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 md:gap-1.5 mb-1 md:mb-2 group/brand"
+              >
+                <span className="text-[10px] md:text-xs uppercase tracking-wide text-muted-foreground group-hover/brand:text-foreground transition-colors">
+                  {brandName}
+                </span>
+                {isVerifiedBrand && (
+                  <BadgeCheck className="w-3 h-3 md:w-3.5 md:h-3.5 text-success" />
+                )}
+              </Link>
+
+              {/* Product Name */}
+              <h3 className="font-heading text-sm md:text-lg uppercase tracking-tight leading-tight mb-1 md:mb-2 line-clamp-2">
+                {name}
+              </h3>
+
+              {/* Price */}
+              <div className="flex items-center gap-1.5 md:gap-2">
+                {listingType === "teaser" ? (
+                  <span className="font-heading text-sm md:text-lg text-muted-foreground">Price TBA</span>
+                ) : (
+                  <>
+                    <span className="font-heading text-sm md:text-lg">{formatPrice(price)}</span>
+                    {originalPrice && originalPrice > price && (
+                      <span className="text-[10px] md:text-sm text-muted-foreground line-through">
+                        {formatPrice(originalPrice)}
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      </Link>
-    </article>
+        </Link>
+      </article>
+
+      {/* Quick Add Drawer */}
+      {isMobile && (
+        <QuickAddDrawer
+          open={drawerOpen}
+          onOpenChange={setDrawerOpen}
+          product={{ id, name, price, image, sizes, inStock }}
+        />
+      )}
+    </>
   );
 };
 
