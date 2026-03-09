@@ -217,18 +217,20 @@ const Header = () => {
               )}
             </div>
 
-            <Link
-              to="/cart"
-              className="p-2 hover:bg-secondary transition-colors border-2 border-transparent hover:border-foreground relative"
-              aria-label="Cart"
-            >
-              <ShoppingBag className="w-5 h-5" />
-              {itemCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-foreground text-background text-xs font-bold flex items-center justify-center">
-                  {itemCount > 99 ? "99+" : itemCount}
-                </span>
-              )}
-            </Link>
+            {!isAdmin && (
+              <Link
+                to="/cart"
+                className="p-2 hover:bg-secondary transition-colors border-2 border-transparent hover:border-foreground relative"
+                aria-label="Cart"
+              >
+                <ShoppingBag className="w-5 h-5" />
+                {itemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-foreground text-background text-xs font-bold flex items-center justify-center">
+                    {itemCount > 99 ? "99+" : itemCount}
+                  </span>
+                )}
+              </Link>
+            )}
           </div>
 
           {/* Mobile Actions */}
