@@ -1188,6 +1188,7 @@ export type Database = {
         }
         Returns: number
       }
+      claim_lucky_promo: { Args: { _user_id: string }; Returns: Json }
       get_brand_owner: { Args: { _brand_id: string }; Returns: string }
       get_lucky_promo_public_info: {
         Args: never
