@@ -1,422 +1,220 @@
+# Full Platform Audit — Bicollective
 
-# Comprehensive Audit & Vendor Application System Plan
+## A. DATABASE: Duplicate Triggers (Critical)
 
-## Executive Summary
+The `order_items` table has **3 duplicate triggers** all calling the same `decrement_stock_on_order` function:
 
-After a thorough scan of Bicollective, here is a detailed audit of what's working, what's missing, and a complete implementation plan for the vendor application and verification system you requested.
+- `decrement_stock_on_order_item`
+- `on_order_item_created`
+- `trg_decrement_stock_on_order`
 
----
+**Impact**: Stock is decremented **3x** per order item instead of 1x. A customer buying qty 1 reduces stock by 3.
 
-## PART 1: Current Status Audit
+The `addresses` table has **4 duplicate triggers** all calling `unset_other_default_addresses`:
 
-### WORKING FEATURES (100% Functional)
+- `on_address_default_change`
+- `trg_unset_other_default_addresses`
+- `trg_unset_other_default_addresses_insert`
+- `trigger_unset_other_defaults`
 
-| Module | Feature | Status |
-|--------|---------|--------|
-| **Customer** | Browse products, brands, categories | Working |
-| **Customer** | Location-aware autocomplete search | Working |
-| **Customer** | Location filtering on catalogs | Working |
-| **Customer** | Add to cart + checkout flow | Working |
-| **Customer** | Order history at `/account/orders` | Working |
-| **Customer** | Order detail with tracking | Working |
-| **Vendor** | Dashboard with stats | Working |
-| **Vendor** | Product CRUD with image uploads | Working |
-| **Vendor** | Order management + status updates | Working |
-| **Vendor** | Store settings with location | Working |
-| **Admin** | Dashboard with platform stats | Working |
-| **Admin** | Vendor list + verify/suspend actions | Working |
-| **Admin** | Reports moderation queue | Working |
-| **Auth** | Email/password + Google Sign-In | Working |
-| **Auth** | Role-based route protection | Working |
-| **Admin** | Cannot access vendor dashboard | Working |
+**Impact**: Redundant executions on every address change. Not functionally harmful but wasteful and violates DBMS hygiene.
 
-### MISSING OR INCOMPLETE FEATURES
-
-#### Critical Missing (Required for Presentation)
-
-| Priority | Feature | Issue |
-|----------|---------|-------|
-| **P0** | Payment Proof Upload | Customers cannot upload payment screenshots after checkout |
-| **P0** | Vendor Application Flow | No `/vendor/register` page exists - links to 404 |
-| **P0** | Vendor Verification Documents | No system for vendors to submit documents for "Verified" badge |
-| **P1** | Vendor Reviews Page | `/vendor/reviews` is in navigation but page doesn't exist |
-| **P1** | Customer Reviews | ProductDetail shows static "(24 reviews)" - not real data |
-| **P1** | Tracking Number Input | Vendors see tracking but cannot enter it |
-| **P1** | Admin Products/Orders Pages | Routes exist in nav but pages don't exist |
-
-#### Missing Static Pages (Lower Priority)
-
-| Page | Status |
-|------|--------|
-| `/vendor/login` | 404 (should redirect to `/login`) |
-| `/vendor/guidelines` | 404 |
-| `/help` | 404 |
-| `/contact` | 404 |
-| `/faq` | 404 |
-| `/privacy` | 404 |
-| `/terms` | 404 |
-| `/returns` | 404 |
+**Fix**: Drop duplicates, keep one trigger per function per table.
 
 ---
 
-## PART 2: Implementation Plan
+## B. DATABASE: Schema Quality Review
 
-### Database Changes Required
 
-A new `vendor_applications` table to store applications:
+| Table                      | Issue                                                                                                                                                    | Severity           |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| `categories.product_count` | Static column, never updated. `useCategory` hook already counts dynamically. Stale data.                                                                 | Low — cosmetic     |
+| `reviews`                  | No `media_urls` column despite `ToReview.tsx` uploading media to `review-media` bucket. Media URLs are generated but **never stored** in the review row. | Medium — data loss |
+| `vendor_applications`      | `user_id` FK references `auth.users` which is acceptable but NOT listed in foreign keys output — missing explicit FK constraint?                         | Low                |
+| `vendor_verifications`     | `brand_id` references `brands` — correct, FK exists                                                                                                      | OK                 |
+| `messages`                 | Has realtime but no `ALTER PUBLICATION supabase_realtime ADD TABLE public.messages` confirmed                                                            | Needs verification |
+| `loyalty_progress`         | Properly structured, trigger-driven. No issues.                                                                                                          | OK                 |
+| `lucky_promo_claims`       | `claimed_date` uses `CURRENT_DATE` default — correct. Unique constraint on (user_id, claimed_date) not visible but enforced by code logic.               | Minor              |
 
-```text
-+-------------------------+
-|   vendor_applications   |
-+-------------------------+
-| id (uuid, PK)           |
-| user_id (uuid, FK)      |
-| business_name (text)    |
-| business_type (enum)    |
-|   - established         |
-|   - aspiring            |
-| location (text)         |
-| contact_phone (text)    |
-| description (text)      |
-| business_permit_url     |
-| valid_id_url            |
-| proof_of_products_url   |
-| status (enum)           |
-|   - pending             |
-|   - approved            |
-|   - needs_resubmission  |
-|   - rejected            |
-| admin_notes (text)      |
-| created_at              |
-| updated_at              |
-+-------------------------+
-```
-
-A new `vendor_verifications` table for verified badge submissions:
-
-```text
-+---------------------------+
-|  vendor_verifications     |
-+---------------------------+
-| id (uuid, PK)             |
-| brand_id (uuid, FK)       |
-| dti_registration_url      |
-| bir_certificate_url       |
-| mayor_permit_url          |
-| additional_docs (text[])  |
-| status (enum)             |
-|   - pending               |
-|   - verified              |
-|   - needs_resubmission    |
-|   - rejected              |
-| admin_notes (text)        |
-| submitted_at              |
-| reviewed_at               |
-+---------------------------+
-```
-
-A new storage bucket: `vendor-documents` (private, RLS protected)
 
 ---
 
-### Implementation Tasks
+## C. FRONTEND: Unused/Dead Code
 
-#### Task 1: Vendor Application System
 
-**1.1 Create `/vendor/register` page**
+| File                               | Issue                                                                                                                                      |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/data/mockData.ts` (262 lines) | Only imported by `Categories.tsx`. Categories page should use `useCategories()` hook from real DB instead. **mockData.ts is dead weight.** |
+| `src/pages/Categories.tsx`         | Uses static mock data instead of Supabase — **shows hardcoded categories, not real ones**                                                  |
 
-A multi-step form with:
-- Step 1: Account creation (or login if already registered)
-- Step 2: Business type selection
-  - "Established Business" (has permits)
-  - "Aspiring Seller" (starting out)
-- Step 3: Business information
-  - Brand/Business name
-  - Location (Bicol dropdown)
-  - Description
-  - Contact phone
-- Step 4: Document uploads (varies by type)
-  - Established: Business permit, valid ID, product photos
-  - Aspiring: Valid ID, product photos
-- Step 5: Review and submit
-
-**1.2 File upload component for documents**
-
-Uploads to `vendor-documents` bucket with user-specific paths
-
-**1.3 Application status tracking**
-
-Applicants can view their application status at `/vendor/application-status`
 
 ---
 
-#### Task 2: Admin Application Review System
+## D. FRONTEND-BACKEND GAPS
 
-**2.1 Create `/admin/applications` page**
 
-- List all pending applications with filters
-- View full application details
-- Actions: Approve, Request Resubmission, Reject
-- Admin notes field for follow-up instructions
+| Feature                          | Frontend                                                                                                                | Backend                                    | Gap                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Review media upload              | `ToReview.tsx` uploads to `review-media` bucket                                                                         | `reviews` table has no `media_urls` column | **Media uploaded but never linked to review record**                                                                                                                                                                                                                                                                                                                                                                  |
+| Category product count           | `categories.product_count` column exists                                                                                | Never updated by any trigger               | Stale — always shows 0. Hooks compute dynamically which is fine, but the column is wasted.                                                                                                                                                                                                                                                                                                                            |
+| `Size Guide` button              | ProductDetail.tsx line 289                                                                                              | No size guide data/page exists             | Button does nothing                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Wishlist toggle on ProductDetail | Heart icon exists in code but **not rendered in the JSX** — `toggleWishlist` function defined but no UI button calls it | —                                          | Wishlist button missing from product page(WE WILL ADDRESS THIS ON CCERTAIN TIME BECAUSE WE WILL AHEV A FEATURE OF LETTING VENDORS ANNOUNCE TRAILERS OR PRODUCTS THAT THEY WILL RELAEASE AND CUSTOMERS CAN ADD THIS TO THEIR WISHLIST, ONLY THESE TYPES OF PRODCUTS CAN BE PUT ON WISHLIST AND NOT PRODUCTS THAT ARE EXSTING AND RELEASED. IT SHOULD REMOVE THE WISHLIST PRIVELAGE ONCE THE PRODUCTS ARE NOW RELEASED) |
+| `categories` static import       | `Categories.tsx` imports from `mockData`                                                                                | Real `categories` table exists with data   | **Shows mock data instead of real categories**                                                                                                                                                                                                                                                                                                                                                                        |
 
-**2.2 Approval workflow**
-
-When approved:
-- Create brand entry with status "approved"
-- Assign vendor role to user
-- Send confirmation (UI toast for now)
-
-When requesting resubmission:
-- Update status to "needs_resubmission"
-- Store admin notes with specific requirements
-- User sees instructions when they check status
 
 ---
 
-#### Task 3: Vendor Verification System (for "Verified" Badge)
+## E. FLOW AUDIT BY ROLE
 
-**3.1 Create `/vendor/verification` page**
+### Customer Flow
 
-For approved vendors to submit verification documents:
-- DTI/SEC Registration
-- BIR Certificate of Registration
-- Mayor's/Business Permit
-- Additional supporting documents
 
-**3.2 Create `/admin/verifications` page**
+| Step                              | Status                     | Notes                                              |
+| --------------------------------- | -------------------------- | -------------------------------------------------- |
+| Browse products/brands/categories | Working                    | Categories page uses mock data — **broken**        |
+| Search with autocomplete          | Working                    | &nbsp;                                             |
+| Add to cart                       | Working                    | &nbsp;                                             |
+| Checkout (COD)                    | Working                    | Stock decremented **3x** due to duplicate triggers |
+| Checkout (GCash/Bank)             | Working                    | Payment proof upload functional                    |
+| View orders                       | Working                    | &nbsp;                                             |
+| Cancel order                      | Working                    | Stock restored correctly (single trigger)          |
+| Leave review                      | Working                    | Media files uploaded but not saved to DB           |
+| Wishlist                          | Working from Wishlist page | Cannot add from ProductDetail page (no button)     |
+| Disputes                          | Working                    | &nbsp;                                             |
+| Vouchers                          | Working                    | &nbsp;                                             |
+| Password change                   | Working                    | Added in Priority 1                                |
+| Address management                | Working                    | Default toggle works (though fires 4 triggers)     |
 
-Admin reviews verification submissions:
-- View all documents
-- Approve (changes brand status to "verified")
-- Request resubmission with notes
-- Reject with reason
 
----
+### Vendor Flow
 
-#### Task 4: Payment Proof Upload
 
-**4.1 Add upload UI to Order Detail page**
+| Step                    | Status  | Notes                            |
+| ----------------------- | ------- | -------------------------------- |
+| Application             | Working | &nbsp;                           |
+| Dashboard               | Working | Uses raw useEffect, not useQuery |
+| Products CRUD           | Working | &nbsp;                           |
+| Orders management       | Working | Refactored to useQuery           |
+| Tracking number         | Working | &nbsp;                           |
+| Store settings          | Working | &nbsp;                           |
+| Reviews                 | Working | &nbsp;                           |
+| Analytics               | Working | Uses raw useEffect               |
+| Promotions              | Working | &nbsp;                           |
+| Verification submission | Working | &nbsp;                           |
+| Empty brand state       | Working | Added in Priority 2              |
 
-For orders with "pending_payment" status:
-- Show upload button for payment screenshot
-- Upload to `payment-proofs` bucket
-- Update vendor_order status to "payment_uploaded"
 
----
+### Admin Flow
 
-#### Task 5: Missing Vendor Features
 
-**5.1 Create `/vendor/reviews` page**
+| Step                      | Status  | Notes                       |
+| ------------------------- | ------- | --------------------------- |
+| Dashboard                 | Working | Uses raw useEffect          |
+| Applications review       | Working | &nbsp;                      |
+| Verifications review      | Working | &nbsp;                      |
+| Vendors management        | Working | &nbsp;                      |
+| Products management       | Working | &nbsp;                      |
+| Orders with payment proof | Working | Added in Priority 2         |
+| Reports moderation        | Working | &nbsp;                      |
+| Disputes resolution       | Working | &nbsp;                      |
+| Promotions                | Working | &nbsp;                      |
+| Vouchers                  | Working | &nbsp;                      |
+| Lucky Promo config        | Working | &nbsp;                      |
+| Analytics                 | Working | &nbsp;                      |
+| Users management          | Working | &nbsp;                      |
+| Dropdown cleanup          | Working | Only Admin Panel + Sign Out |
 
-- Display all reviews for the vendor's products
-- Show product name, rating, comment, date
-- Read-only (vendors cannot edit)
-
-**5.2 Add tracking number input to VendorOrders**
-
-When status is "processing" or "shipped":
-- Show input field for tracking number
-- Save to vendor_orders.tracking_number
-
----
-
-#### Task 6: Missing Admin Features
-
-**6.1 Create `/admin/products` page**
-
-- List all products across all vendors
-- Filter by vendor, category, status
-- Actions: Deactivate, View
-
-**6.2 Create `/admin/orders` page**
-
-- List all orders across platform
-- Filter by status, date, vendor
-- View order details
-
----
-
-#### Task 7: Customer Reviews
-
-**7.1 Update ProductDetail to show real reviews**
-
-Query reviews table for the product and display actual data
-
-**7.2 Add review submission on OrderDetail**
-
-After order is "delivered", customer can leave a review
 
 ---
 
-#### Task 8: Static/Info Pages
+## F. SECURITY REVIEW
 
-Create minimal placeholder pages for:
-- `/help` - Help center
-- `/faq` - Frequently asked questions
-- `/contact` - Contact form
-- `/privacy` - Privacy policy
-- `/terms` - Terms of service
-- `/returns` - Return policy
-- `/vendor/guidelines` - Seller guidelines
 
----
+| Area                                    | Status                                                        |
+| --------------------------------------- | ------------------------------------------------------------- |
+| RLS on all tables                       | All tables have RLS enabled with appropriate policies         |
+| Roles in separate `user_roles` table    | Correct — not on profiles                                     |
+| `SECURITY DEFINER` functions            | `has_role`, `get_brand_owner`, stock triggers — correct       |
+| Private storage buckets                 | `payment-proofs` and `vendor-documents` are private — correct |
+| Admin-only edge functions               | `admin-list-users` uses service role key — correct            |
+| No client-side role checks for security | Auth uses server-side role queries — correct                  |
+| Cart RLS                                | Scoped to user_id — correct                                   |
 
-### File Changes Summary
-
-| New Files | Purpose |
-|-----------|---------|
-| `src/pages/vendor/VendorRegister.tsx` | Application form |
-| `src/pages/vendor/VendorApplicationStatus.tsx` | Track application |
-| `src/pages/vendor/VendorVerification.tsx` | Submit verification docs |
-| `src/pages/vendor/VendorReviews.tsx` | View product reviews |
-| `src/pages/admin/AdminApplications.tsx` | Review applications |
-| `src/pages/admin/AdminVerifications.tsx` | Review verifications |
-| `src/pages/admin/AdminProducts.tsx` | Manage all products |
-| `src/pages/admin/AdminOrders.tsx` | View all orders |
-| `src/components/vendor/ApplicationForm.tsx` | Multi-step form |
-| `src/components/vendor/DocumentUpload.tsx` | File upload component |
-| `src/components/account/PaymentProofUpload.tsx` | Payment screenshot upload |
-| `src/components/account/ReviewForm.tsx` | Submit review |
-| `src/pages/static/HelpCenter.tsx` | Help page |
-| `src/pages/static/FAQ.tsx` | FAQ page |
-| `src/pages/static/Contact.tsx` | Contact page |
-| `src/pages/static/Privacy.tsx` | Privacy policy |
-| `src/pages/static/Terms.tsx` | Terms page |
-| `src/pages/static/Returns.tsx` | Returns page |
-| `src/pages/static/SellerGuidelines.tsx` | Vendor guidelines |
-
-| Modified Files | Changes |
-|----------------|---------|
-| `src/App.tsx` | Add new routes |
-| `src/pages/account/OrderDetail.tsx` | Add payment proof upload |
-| `src/pages/vendor/VendorOrders.tsx` | Add tracking input |
-| `src/pages/ProductDetail.tsx` | Display real reviews |
-| `src/components/layout/AdminLayout.tsx` | Add new nav items |
-| `src/components/layout/Footer.tsx` | Fix footer links |
 
 ---
 
-### Technical Approach
+## G. IMPLEMENTATION PLAN (Priority Order)
 
-**Vendor Application Flow**
-```text
-User clicks "Become a Vendor"
-         |
-         v
-   /vendor/register
-         |
-         v
-  Fill application form
-  (business type, info, documents)
-         |
-         v
-  Submit -> status: "pending"
-         |
-         v
-  Admin reviews at /admin/applications
-         |
-    +----+----+
-    |         |
- Approve   Need Changes
-    |         |
-    v         v
- Brand      Status:
- created    "needs_resubmission"
- + role     + admin notes
- assigned   shown to user
-```
+### Batch 1: Critical Database Fixes
 
-**Verification Flow (Separate from Application)**
-```text
-Approved vendor
-wants "Verified" badge
-         |
-         v
-   /vendor/verification
-         |
-         v
-  Upload official documents
-  (DTI, BIR, Mayor's permit)
-         |
-         v
-  Submit -> status: "pending"
-         |
-         v
-  Admin reviews at /admin/verifications
-         |
-    +----+----+
-    |         |
- Verify    Need Changes
-    |         |
-    v         v
- Brand      Status:
- status ->  "needs_resubmission"
- "verified" + admin notes
-```
-
----
-
-### Database Migration SQL
+**1. Drop duplicate triggers** (migration)
 
 ```sql
--- Vendor Applications
-CREATE TYPE vendor_application_status AS ENUM (
-  'pending', 'approved', 'needs_resubmission', 'rejected'
-);
+-- order_items: keep only trg_decrement_stock_on_order
+DROP TRIGGER IF EXISTS decrement_stock_on_order_item ON order_items;
+DROP TRIGGER IF EXISTS on_order_item_created ON order_items;
 
-CREATE TYPE business_type AS ENUM ('established', 'aspiring');
-
-CREATE TABLE vendor_applications (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  business_name TEXT NOT NULL,
-  business_type business_type NOT NULL,
-  location TEXT NOT NULL,
-  contact_phone TEXT NOT NULL,
-  description TEXT,
-  business_permit_url TEXT,
-  valid_id_url TEXT,
-  proof_of_products_url TEXT,
-  status vendor_application_status DEFAULT 'pending',
-  admin_notes TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- Vendor Verifications
-CREATE TYPE vendor_verification_status AS ENUM (
-  'pending', 'verified', 'needs_resubmission', 'rejected'
-);
-
-CREATE TABLE vendor_verifications (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  brand_id UUID REFERENCES brands(id) ON DELETE CASCADE NOT NULL,
-  dti_registration_url TEXT,
-  bir_certificate_url TEXT,
-  mayor_permit_url TEXT,
-  additional_docs TEXT[],
-  status vendor_verification_status DEFAULT 'pending',
-  admin_notes TEXT,
-  submitted_at TIMESTAMPTZ DEFAULT now(),
-  reviewed_at TIMESTAMPTZ
-);
-
--- Storage bucket
-INSERT INTO storage.buckets (id, name, public) 
-VALUES ('vendor-documents', 'vendor-documents', false);
+-- addresses: keep only trg_unset_other_default_addresses
+DROP TRIGGER IF EXISTS on_address_default_change ON addresses;
+DROP TRIGGER IF EXISTS trg_unset_other_default_addresses_insert ON addresses;
+DROP TRIGGER IF EXISTS trigger_unset_other_defaults ON addresses;
 ```
+
+**2. Add `media_urls` column to reviews table** (migration)
+
+```sql
+ALTER TABLE reviews ADD COLUMN media_urls text[] DEFAULT '{}';
+```
+
+Then update `ToReview.tsx` and `ReviewForm.tsx` to save URLs.
+
+**3. Fix stock for orders already affected** — manually audit and correct stock quantities for products with triple-decremented stock.
+
+### Batch 2: Frontend Fixes
+
+**4. Fix Categories page** — Replace mock data import with `useCategories()` hook from `useProducts.ts`. Delete `mockData.ts` entirely.
+
+**5. Add Wishlist button to ProductDetail** — The `toggleWishlist` function already exists but no UI button is rendered. Add Heart icon button near the cart/buy buttons.
+
+**6. Remove or implement Size Guide** — Either link to a real size guide or remove the non-functional button. WE SHOULD IMPLEMENT SIZE GUIDE BUT THE VENDORS SHOULD HAVE THE CHOICE AND FREEDOM TO PUT IMAGE OF THIR OWN SIZE GUIDE FOR THE USERS TO SEE AS REFERENCE. MEANING, ON THE SIE GUIDE THE VENDORS SHOULD PUT A REFERNECE IMAGE OF THEIR OWN OR JUST LIST AND PUT THE DIMENSIONS OF EACH SIZE ACCORDING TO THEIR OWN SIZES. WE SHOULDNT PUT OUR OWN SIZES FOR THEIR PRODUCTS, THEY ARE THE ONES WHO WILL DECIDE WHAT THIR PRODUCT'S SIZES ARE. WE WILL ONLY RENDER WHAT THEY WANT.
+
+### Batch 3: Consistency Improvements
+
+**7. VendorDashboard + AdminDashboard** — Refactor from raw `useEffect` to `useQuery` for consistency with the rest of the app. (Lower priority, functional as-is.)
+
+**8. Drop `categories.product_count` column** — It's never updated and all code computes counts dynamically. Remove to avoid confusion.
+
+**9. Review `VendorReviews.tsx**` — Currently doesn't show reviewer names. Should join profiles table like ProductDetail does.
+
+### Batch 4: Future Enhancements (from past plans)
+
+
+| Feature                              | Source                                                                                                        |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| In-app notification center UI        | Past audit — `messages` table exists, notifications computed but no UI bell/drawer (WE SHOULD IMPLEMENT THIS) |
+| Mobile admin breadcrumb              | Past audit — mobile admin header lacks page context                                                           |
+| Email notifications for order status | Original plan — not implemented (LETS IMPLEMENT THIS ON THE NOTIFICATION AT THE MOMENT NOT IN THE EMAIL)      |
+| Realtime for messages table          | Table exists, RLS set, but publication not confirmed (IMPLEMENT THIS.)                                        |
+| Stock validation pre-checkout        | Past audit — race condition still possible (two users, last item)(ADDRESS THIS)                               |
+
 
 ---
 
-### Estimated Scope
+## H. SUMMARY OF CHANGES MADE THIS SESSION
 
-| Category | Items | Effort |
-|----------|-------|--------|
-| New Pages | 17 | Medium-High |
-| Database Tables | 2 | Low |
-| Storage Bucket | 1 | Low |
-| Component Updates | 6 | Medium |
-| Route Updates | 1 | Low |
 
-This plan covers all essential functionality for a working presentation-ready system with proper vendor application, admin review, verification workflow, payment proof uploads, and missing features.
+| Change                         | Result                                 |
+| ------------------------------ | -------------------------------------- |
+| Admin dropdown cleanup         | Only Admin Panel + Sign Out for admins |
+| Wishlist size fix              | No longer hardcodes "M"                |
+| Address default trigger        | Works but has 4 duplicate triggers     |
+| Stock decrement trigger        | Works but fires 3x per item            |
+| Back to Cart button            | Added to Checkout                      |
+| Password change                | Added to Profile page                  |
+| VendorOrders useQuery refactor | Working with query invalidation        |
+| Admin payment proof display    | Signed URLs in Orders table            |
+| Stock restore on cancellation  | Working (single trigger, correct)      |
+| Vendor empty brand state       | Shows helpful message + link           |
 
+
+**Most critical immediate action**: Drop duplicate triggers to fix 3x stock decrement and 4x address trigger firing.
