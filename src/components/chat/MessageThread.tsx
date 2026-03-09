@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, Loader2, ArrowLeft, Package } from "lucide-react";
+import { Send, Loader2, ArrowLeft, Package, Paperclip, X, Image, FileText, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, isToday, isYesterday } from "date-fns";
 import { Link } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 interface MessageThreadProps {
   vendorOrderId: string;
@@ -14,13 +15,47 @@ interface MessageThreadProps {
   role: "customer" | "vendor";
 }
 
+const ACCEPTED_TYPES = "image/jpeg,image/png,image/webp,image/gif,application/pdf";
+const MAX_FILE_MB = 5;
+
+const AttachmentPreview = ({ url, type, name }: { url: string; type: string; name?: string }) => {
+  const isImage = type === "image";
+  if (isImage) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer" className="block mt-1">
+        <img
+          src={url}
+          alt={name || "attachment"}
+          className="max-w-[200px] max-h-[200px] object-cover border border-border-subtle rounded-sm"
+        />
+      </a>
+    );
+  }
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2 mt-1 px-2 py-1.5 bg-background/20 border border-border-subtle text-xs hover:opacity-80 transition-opacity"
+    >
+      <FileText className="w-4 h-4 shrink-0" />
+      <span className="truncate max-w-[150px]">{name || "Attachment"}</span>
+      <Download className="w-3 h-3 shrink-0 ml-auto" />
+    </a>
+  );
+};
+
 const MessageThread = ({ vendorOrderId, otherUserId, otherUserName, orderId, onBack, role }: MessageThreadProps) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -72,20 +107,71 @@ const MessageThread = ({ vendorOrderId, otherUserId, otherUserName, orderId, onB
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > MAX_FILE_MB * 1024 * 1024) {
+      toast({ title: "File too large", description: `Max file size is ${MAX_FILE_MB}MB`, variant: "destructive" });
+      return;
+    }
+
+    setPendingFile(file);
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setPendingPreview(ev.target?.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setPendingPreview(null);
+    }
+    // reset input so same file can be re-selected
+    e.target.value = "";
+  };
+
+  const clearPendingFile = () => {
+    setPendingFile(null);
+    setPendingPreview(null);
+  };
+
   const sendMessage = async () => {
-    if (!newMessage.trim() || !user) return;
+    if ((!newMessage.trim() && !pendingFile) || !user) return;
     setSending(true);
     try {
+      let attachmentUrl: string | null = null;
+      let attachmentType: string | null = null;
+      let attachmentName: string | null = null;
+
+      if (pendingFile) {
+        const ext = pendingFile.name.split(".").pop();
+        const path = `${user.id}/${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("chat-attachments")
+          .upload(path, pendingFile, { upsert: false });
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage.from("chat-attachments").getPublicUrl(path);
+        attachmentUrl = urlData.publicUrl;
+        attachmentType = pendingFile.type.startsWith("image/") ? "image" : "file";
+        attachmentName = pendingFile.name;
+      }
+
       await supabase.from("messages").insert({
         sender_id: user.id,
         receiver_id: otherUserId,
         vendor_order_id: vendorOrderId,
-        content: newMessage.trim(),
+        content: newMessage.trim() || (pendingFile ? "" : ""),
         is_system_message: false,
+        attachment_url: attachmentUrl,
+        attachment_type: attachmentType,
+        attachment_name: attachmentName,
       });
+
       setNewMessage("");
+      clearPendingFile();
     } catch (err) {
       console.error("Error sending message:", err);
+      toast({ title: "Failed to send", description: "Please try again.", variant: "destructive" });
     } finally {
       setSending(false);
     }
@@ -173,13 +259,22 @@ const MessageThread = ({ vendorOrderId, otherUserId, otherUserName, orderId, onB
                   <div
                     className={`max-w-[80%] px-3 py-2 ${
                       msg.is_system_message
-                        ? "bg-muted text-muted-foreground italic text-center text-xs px-6"
+                        ? "bg-muted text-muted-foreground italic text-center text-xs px-6 max-w-full w-full"
                         : msg.sender_id === user?.id
                         ? "bg-foreground text-background"
                         : "bg-secondary border border-border-subtle"
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                    {msg.content && (
+                      <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                    )}
+                    {msg.attachment_url && (
+                      <AttachmentPreview
+                        url={msg.attachment_url}
+                        type={msg.attachment_type || "file"}
+                        name={msg.attachment_name}
+                      />
+                    )}
                     <p
                       className={`text-[10px] mt-1 ${
                         msg.is_system_message
@@ -200,22 +295,61 @@ const MessageThread = ({ vendorOrderId, otherUserId, otherUserName, orderId, onB
         <div ref={scrollRef} />
       </div>
 
+      {/* Pending File Preview */}
+      {pendingFile && (
+        <div className="px-3 pt-2 border-t border-border-subtle bg-secondary/20">
+          <div className="flex items-center gap-2 p-2 bg-background border border-border-subtle">
+            {pendingPreview ? (
+              <img src={pendingPreview} alt="preview" className="w-12 h-12 object-cover border border-border-subtle" />
+            ) : (
+              <div className="w-12 h-12 flex items-center justify-center bg-secondary">
+                <FileText className="w-5 h-5 text-muted-foreground" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium truncate">{pendingFile.name}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {(pendingFile.size / 1024).toFixed(0)} KB
+              </p>
+            </div>
+            <button onClick={clearPendingFile} className="p-1 hover:bg-secondary rounded">
+              <X className="w-4 h-4 text-muted-foreground" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Input */}
-      <div className="p-3 border-t-2 border-foreground bg-background flex gap-2">
+      <div className="p-3 border-t-2 border-foreground bg-background flex gap-2 items-end">
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={ACCEPTED_TYPES}
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="p-2 border-2 border-foreground hover:bg-secondary transition-colors shrink-0"
+          title="Attach image or file"
+        >
+          <Paperclip className="w-4 h-4" />
+        </button>
         <input
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
-          placeholder="Type a message..."
+          placeholder={pendingFile ? "Add a caption..." : "Type a message..."}
           className="input-brutal flex-1 text-sm py-2"
         />
         <button
           onClick={sendMessage}
-          disabled={sending || !newMessage.trim()}
-          className="btn-brutal px-4"
+          disabled={sending || (!newMessage.trim() && !pendingFile)}
+          className="btn-brutal px-4 shrink-0"
         >
-          <Send className="w-4 h-4" />
+          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
         </button>
       </div>
     </div>

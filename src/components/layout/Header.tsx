@@ -16,7 +16,7 @@ const Header = () => {
   const navigate = useNavigate();
   const { user, signOut, isVendor, isAdmin } = useAuth();
   const { itemCount } = useCart();
-  const { totalAdmin, totalVendor, totalCustomer } = useNotifications();
+  const { totalAdmin, totalVendor, totalCustomer, counts } = useNotifications();
 
   const navLinks = [
     { href: "/", label: "Home" },
@@ -54,7 +54,7 @@ const Header = () => {
 
   const userMenuItems = [
     { href: "/account/orders", label: "My Orders", icon: ShoppingBag, badge: totalCustomer },
-    { href: "/account/messages", label: "Messages", icon: MessageSquare },
+    { href: "/account/messages", label: "Messages", icon: MessageSquare, badge: counts.unreadMessages },
     { href: "/account/to-review", label: "To Review", icon: Star },
     { href: "/account/wishlist", label: "Wishlist", icon: Heart },
     { href: "/account/vouchers", label: "My Vouchers", icon: Ticket },

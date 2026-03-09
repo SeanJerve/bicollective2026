@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { MessageSquare, Loader2, Search } from "lucide-react";
+import { MessageSquare, Loader2, Search, Paperclip } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 
 interface Conversation {
@@ -13,6 +13,7 @@ interface Conversation {
   unreadCount: number;
   orderId: string;
   brandName: string;
+  hasAttachment: boolean;
 }
 
 interface ConversationListProps {
@@ -36,7 +37,7 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
       // Get all messages where user is sender or receiver
       const { data: messages, error } = await supabase
         .from("messages")
-        .select("vendor_order_id, sender_id, receiver_id, content, created_at, read_at")
+        .select("vendor_order_id, sender_id, receiver_id, content, created_at, read_at, attachment_type")
         .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
         .order("created_at", { ascending: false });
 
@@ -105,6 +106,7 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
           unreadCount,
           orderId: vo?.order_id || "",
           brandName,
+          hasAttachment: !!lastMsg.attachment_type,
         });
       }
 
@@ -200,8 +202,9 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wide mt-0.5">
                     Order #{conv.orderId.slice(0, 8)}
                   </p>
-                  <p className={`text-xs mt-1 truncate ${conv.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                    {conv.lastMessage}
+                  <p className={`text-xs mt-1 truncate flex items-center gap-1 ${conv.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                    {conv.hasAttachment && <Paperclip className="w-3 h-3 shrink-0" />}
+                    {conv.lastMessage || (conv.hasAttachment ? "Attachment" : "")}
                   </p>
                 </div>
                 <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
