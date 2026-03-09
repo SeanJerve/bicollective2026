@@ -5,7 +5,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 
-const COLORS = ["hsl(var(--primary))", "hsl(var(--success))", "hsl(var(--warning))", "hsl(var(--destructive))", "hsl(var(--info))"];
+const CHART_COLORS = [
+  "#3b82f6", // blue
+  "#22c55e", // green
+  "#f59e0b", // amber
+  "#ef4444", // red
+  "#8b5cf6", // violet
+  "#06b6d4", // cyan
+  "#f97316", // orange
+  "#ec4899", // pink
+];
 
 const VendorAnalytics = () => {
   const { user } = useAuth();
@@ -185,11 +194,11 @@ const VendorAnalytics = () => {
           {revenueByMonth.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={revenueByMonth}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `₱${v}`} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border-subtle))" />
+                <XAxis dataKey="month" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
+                <YAxis tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => `₱${v}`} />
                 <Tooltip formatter={(v: number) => formatPrice(v)} />
-                <Bar dataKey="revenue" fill="hsl(var(--foreground))" />
+                <Bar dataKey="revenue" fill="#3b82f6" radius={[2, 2, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -205,7 +214,7 @@ const VendorAnalytics = () => {
               <PieChart>
                 <Pie data={ordersByStatus} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, value }) => `${name}: ${value}`}>
                   {ordersByStatus.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -223,11 +232,11 @@ const VendorAnalytics = () => {
         {topProducts.length > 0 ? (
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={topProducts} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis type="number" tick={{ fontSize: 12 }} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={150} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border-subtle))" />
+              <XAxis type="number" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} width={150} />
               <Tooltip />
-              <Bar dataKey="sold" fill="hsl(var(--foreground))" />
+              <Bar dataKey="sold" fill="#22c55e" radius={[0, 2, 2, 0]} />
             </BarChart>
           </ResponsiveContainer>
         ) : (

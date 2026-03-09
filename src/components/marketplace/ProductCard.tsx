@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { BadgeCheck, Clock, ShoppingBag, Zap } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import QuickAddDrawer from "./QuickAddDrawer";
@@ -43,6 +43,7 @@ const ProductCard = ({
 }: ProductCardProps) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   const formatPrice = (amount: number) => {
     return new Intl.NumberFormat("en-PH", {
@@ -114,10 +115,13 @@ const ProductCard = ({
             {/* Content */}
             <div className="p-2.5 md:p-4">
               {/* Brand */}
-              <Link
-                to={`/brands/${brandSlug}`}
-                onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1 md:gap-1.5 mb-1 md:mb-2 group/brand"
+              <span
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  navigate(`/brands/${brandSlug}`);
+                }}
+                className="inline-flex items-center gap-1 md:gap-1.5 mb-1 md:mb-2 group/brand cursor-pointer"
               >
                 <span className="text-[10px] md:text-xs uppercase tracking-wide text-muted-foreground group-hover/brand:text-foreground transition-colors">
                   {brandName}
@@ -125,7 +129,7 @@ const ProductCard = ({
                 {isVerifiedBrand && (
                   <BadgeCheck className="w-3 h-3 md:w-3.5 md:h-3.5 text-success" />
                 )}
-              </Link>
+              </span>
 
               {/* Product Name */}
               <h3 className="font-heading text-sm md:text-lg uppercase tracking-tight leading-tight mb-1 md:mb-2 line-clamp-2">
