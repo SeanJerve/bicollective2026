@@ -13,6 +13,7 @@ interface Conversation {
   unreadCount: number;
   orderId: string;
   brandName: string;
+  hasAttachment: boolean;
 }
 
 interface ConversationListProps {
