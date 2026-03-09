@@ -200,8 +200,9 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wide mt-0.5">
                     Order #{conv.orderId.slice(0, 8)}
                   </p>
-                  <p className={`text-xs mt-1 truncate ${conv.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                    {conv.lastMessage}
+                  <p className={`text-xs mt-1 truncate flex items-center gap-1 ${conv.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                    {conv.hasAttachment && <Paperclip className="w-3 h-3 shrink-0" />}
+                    {conv.lastMessage || (conv.hasAttachment ? "Attachment" : "")}
                   </p>
                 </div>
                 <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
