@@ -1189,6 +1189,15 @@ export type Database = {
         Returns: number
       }
       get_brand_owner: { Args: { _brand_id: string }; Returns: string }
+      get_lucky_promo_public_info: {
+        Args: never
+        Returns: {
+          active_hours_end: string
+          active_hours_start: string
+          daily_claim_limit: number
+          is_active: boolean
+        }[]
+      }
       get_profile_display_name: {
         Args: { _user_id: string }
         Returns: {
@@ -1202,6 +1211,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      use_voucher: {
+        Args: { _order_id: string; _voucher_id: string }
         Returns: boolean
       }
       validate_stock: { Args: { items: Json }; Returns: Json }
