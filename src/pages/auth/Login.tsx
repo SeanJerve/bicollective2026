@@ -60,7 +60,7 @@ const Login = () => {
         title: "Welcome!",
         description: "You have successfully signed in with Google",
       });
-      navigate("/");
+      navigate(redirectTo);
     }
   };
 

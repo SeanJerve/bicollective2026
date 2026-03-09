@@ -59,7 +59,7 @@ const BrandDetail = () => {
         <div className="section-container -mt-12 md:-mt-16 pb-6 md:pb-8">
           <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-6">
             {/* Logo */}
-            <div className="w-24 h-24 md:w-32 md:h-32 bg-background border-2 border-foreground shadow-brutal overflow-hidden flex-shrink-0">
+            <div className="w-24 h-24 md:w-32 md:h-32 aspect-square bg-background border-2 border-foreground shadow-brutal overflow-hidden flex-shrink-0">
               <img
                 src={brand.logo}
                 alt={brand.name}

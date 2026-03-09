@@ -27,7 +27,7 @@ const BrandCard = ({
     <Link to={`/brands/${slug}`} className="block group">
       <article className="card-brutal overflow-hidden">
         {/* Banner */}
-        <div className="relative h-32 bg-muted overflow-hidden">
+        <div className="relative aspect-[3/1] bg-muted overflow-hidden">
           {banner ? (
             <img
               src={banner}
@@ -40,7 +40,7 @@ const BrandCard = ({
           )}
           
           {/* Logo */}
-          <div className="absolute -bottom-8 left-4 w-16 h-16 bg-background border-2 border-foreground overflow-hidden">
+          <div className="absolute -bottom-8 left-4 w-16 h-16 bg-background border-2 border-foreground overflow-hidden aspect-square">
             <img
               src={logo}
               alt={`${name} logo`}
