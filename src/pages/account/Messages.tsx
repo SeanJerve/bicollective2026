@@ -4,7 +4,7 @@ import PageLayout from "@/components/layout/PageLayout";
 import ConversationList from "@/components/chat/ConversationList";
 import MessageThread from "@/components/chat/MessageThread";
 import { Link } from "react-router-dom";
-import { usePageSEO } from "@/hooks/usePageSEO";
+import usePageSEO from "@/hooks/usePageSEO";
 
 const Messages = () => {
   usePageSEO({ title: "Messages | BICOLLECTIVE", description: "Your conversations with vendors." });
