@@ -389,9 +389,7 @@ const Checkout = () => {
       // Mark vouchers as used
       const allUsedVouchers = [...selectedVouchers, ...(shippingVoucher ? [shippingVoucher] : [])];
       for (const v of allUsedVouchers) {
-        await supabase.from("vouchers").update({
-          status: "used", used_at: new Date().toISOString(), used_on_order_id: order.id,
-        }).eq("id", v.id);
+        await supabase.rpc("use_voucher", { _voucher_id: v.id, _order_id: order.id });
       }
 
       if (appliedPromo?.id) {

@@ -16,25 +16,19 @@ const LuckyPromoPopup = () => {
     if (!user || isAdmin || isVendor) return;
 
     const init = async () => {
-      // Fetch admin settings
-      const { data: settings } = await supabase
-        .from("lucky_promo_settings")
-        .select("*")
-        .limit(1)
-        .single();
+      // Fetch public promo info via secure function
+      const { data: settings } = await supabase.rpc("get_lucky_promo_public_info");
 
-      if (!settings || !settings.is_active) return;
-
-      // Check probability
-      if (Math.random() * 100 > settings.probability_percent) return;
+      if (!settings || settings.length === 0 || !settings[0].is_active) return;
+      const s = settings[0];
 
       // Check active hours
-      if (settings.active_hours_start && settings.active_hours_end) {
+      if (s.active_hours_start && s.active_hours_end) {
         const now = new Date();
         const h = now.getHours().toString().padStart(2, "0");
         const m = now.getMinutes().toString().padStart(2, "0");
         const current = `${h}:${m}`;
-        if (current < settings.active_hours_start || current > settings.active_hours_end) return;
+        if (current < s.active_hours_start || current > s.active_hours_end) return;
       }
 
       // Random delay between 1s and 10min
@@ -49,7 +43,7 @@ const LuckyPromoPopup = () => {
           .eq("user_id", user.id)
           .eq("claimed_date", today);
 
-        if ((count || 0) < settings.daily_claim_limit) {
+        if ((count || 0) < s.daily_claim_limit) {
           setIsVisible(true);
         }
       }, delay);
@@ -65,58 +59,24 @@ const LuckyPromoPopup = () => {
     setLoading(true);
 
     try {
-      // Fetch settings for reward generation
-      const { data: settings } = await supabase
-        .from("lucky_promo_settings")
-        .select("*")
-        .limit(1)
-        .single();
+      // Use secure server-side function for claiming
+      const { data, error } = await supabase.rpc("claim_lucky_promo", { _user_id: user.id });
 
-      if (!settings) throw new Error("Settings not found");
-
-      const isFreeShipping = Math.random() * 100 < settings.shipping_voucher_chance;
-      const discountValue = isFreeShipping
-        ? settings.shipping_voucher_amount
-        : Math.floor(Math.random() * (settings.max_discount - settings.min_discount + 1)) + settings.min_discount;
-      const voucherCode = `LUCKY-${Date.now().toString(36).toUpperCase()}`;
-
-      const { data: voucher, error: voucherError } = await supabase
-        .from("vouchers")
-        .insert({
-          user_id: user.id,
-          name: isFreeShipping ? "Lucky Free Shipping" : "Lucky Daily Reward",
-          description: isFreeShipping
-            ? `Free shipping on your next order! ₱${settings.shipping_voucher_amount} off shipping fees.`
-            : "You got lucky! Use this discount on your next purchase.",
-          code: voucherCode,
-          type: isFreeShipping ? "free_shipping" : "fixed_discount",
-          discount_value: discountValue,
-          source: "lucky_promo",
-          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        })
-        .select()
-        .single();
-
-      if (voucherError) throw voucherError;
-
-      const { error: claimError } = await supabase
-        .from("lucky_promo_claims")
-        .insert({ user_id: user.id, voucher_id: voucher.id });
-
-      if (claimError) throw claimError;
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       setReward({
-        code: voucherCode,
-        value: discountValue,
-        type: isFreeShipping ? "free_shipping" : "discount",
+        code: data.code,
+        value: data.value,
+        type: data.type === "free_shipping" ? "free_shipping" : "discount",
       });
       setClaimed(true);
 
       toast({
         title: "🎉 Lucky reward claimed!",
-        description: isFreeShipping
+        description: data.type === "free_shipping"
           ? "You got free shipping! Check your vouchers."
-          : `You got ₱${discountValue} off! Check your vouchers.`,
+          : `You got ₱${data.value} off! Check your vouchers.`,
       });
     } catch (error: any) {
       console.error("Claim error:", error);
