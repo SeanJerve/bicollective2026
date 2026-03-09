@@ -60,9 +60,10 @@ const LuckyPromoPopup = () => {
 
     try {
       // Use secure server-side function for claiming
-      const { data, error } = await supabase.rpc("claim_lucky_promo", { _user_id: user.id });
+      const { data: rawData, error } = await supabase.rpc("claim_lucky_promo", { _user_id: user.id });
 
       if (error) throw error;
+      const data = rawData as Record<string, any>;
       if (data?.error) throw new Error(data.error);
 
       setReward({
