@@ -26,7 +26,7 @@ const AdminLayout = () => {
     { href: "/admin/reports", label: "Reports", icon: Flag, badge: counts.pendingReports },
     { href: "/admin/disputes", label: "Disputes", icon: AlertTriangle, badge: counts.pendingDisputes },
     { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-    { href: "/admin/users", label: "Users", icon: UserCog },
+    
   ];
 
   const isActive = (path: string, exact?: boolean) => {
