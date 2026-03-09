@@ -106,6 +106,7 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
           unreadCount,
           orderId: vo?.order_id || "",
           brandName,
+          hasAttachment: !!lastMsg.attachment_type,
         });
       }
 
