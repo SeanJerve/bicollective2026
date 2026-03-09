@@ -14,6 +14,7 @@ const VendorLayout = () => {
     { href: "/vendor", label: "Dashboard", icon: LayoutDashboard, exact: true },
     { href: "/vendor/products", label: "Products", icon: Package, badge: counts.lowStockProducts },
     { href: "/vendor/orders", label: "Orders", icon: ShoppingCart, badge: counts.pendingOrders },
+    { href: "/vendor/messages", label: "Messages", icon: MessageSquare },
     { href: "/vendor/promotions", label: "Promotions", icon: Tag },
     { href: "/vendor/store", label: "Store Settings", icon: Store },
     { href: "/vendor/reviews", label: "Reviews", icon: Star, badge: counts.newReviews },
