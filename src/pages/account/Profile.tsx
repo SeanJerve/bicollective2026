@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { User, Phone, MapPin, Save, Loader2, Plus, Trash2, Star, Lock, Eye, EyeOff, Camera, X } from "lucide-react";
+import { User, Phone, MapPin, Save, Loader2, Plus, Trash2, Star, Lock, Eye, EyeOff, Camera, X, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PageLayout from "@/components/layout/PageLayout";
 import { useAuth } from "@/contexts/AuthContext";
