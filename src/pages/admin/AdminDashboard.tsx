@@ -1,138 +1,72 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Users, Package, ShoppingCart, BadgeCheck, TrendingUp, AlertTriangle, FileText, Scale, DollarSign } from "lucide-react";
+import { Users, Package, ShoppingCart, BadgeCheck, AlertTriangle, FileText, Scale, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-
-interface DashboardStats {
-  totalVendors: number;
-  verifiedVendors: number;
-  totalProducts: number;
-  totalOrders: number;
-  pendingReports: number;
-  pendingApplications: number;
-  pendingDisputes: number;
-  revenue: number;
-}
+import { useQuery } from "@tanstack/react-query";
 
 const AdminDashboard = () => {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalVendors: 0,
-    verifiedVendors: 0,
-    totalProducts: 0,
-    totalOrders: 0,
-    pendingReports: 0,
-    pendingApplications: 0,
-    pendingDisputes: 0,
-    revenue: 0,
+  const { data: stats } = useQuery({
+    queryKey: ["admin-dashboard-stats"],
+    queryFn: async () => {
+      const [totalVendors, verifiedVendors, totalProducts, totalOrders, pendingReports, pendingApplications, pendingDisputes, deliveredOrders] = await Promise.all([
+        supabase.from("brands").select("*", { count: "exact", head: true }),
+        supabase.from("brands").select("*", { count: "exact", head: true }).eq("status", "verified"),
+        supabase.from("products").select("*", { count: "exact", head: true }),
+        supabase.from("orders").select("*", { count: "exact", head: true }),
+        supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("vendor_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("disputes").select("*", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("vendor_orders").select("subtotal, shipping_fee").eq("status", "delivered"),
+      ]);
+
+      const revenue = (deliveredOrders.data || []).reduce(
+        (sum, o) => sum + Number(o.subtotal) + Number(o.shipping_fee || 0), 0
+      );
+
+      return {
+        totalVendors: totalVendors.count || 0,
+        verifiedVendors: verifiedVendors.count || 0,
+        totalProducts: totalProducts.count || 0,
+        totalOrders: totalOrders.count || 0,
+        pendingReports: pendingReports.count || 0,
+        pendingApplications: pendingApplications.count || 0,
+        pendingDisputes: pendingDisputes.count || 0,
+        revenue,
+      };
+    },
   });
-  const [recentVendors, setRecentVendors] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        // Get vendors count
-        const { count: totalVendors } = await supabase
-          .from("brands")
-          .select("*", { count: "exact", head: true });
+  const { data: recentVendors } = useQuery({
+    queryKey: ["admin-recent-vendors"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("brands")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
-        const { count: verifiedVendors } = await supabase
-          .from("brands")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "verified");
-
-        // Get products count
-        const { count: totalProducts } = await supabase
-          .from("products")
-          .select("*", { count: "exact", head: true });
-
-        // Get orders count
-        const { count: totalOrders } = await supabase
-          .from("orders")
-          .select("*", { count: "exact", head: true });
-
-        // Get pending reports
-        const { count: pendingReports } = await supabase
-          .from("reports")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "pending");
-
-        // Get pending applications
-        const { count: pendingApplications } = await supabase
-          .from("vendor_applications")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "pending");
-
-        // Get pending disputes
-        const { count: pendingDisputes } = await supabase
-          .from("disputes")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "pending");
-
-        // Get revenue from delivered orders
-        const { data: deliveredOrders } = await supabase
-          .from("vendor_orders")
-          .select("subtotal, shipping_fee")
-          .eq("status", "delivered");
-
-        const revenue = (deliveredOrders || []).reduce(
-          (sum, o) => sum + Number(o.subtotal) + Number(o.shipping_fee || 0),
-          0
-        );
-
-        // Get recent vendors
-        const { data: vendors } = await supabase
-          .from("brands")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(5);
-
-        setStats({
-          totalVendors: totalVendors || 0,
-          verifiedVendors: verifiedVendors || 0,
-          totalProducts: totalProducts || 0,
-          totalOrders: totalOrders || 0,
-          pendingReports: pendingReports || 0,
-          pendingApplications: pendingApplications || 0,
-          pendingDisputes: pendingDisputes || 0,
-          revenue,
-        });
-
-        setRecentVendors(vendors || []);
-      } catch (error) {
-        console.error("Error fetching stats:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, []);
+  const s = stats || { totalVendors: 0, verifiedVendors: 0, totalProducts: 0, totalOrders: 0, pendingReports: 0, pendingApplications: 0, pendingDisputes: 0, revenue: 0 };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "verified":
-        return "bg-success text-success-foreground";
-      case "approved":
-        return "bg-primary text-primary-foreground";
-      case "pending":
-        return "bg-muted text-muted-foreground";
-      case "suspended":
-        return "bg-destructive text-destructive-foreground";
-      default:
-        return "bg-muted text-muted-foreground";
+      case "verified": return "bg-success text-success-foreground";
+      case "approved": return "bg-primary text-primary-foreground";
+      case "pending": return "bg-muted text-muted-foreground";
+      case "suspended": return "bg-destructive text-destructive-foreground";
+      default: return "bg-muted text-muted-foreground";
     }
   };
 
-  if (loading) {
+  if (!stats) {
     return (
       <div className="p-4 md:p-8">
         <div className="animate-pulse space-y-6 md:space-y-8">
           <div className="h-8 w-48 skeleton-brutal" />
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-24 md:h-32 skeleton-brutal" />
-            ))}
+            {[...Array(5)].map((_, i) => <div key={i} className="h-24 md:h-32 skeleton-brutal" />)}
           </div>
         </div>
       </div>
@@ -148,130 +82,46 @@ const AdminDashboard = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
-        <div className="card-brutal p-4 md:p-6">
-          <div className="flex items-center gap-3 md:gap-4">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-success/20 flex items-center justify-center flex-shrink-0">
-              <DollarSign className="w-5 h-5 md:w-6 md:h-6 text-success" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs md:text-sm text-muted-foreground">Revenue</p>
-              <p className="font-heading text-lg md:text-2xl">₱{stats.revenue.toLocaleString()}</p>
-            </div>
-          </div>
-        </div>
-        <div className="card-brutal p-4 md:p-6">
-          <div className="flex items-center gap-3 md:gap-4">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-secondary flex items-center justify-center flex-shrink-0">
-              <Users className="w-5 h-5 md:w-6 md:h-6" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs md:text-sm text-muted-foreground">Total Vendors</p>
-              <p className="font-heading text-xl md:text-2xl">{stats.totalVendors}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card-brutal p-4 md:p-6">
-          <div className="flex items-center gap-3 md:gap-4">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-success/20 flex items-center justify-center flex-shrink-0">
-              <BadgeCheck className="w-5 h-5 md:w-6 md:h-6 text-success" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs md:text-sm text-muted-foreground">Verified</p>
-              <p className="font-heading text-xl md:text-2xl">{stats.verifiedVendors}</p>
+        {[
+          { icon: DollarSign, label: "Revenue", value: `₱${s.revenue.toLocaleString()}`, accent: "bg-success/20", iconClass: "text-success" },
+          { icon: Users, label: "Total Vendors", value: s.totalVendors },
+          { icon: BadgeCheck, label: "Verified", value: s.verifiedVendors, accent: "bg-success/20", iconClass: "text-success" },
+          { icon: Package, label: "Products", value: s.totalProducts },
+          { icon: ShoppingCart, label: "Total Orders", value: s.totalOrders },
+          { icon: AlertTriangle, label: "Reports", value: s.pendingReports, highlight: s.pendingReports > 0 },
+          { icon: FileText, label: "Applications", value: s.pendingApplications, highlight: s.pendingApplications > 0 },
+          { icon: Scale, label: "Disputes", value: s.pendingDisputes, highlight: s.pendingDisputes > 0 },
+        ].map((item) => (
+          <div key={item.label} className="card-brutal p-4 md:p-6">
+            <div className="flex items-center gap-3 md:gap-4">
+              <div className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center flex-shrink-0 ${
+                item.highlight ? "bg-destructive/20" : item.accent || "bg-secondary"
+              }`}>
+                <item.icon className={`w-5 h-5 md:w-6 md:h-6 ${
+                  item.highlight ? "text-destructive" : item.iconClass || ""
+                }`} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs md:text-sm text-muted-foreground">{item.label}</p>
+                <p className="font-heading text-lg md:text-2xl">{item.value}</p>
+              </div>
             </div>
           </div>
-        </div>
-
-        <div className="card-brutal p-4 md:p-6">
-          <div className="flex items-center gap-3 md:gap-4">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-secondary flex items-center justify-center flex-shrink-0">
-              <Package className="w-5 h-5 md:w-6 md:h-6" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs md:text-sm text-muted-foreground">Products</p>
-              <p className="font-heading text-xl md:text-2xl">{stats.totalProducts}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card-brutal p-4 md:p-6">
-          <div className="flex items-center gap-3 md:gap-4">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-secondary flex items-center justify-center flex-shrink-0">
-              <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs md:text-sm text-muted-foreground">Total Orders</p>
-              <p className="font-heading text-xl md:text-2xl">{stats.totalOrders}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card-brutal p-4 md:p-6">
-          <div className="flex items-center gap-3 md:gap-4">
-            <div className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center flex-shrink-0 ${
-              stats.pendingReports > 0 ? "bg-destructive/20" : "bg-secondary"
-            }`}>
-              <AlertTriangle className={`w-5 h-5 md:w-6 md:h-6 ${
-                stats.pendingReports > 0 ? "text-destructive" : ""
-              }`} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs md:text-sm text-muted-foreground">Reports</p>
-              <p className="font-heading text-xl md:text-2xl">{stats.pendingReports}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card-brutal p-4 md:p-6">
-          <div className="flex items-center gap-3 md:gap-4">
-            <div className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center flex-shrink-0 ${
-              stats.pendingApplications > 0 ? "bg-accent" : "bg-secondary"
-            }`}>
-              <FileText className="w-5 h-5 md:w-6 md:h-6" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs md:text-sm text-muted-foreground">Applications</p>
-              <p className="font-heading text-xl md:text-2xl">{stats.pendingApplications}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card-brutal p-4 md:p-6">
-          <div className="flex items-center gap-3 md:gap-4">
-            <div className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center flex-shrink-0 ${
-              stats.pendingDisputes > 0 ? "bg-destructive/20" : "bg-secondary"
-            }`}>
-              <Scale className={`w-5 h-5 md:w-6 md:h-6 ${
-                stats.pendingDisputes > 0 ? "text-destructive" : ""
-              }`} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs md:text-sm text-muted-foreground">Disputes</p>
-              <p className="font-heading text-xl md:text-2xl">{stats.pendingDisputes}</p>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Quick Links */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 md:mb-8">
         {[
-          { label: "Applications", to: "/admin/applications", count: stats.pendingApplications },
-          { label: "Disputes", to: "/admin/disputes", count: stats.pendingDisputes },
-          { label: "Reports", to: "/admin/reports", count: stats.pendingReports },
+          { label: "Applications", to: "/admin/applications", count: s.pendingApplications },
+          { label: "Disputes", to: "/admin/disputes", count: s.pendingDisputes },
+          { label: "Reports", to: "/admin/reports", count: s.pendingReports },
           { label: "Analytics", to: "/admin/analytics", count: null },
         ].map((link) => (
-          <Link
-            key={link.to}
-            to={link.to}
-            className="card-brutal p-4 text-center hover:bg-secondary transition-colors"
-          >
+          <Link key={link.to} to={link.to} className="card-brutal p-4 text-center hover:bg-secondary transition-colors">
             <span className="font-heading text-sm uppercase">{link.label}</span>
             {link.count !== null && link.count > 0 && (
-              <span className="ml-2 px-2 py-0.5 text-xs bg-destructive text-destructive-foreground">
-                {link.count}
-              </span>
+              <span className="ml-2 px-2 py-0.5 text-xs bg-destructive text-destructive-foreground">{link.count}</span>
             )}
           </Link>
         ))}
@@ -282,18 +132,12 @@ const AdminDashboard = () => {
         <div className="p-4 md:p-6 border-b-2 border-foreground">
           <div className="flex items-center justify-between">
             <h2 className="font-heading text-lg md:text-xl uppercase">Recent Vendors</h2>
-            <Link
-              to="/admin/vendors"
-              className="text-xs md:text-sm text-muted-foreground hover:text-foreground"
-            >
-              View All
-            </Link>
+            <Link to="/admin/vendors" className="text-xs md:text-sm text-muted-foreground hover:text-foreground">View All</Link>
           </div>
         </div>
-
-        {recentVendors.length > 0 ? (
+        {(recentVendors || []).length > 0 ? (
           <div className="divide-y divide-border-subtle">
-            {recentVendors.map((vendor) => (
+            {(recentVendors || []).map((vendor: any) => (
               <div key={vendor.id} className="p-4 md:p-6 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 md:gap-4 min-w-0">
                   <div className="w-10 h-10 md:w-12 md:h-12 bg-muted flex items-center justify-center font-heading text-base md:text-lg flex-shrink-0">
@@ -301,25 +145,17 @@ const AdminDashboard = () => {
                   </div>
                   <div className="min-w-0">
                     <p className="font-heading uppercase text-sm md:text-base truncate">{vendor.name}</p>
-                    <p className="text-xs md:text-sm text-muted-foreground">
-                      {new Date(vendor.created_at).toLocaleDateString()}
-                    </p>
+                    <p className="text-xs md:text-sm text-muted-foreground">{new Date(vendor.created_at).toLocaleDateString()}</p>
                   </div>
                 </div>
-                <span
-                  className={`px-2 md:px-3 py-1 text-xs uppercase flex-shrink-0 ${getStatusColor(
-                    vendor.status
-                  )}`}
-                >
+                <span className={`px-2 md:px-3 py-1 text-xs uppercase flex-shrink-0 ${getStatusColor(vendor.status)}`}>
                   {vendor.status}
                 </span>
               </div>
             ))}
           </div>
         ) : (
-          <div className="p-6 md:p-8 text-center text-muted-foreground text-sm md:text-base">
-            No vendors yet
-          </div>
+          <div className="p-6 md:p-8 text-center text-muted-foreground text-sm md:text-base">No vendors yet</div>
         )}
       </div>
     </div>
