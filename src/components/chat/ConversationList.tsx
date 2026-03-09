@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { MessageSquare, Loader2, Search } from "lucide-react";
+import { MessageSquare, Loader2, Search, Paperclip } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 
 interface Conversation {
