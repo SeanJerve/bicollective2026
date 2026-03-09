@@ -36,7 +36,7 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
       // Get all messages where user is sender or receiver
       const { data: messages, error } = await supabase
         .from("messages")
-        .select("vendor_order_id, sender_id, receiver_id, content, created_at, read_at")
+        .select("vendor_order_id, sender_id, receiver_id, content, created_at, read_at, attachment_type")
         .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
         .order("created_at", { ascending: false });
 
