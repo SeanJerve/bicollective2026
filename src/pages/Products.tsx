@@ -114,14 +114,14 @@ const Products = () => {
       {/* Header */}
       <section className="py-8 md:py-12 border-b-2 border-foreground">
         <div className="section-container">
-          <nav className="text-xs md:text-sm mb-3 md:mb-4">
+          <nav className="text-[10px] md:text-sm mb-2 md:mb-4">
             <Link to="/" className="text-muted-foreground hover:text-foreground">
               Home
             </Link>
-            <span className="mx-2 text-muted-foreground">/</span>
+            <span className="mx-1.5 md:mx-2 text-muted-foreground">/</span>
             <span>All Products</span>
           </nav>
-          <h1 className="font-heading text-4xl md:text-6xl uppercase">
+          <h1 className="font-heading text-2xl sm:text-4xl md:text-6xl uppercase">
             {searchQuery ? `Results for "${searchQuery}"` : "Shop All"}
           </h1>
           <p className="text-muted-foreground mt-2 text-sm md:text-base">
