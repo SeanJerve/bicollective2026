@@ -16,7 +16,7 @@ const Header = () => {
   const navigate = useNavigate();
   const { user, signOut, isVendor, isAdmin } = useAuth();
   const { itemCount } = useCart();
-  const { totalAdmin, totalVendor, totalCustomer } = useNotifications();
+  const { totalAdmin, totalVendor, totalCustomer, counts } = useNotifications();
 
   const navLinks = [
     { href: "/", label: "Home" },
