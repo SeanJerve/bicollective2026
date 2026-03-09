@@ -1181,6 +1181,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      validate_stock: { Args: { items: Json }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "vendor" | "customer"
