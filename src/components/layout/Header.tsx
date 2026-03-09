@@ -96,6 +96,9 @@ const Header = () => {
               <Search className="w-5 h-5" />
             </button>
 
+            {/* Notification Center */}
+            {user && <NotificationCenter />}
+
             {/* User Menu */}
             <div className="relative">
               <button
