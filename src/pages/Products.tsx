@@ -124,7 +124,7 @@ const Products = () => {
           <h1 className="font-heading text-2xl sm:text-4xl md:text-6xl uppercase">
             {searchQuery ? `Results for "${searchQuery}"` : "Shop All"}
           </h1>
-          <p className="text-muted-foreground mt-2 text-sm md:text-base">
+          <p className="text-muted-foreground mt-1 md:mt-2 text-xs md:text-base">
             {sortedProducts.length} {sortedProducts.length === 1 ? "product" : "products"}
             {selectedLocation && ` in ${selectedLocation}`}
           </p>
