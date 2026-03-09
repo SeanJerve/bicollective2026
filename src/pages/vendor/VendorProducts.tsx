@@ -101,12 +101,13 @@ const VendorProducts = () => {
   };
 
   const deleteProduct = async (productId: string) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
+    if (!confirm("Are you sure you want to delete this product? It will be hidden from the marketplace.")) return;
 
     try {
+      // Soft delete - set deleted_at timestamp instead of hard delete
       const { error } = await supabase
         .from("products")
-        .delete()
+        .update({ deleted_at: new Date().toISOString(), is_active: false })
         .eq("id", productId);
 
       if (error) throw error;
@@ -115,7 +116,7 @@ const VendorProducts = () => {
 
       toast({
         title: "Product deleted",
-        description: "Product has been removed",
+        description: "Product has been archived and removed from the marketplace",
       });
     } catch (error) {
       console.error("Error deleting product:", error);
