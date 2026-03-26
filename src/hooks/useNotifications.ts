@@ -41,10 +41,12 @@ export const useNotifications = () => {
   const { user, isAdmin, isVendor } = useAuth();
   const [counts, setCounts] = useState<NotificationCounts>(EMPTY_COUNTS);
   const [loading, setLoading] = useState(false);
+  const [recentNotifications, setRecentNotifications] = useState<any[]>([]);
 
   const fetchCounts = useCallback(async () => {
     if (!user) {
       setCounts(EMPTY_COUNTS);
+      setRecentNotifications([]);
       return;
     }
 
@@ -53,6 +55,19 @@ export const useNotifications = () => {
     try {
       const newCounts = { ...EMPTY_COUNTS };
 
+      // 1. Fetch persistent notification history
+      const { data: history } = await (supabase as any)
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      setRecentNotifications(history || []);
+
+      // 2. Aggregate unread count from history
+      const unreadHistory = (history || []).filter(n => !n.read_at).length;
+
+      // 3. Admin specific counts
       if (isAdmin) {
         const [apps, verifs, reports, disputes] = await Promise.all([
           supabase.from("vendor_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
@@ -66,11 +81,13 @@ export const useNotifications = () => {
         newCounts.pendingDisputes = disputes.count || 0;
       }
 
-      if (isVendor && !isAdmin) {
+      // 4. Vendor counts (Allow for admins who are also vendors)
+      if (isVendor) {
         const { data: brand } = await supabase.from("brands").select("id").eq("owner_id", user.id).maybeSingle();
         if (brand) {
           const [orders, reviews, lowStock, verifs] = await Promise.all([
-            supabase.from("vendor_orders").select("*", { count: "exact", head: true }).eq("brand_id", brand.id).in("status", ["payment_uploaded", "pending_payment"]),
+            // Include paid/processing as pending for vendor
+            supabase.from("vendor_orders").select("*", { count: "exact", head: true }).eq("brand_id", brand.id).in("status", ["payment_uploaded", "pending_payment", "paid", "confirmed", "processing"]),
             supabase.from("reviews").select("*", { count: "exact", head: true }).eq("brand_id", brand.id).eq("is_visible", true),
             supabase.from("products").select("*", { count: "exact", head: true }).eq("brand_id", brand.id).lt("stock_quantity", 5),
             supabase.from("vendor_verifications").select("status").eq("brand_id", brand.id).order("submitted_at", { ascending: false }).limit(1),
@@ -82,21 +99,17 @@ export const useNotifications = () => {
         }
       }
 
+      // 5. Customer specific counts
       if (!isAdmin) {
-        // Customer: count orders with recent status changes
-        // We select vendor_orders directly and count unique order_ids
-        // Let's use the working 'orders' with inner join pattern but fixed
         const { data: customerOrders } = await supabase
           .from("orders")
           .select("id, vendor_orders!inner(status)")
           .eq("customer_id", user.id)
           .in("vendor_orders.status", ["payment_uploaded", "paid", "confirmed", "handed_to_courier", "for_delivery", "shipped"]);
 
-        // Deduplicate order IDs
         const uniqueOrderIds = new Set(customerOrders?.map(o => o.id) || []);
         newCounts.orderUpdates = uniqueOrderIds.size;
 
-        // Check for vendor applications needing resubmission
         const { data: apps } = await supabase
           .from("vendor_applications")
           .select("status")
@@ -106,15 +119,15 @@ export const useNotifications = () => {
         newCounts.needsResubmission = (apps && apps[0]?.status === "needs_resubmission") ? 1 : 0;
       }
 
-      // Unread messages for all authenticated users
+      // 6. Messaging
       const { count: unreadMessages } = await supabase
         .from("messages")
         .select("*", { count: "exact", head: true })
         .eq("receiver_id", user.id)
         .is("read_at", null);
-      newCounts.unreadMessages = unreadMessages || 0;
+      newCounts.unreadMessages = (unreadMessages || 0) + unreadHistory;
 
-      // Zero out dismissed counts
+      // Filter out dismissed session counts
       Object.keys(newCounts).forEach((k) => {
         const key = k as keyof NotificationCounts;
         if (dismissedKeys.has(key)) {
@@ -130,14 +143,22 @@ export const useNotifications = () => {
     }
   }, [user, isAdmin, isVendor]);
 
-  // Debounced version for realtime events
+  // Debounced fetch
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debouncedFetchCounts = useCallback(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       fetchCounts();
-    }, 2000);
+    }, 1500);
   }, [fetchCounts]);
+
+  const markAsRead = async (notificationId: string) => {
+    const { error } = await (supabase as any)
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("id", notificationId);
+    if (!error) fetchCounts();
+  };
 
   useEffect(() => {
     fetchCounts();
@@ -145,6 +166,13 @@ export const useNotifications = () => {
     if (!user) return;
 
     const channels: ReturnType<typeof supabase.channel>[] = [];
+
+    // Notifications history channel
+    const historyChannel = supabase
+      .channel("history-notifications")
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, debouncedFetchCounts)
+      .subscribe();
+    channels.push(historyChannel);
 
     if (isAdmin) {
       const adminChannel = supabase
@@ -157,7 +185,7 @@ export const useNotifications = () => {
       channels.push(adminChannel);
     }
 
-    if (isVendor && !isAdmin) {
+    if (isVendor) {
       const vendorChannel = supabase
         .channel("vendor-notifications")
         .on("postgres_changes", { event: "*", schema: "public", table: "vendor_orders" }, debouncedFetchCounts)
@@ -212,5 +240,15 @@ export const useNotifications = () => {
   const totalVendor = counts.pendingOrders + counts.lowStockProducts + counts.verificationResubmission;
   const totalCustomer = counts.orderUpdates + counts.needsResubmission;
 
-  return { counts, loading, dismiss, totalAdmin, totalVendor, totalCustomer, refetch: fetchCounts };
+  return { 
+    counts, 
+    loading, 
+    dismiss, 
+    totalAdmin, 
+    totalVendor, 
+    totalCustomer, 
+    refetch: fetchCounts,
+    recentNotifications,
+    markAsRead
+  };
 };

@@ -58,10 +58,9 @@ const Orders = () => {
 
   const cancellableStatuses = ["pending_payment", "payment_uploaded", "confirmed"];
 
-  const handleCancelOrder = async (e: React.MouseEvent, orderId: string, vendorOrders: any[]) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!confirm("Are you sure you want to cancel this entire order? This cannot be undone.")) return;
+  const [showConfirmId, setShowConfirmId] = useState<string | null>(null);
+
+  const handleCancelOrder = async (orderId: string, vendorOrders: any[]) => {
     setCancellingOrder(orderId);
     try {
       for (const vo of vendorOrders) {
@@ -75,6 +74,7 @@ const Orders = () => {
       }
       toast({ title: "Order cancelled", description: "Your order has been cancelled successfully." });
       queryClient.invalidateQueries({ queryKey: ["customer-orders"] });
+      setShowConfirmId(null);
     } catch (err) {
       console.error("Cancel error:", err);
       toast({ title: "Error", description: "Failed to cancel order.", variant: "destructive" });
@@ -112,32 +112,7 @@ const Orders = () => {
   const { data: orders, isLoading } = useQuery({
     queryKey: ["customer-orders", user?.id],
     queryFn: async () => {
-      let query = supabase
-        .from("orders")
-        .select(`
-          *,
-          vendor_orders(
-            id,
-            status,
-            subtotal,
-            tracking_number,
-            brand:brands(name, logo_url),
-            order_items(product_id, product_name, product_price, size, quantity)
-          )
-        `)
-        .eq("customer_id", user!.id);
-
-      if (filter !== "all") {
-        if (filter === "paid_confirmed") {
-          query = query.filter("vendor_orders.status", "in", '("paid","confirmed","processing")');
-        } else if (filter === "to_receive") {
-          query = query.filter("vendor_orders.status", "in", '("handed_to_courier","for_delivery","shipped")');
-        } else {
-          query = query.eq("vendor_orders.status", filter as any);
-        }
-      }
-
-      const { data, error } = await supabase
+      let supabaseQuery = supabase
         .from("orders")
         .select(`
           *,
@@ -150,12 +125,24 @@ const Orders = () => {
             order_items(product_id, product_name, product_price, size, quantity)
           )
         `)
-        .eq("customer_id", user!.id)
+        .eq("customer_id", user!.id);
+
+      if (filter !== "all") {
+        if (filter === "paid_confirmed") {
+          supabaseQuery = supabaseQuery.filter("vendor_orders.status", "in", '("paid","confirmed","processing")');
+        } else if (filter === "to_receive") {
+          supabaseQuery = supabaseQuery.filter("vendor_orders.status", "in", '("handed_to_courier","for_delivery","shipped")');
+        } else {
+          supabaseQuery = supabaseQuery.eq("vendor_orders.status", filter as any);
+        }
+      }
+
+      const { data, error } = await supabaseQuery
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       
-      // Secondary filter in JS if needed, but !inner handles the basic filtering
+      // Secondary filter in JS for categories that match multiple raw statuses
       let filteredData = data || [];
       if (filter === "paid_confirmed") {
         filteredData = filteredData.filter(o => o.vendor_orders.some((vo: any) => ["paid", "confirmed", "processing"].includes(vo.status)));
@@ -277,19 +264,45 @@ const Orders = () => {
                       </div>
                     </Link>
                     {canCancel && (
-                      <div className="px-4 md:px-6 pb-4 md:pb-6 pt-0">
-                        <button
-                          onClick={(e) => handleCancelOrder(e, order.id, order.vendor_orders || [])}
-                          disabled={cancellingOrder === order.id}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm border-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors font-heading uppercase"
-                        >
-                          {cancellingOrder === order.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
+                      <div className="px-4 md:px-6 pb-4 md:pb-6 pt-0 border-t border-border-subtle pt-4">
+                        {showConfirmId === order.id ? (
+                          <div className="space-y-3 animate-fade-in p-3 bg-destructive/10 border-2 border-destructive">
+                             <p className="text-sm font-heading uppercase text-center text-destructive">
+                              Cancel this entire order? This cannot be undone.
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowConfirmId(null); }}
+                                className="btn-brutal-secondary flex-1"
+                              >
+                                Keep Order
+                              </button>
+                              <button
+                                onClick={(e) => { 
+                                  e.preventDefault(); 
+                                  e.stopPropagation(); 
+                                  handleCancelOrder(order.id, order.vendor_orders || []);
+                                }}
+                                disabled={cancellingOrder === order.id}
+                                className="btn-brutal-secondary flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
+                              >
+                                {cancellingOrder === order.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin text-destructive-foreground" />
+                                ) : (
+                                  "Confirm Cancel"
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowConfirmId(order.id); }}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm border-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors font-heading uppercase"
+                          >
                             <XCircle className="w-4 h-4" />
-                          )}
-                          Cancel Order
-                        </button>
+                            Cancel Entire Order
+                          </button>
+                        )}
                       </div>
                     )}
                     {overallStatus === "delivered" && (

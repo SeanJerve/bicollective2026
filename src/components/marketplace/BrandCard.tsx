@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { BadgeCheck, Star } from "lucide-react";
+import { Star } from "lucide-react";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 interface BrandCardProps {
   id: string;
@@ -40,29 +41,28 @@ const BrandCard = ({
           )}
           
           {/* Logo */}
-          <div className="absolute -bottom-8 left-4 w-16 h-16 bg-background border-2 border-foreground overflow-hidden aspect-square">
+          <div className="absolute -bottom-8 left-4 w-16 h-16 bg-background border-2 border-foreground overflow-hidden aspect-square relative group-hover:shadow-brutal transition-shadow">
             <img
               src={logo}
               alt={`${name} logo`}
               loading="lazy"
               className="w-full h-full object-cover"
             />
+            {isVerified && (
+              <VerifiedBadge 
+                size="sm" 
+                className="absolute -top-1 -right-1 z-10 scale-110" 
+              />
+            )}
           </div>
         </div>
 
         {/* Content */}
         <div className="pt-10 p-4">
-          {/* Brand Name & Verified Badge */}
           <div className="flex items-start justify-between gap-2 mb-2">
-            <h3 className="font-heading text-xl uppercase tracking-tight leading-tight">
+            <h3 className="font-heading text-xl uppercase tracking-tight leading-tight flex items-center gap-1.5">
               {name}
             </h3>
-            {isVerified && (
-              <div className="flex-shrink-0 badge-verified">
-                <BadgeCheck className="w-3.5 h-3.5" />
-                <span>Verified</span>
-              </div>
-            )}
           </div>
 
           {/* Description */}

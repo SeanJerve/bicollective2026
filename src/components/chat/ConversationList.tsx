@@ -55,32 +55,25 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
         grouped.set(otherId, existing);
       }
 
-      // Get vendor order details
-      const voIds = Array.from(grouped.keys());
-      if (voIds.length === 0) {
-        setConversations([]);
-        setLoading(false);
-        return;
+      // Get all vendor order IDs from all messages to fetch their brands
+      const allVoIds = new Set<string>();
+      for (const msgs of grouped.values()) {
+        msgs.forEach(m => {
+          if (m.vendor_order_id) allVoIds.add(m.vendor_order_id);
+        });
       }
 
       const { data: vendorOrders } = await supabase
         .from("vendor_orders")
         .select("id, order_id, brand:brands(id, name, owner_id)")
-        .in("id", voIds);
+        .in("id", Array.from(allVoIds));
 
       // Get other user profiles
-      const otherUserIds = new Set<string>();
-      for (const msgs of grouped.values()) {
-        for (const msg of msgs) {
-          if (msg.sender_id !== user.id) otherUserIds.add(msg.sender_id);
-          if (msg.receiver_id !== user.id) otherUserIds.add(msg.receiver_id);
-        }
-      }
-
+      const otherUserIds = Array.from(grouped.keys());
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, full_name")
-        .in("user_id", Array.from(otherUserIds));
+        .in("user_id", otherUserIds);
 
       const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name || "User"]) || []);
 
@@ -88,24 +81,36 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
       const convs: Conversation[] = [];
       for (const [otherId, msgs] of grouped.entries()) {
         const lastMsg = msgs[0]; // already sorted desc
-        const voId = lastMsg.vendor_order_id;
-        const vo = vendorOrders?.find((v) => v.id === voId);
-        const unreadCount = msgs.filter((m) => m.receiver_id === user.id && !m.read_at).length;
+        
+        // Find brand name and order ID from messages in this conversation
+        let brandName = "Unknown Store";
+        let orderId = "";
+        
+        for (const msg of msgs) {
+          const vo = vendorOrders?.find((v) => v.id === msg.vendor_order_id);
+          if (vo) {
+            orderId = vo.order_id;
+            const brandData = vo.brand as any;
+            if (brandData?.name) {
+              brandName = brandData.name;
+              break;
+            }
+          }
+        }
 
-        const brandData = vo?.brand as any;
-        const brandName = brandData?.name || "Unknown Store";
+        const unreadCount = msgs.filter((m) => m.receiver_id === user.id && !m.read_at).length;
         const otherUserName = role === "customer"
           ? brandName
           : profileMap.get(otherId) || "Customer";
 
         convs.push({
-          vendorOrderId: voId,
+          vendorOrderId: lastMsg.vendor_order_id,
           otherUserId: otherId,
           otherUserName,
           lastMessage: lastMsg.content,
           lastMessageAt: lastMsg.created_at,
           unreadCount,
-          orderId: vo?.order_id || "",
+          orderId,
           brandName,
           hasAttachment: !!lastMsg.attachment_type,
         });

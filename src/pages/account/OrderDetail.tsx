@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Package, Truck, MapPin, Phone, Clock, Star, XCircle, Loader2, CheckCircle2, RotateCcw } from "lucide-react";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import PageLayout from "@/components/layout/PageLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -69,15 +70,15 @@ const OrderDetail = () => {
   const { addToCart } = useCart();
   const queryClient = useQueryClient();
   const [reviewingVendorOrder, setReviewingVendorOrder] = useState<string | null>(null);
-  const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
   const [confirmingOrder, setConfirmingOrder] = useState<string | null>(null);
-  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const [showConfirmId, setShowConfirmId] = useState<string | null>(null);
+  const [showCancelConfirmId, setShowCancelConfirmId] = useState<string | null>(null);
+  const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
   const { toast } = useToast();
 
   const cancellableStatuses = ["pending_payment", "payment_uploaded", "confirmed"];
 
   const handleCancelVendorOrder = async (vendorOrderId: string) => {
-    if (!confirm("Are you sure you want to cancel this order? This cannot be undone.")) return;
     setCancellingOrder(vendorOrderId);
     try {
       const { error } = await supabase
@@ -87,6 +88,7 @@ const OrderDetail = () => {
       if (error) throw error;
       toast({ title: "Order cancelled", description: "Your order has been cancelled successfully." });
       queryClient.invalidateQueries({ queryKey: ["order-detail", orderId] });
+      setShowCancelConfirmId(null);
     } catch (err) {
       console.error("Cancel error:", err);
       toast({ title: "Error", description: "Failed to cancel order. Please try again.", variant: "destructive" });
@@ -96,7 +98,6 @@ const OrderDetail = () => {
   };
 
   const handleConfirmDelivery = async (vendorOrderId: string) => {
-    if (!confirm("Confirm that you have received this order?")) return;
     setConfirmingOrder(vendorOrderId);
     try {
       const { error } = await supabase
@@ -107,6 +108,7 @@ const OrderDetail = () => {
       toast({ title: "Order received", description: "Thank you for confirming your delivery!" });
       queryClient.invalidateQueries({ queryKey: ["order-detail", orderId] });
       queryClient.invalidateQueries({ queryKey: ["customer-orders"] });
+      setShowConfirmId(null);
     } catch (err) {
       console.error("Confirm error:", err);
       toast({ title: "Error", description: "Failed to confirm delivery. Please try again.", variant: "destructive" });
@@ -153,7 +155,7 @@ const OrderDetail = () => {
             tracking_number,
             payment_proof_url,
             payment_method,
-            brand:brands(id, name, slug, owner_id),
+            brand:brands(id, name, slug, owner_id, status),
             order_items(id, product_name, product_price, quantity, size, product_id)
           )
         `)
@@ -175,7 +177,6 @@ const OrderDetail = () => {
 
       order.vendor_orders.forEach(async (vo: any) => {
         if ((vo.status === "shipped" || vo.status === "for_delivery") && new Date(vo.updated_at) < threeDaysAgo) {
-          console.log(`Auto-confirming vendor order ${vo.id} due to 3-day threshold`);
           await supabase
             .from("vendor_orders")
             .update({ status: "delivered", delivered_at: new Date().toISOString() })
@@ -302,15 +303,18 @@ const OrderDetail = () => {
           {order.vendor_orders?.map((vo: any) => (
             <div key={vo.id} className="card-brutal p-4 md:p-6 mb-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                <div>
+                <div className="flex items-center gap-2">
                   <Link
                     to={`/brands/${vo.brand?.slug}`}
-                    className="font-heading uppercase hover:underline"
+                    className="font-heading uppercase hover:underline flex items-center gap-1.5"
                   >
                     {vo.brand?.name}
+                    {vo.brand?.status === "verified" && (
+                      <VerifiedBadge size="sm" />
+                    )}
                   </Link>
                   <span
-                    className={`ml-3 inline-block px-2 py-0.5 text-xs uppercase ${
+                    className={`inline-block px-2 py-0.5 text-[10px] md:text-xs uppercase font-bold border border-foreground shadow-brutal-xs ${
                       statusColors[vo.status] || "bg-secondary"
                     }`}
                   >
@@ -342,16 +346,7 @@ const OrderDetail = () => {
                 ))}
               </div>
 
-              <div className="border-t border-border-subtle pt-4 mt-4 flex justify-between text-sm">
-                <span>Subtotal</span>
-                <span className="font-heading">{formatPrice(Number(vo.subtotal))}</span>
-              </div>
-              {vo.shipping_fee > 0 && (
-                <div className="flex justify-between text-sm mt-1">
-                  <span>Shipping</span>
-                  <span>{formatPrice(Number(vo.shipping_fee))}</span>
-                </div>
-              )}
+              {/* Totals moved down below chat */}
 
               {/* Payment proof display */}
               {vo.payment_proof_url && (
@@ -380,21 +375,62 @@ const OrderDetail = () => {
                 />
               </div>
 
+              {/* Totals Section */}
+              <div className="mt-6 pt-4 border-t-2 border-foreground bg-secondary/20 -mx-4 md:-mx-6 px-4 md:px-6">
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-muted-foreground uppercase text-[10px] font-bold">Subtotal</span>
+                  <span className="font-heading">{formatPrice(Number(vo.subtotal))}</span>
+                </div>
+                <div className="flex justify-between text-sm mb-4">
+                  <span className="text-muted-foreground uppercase text-[10px] font-bold">Shipping</span>
+                  <span>{formatPrice(Number(vo.shipping_fee))}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-y border-foreground/10 mb-6">
+                  <span className="font-heading text-sm uppercase">Item Total</span>
+                  <span className="font-heading text-xl">
+                    {formatPrice(Number(vo.subtotal) + Number(vo.shipping_fee))}
+                  </span>
+                </div>
+              </div>
+
               {/* Cancel button for cancellable orders */}
               {cancellableStatuses.includes(vo.status) && (
                 <div className="border-t border-border-subtle pt-4 mt-4">
-                  <button
-                    onClick={() => handleCancelVendorOrder(vo.id)}
-                    disabled={cancellingOrder === vo.id}
-                    className="btn-brutal-secondary w-full flex items-center justify-center gap-2 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                  >
-                    {cancellingOrder === vo.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
+                  {showCancelConfirmId === vo.id ? (
+                    <div className="space-y-3 animate-fade-in p-3 bg-destructive/10 border-2 border-destructive">
+                      <p className="text-sm font-heading uppercase text-center text-destructive">
+                        Cancel this order? This cannot be undone.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setShowCancelConfirmId(null)}
+                          className="btn-brutal-secondary flex-1"
+                        >
+                          Keep Order
+                        </button>
+                        <button
+                          onClick={() => handleCancelVendorOrder(vo.id)}
+                          disabled={cancellingOrder === vo.id}
+                          className="btn-brutal-secondary flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
+                        >
+                          {cancellingOrder === vo.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-destructive-foreground" />
+                          ) : (
+                            "Confirm Cancel"
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowCancelConfirmId(vo.id)}
+                      disabled={cancellingOrder === vo.id}
+                      className="btn-brutal-secondary w-full flex items-center justify-center gap-2 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                    >
                       <XCircle className="w-4 h-4" />
-                    )}
-                    Cancel This Order
-                  </button>
+                      Cancel This Order
+                    </button>
+                  )}
                 </div>
               )}
               {vo.status === "processing" && (
@@ -446,18 +482,40 @@ const OrderDetail = () => {
               {/* Confirm Delivery Action */}
               {(vo.status === "shipped" || vo.status === "for_delivery") && (
                 <div className="border-t border-border-subtle pt-4 mt-4">
-                  <button
-                    onClick={() => handleConfirmDelivery(vo.id)}
-                    disabled={confirmingOrder === vo.id}
-                    className="btn-brutal w-full flex items-center justify-center gap-2"
-                  >
-                    {confirmingOrder === vo.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
+                  {showConfirmId === vo.id ? (
+                    <div className="space-y-3 animate-fade-in">
+                      <p className="text-sm font-heading uppercase text-center text-primary">
+                        Confirm that you have received this order?
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setShowConfirmId(null)}
+                          className="btn-brutal-secondary flex-1"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => handleConfirmDelivery(vo.id)}
+                          disabled={confirmingOrder === vo.id}
+                          className="btn-brutal flex-1"
+                        >
+                          {confirmingOrder === vo.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            "Yes, Received"
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowConfirmId(vo.id)}
+                      className="btn-brutal w-full flex items-center justify-center gap-2"
+                    >
                       <CheckCircle2 className="w-4 h-4" />
-                    )}
-                    Order Received / Confirm Delivery
-                  </button>
+                      Order Received
+                    </button>
+                  )}
                 </div>
               )}
 

@@ -70,6 +70,7 @@ const Profile = lazy(() => import("./pages/account/Profile"));
 const Wishlist = lazy(() => import("./pages/account/Wishlist"));
 const AddAddress = lazy(() => import("./pages/account/AddAddress"));
 const ToReview = lazy(() => import("./pages/account/ToReview"));
+const Notifications = lazy(() => import("./pages/account/Notifications"));
 
 // Static pages
 const HelpCenter = lazy(() => import("./pages/static/HelpCenter"));
@@ -139,6 +140,14 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <OrderDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/account/notifications"
+                  element={
+                    <ProtectedRoute>
+                      <Notifications />
                     </ProtectedRoute>
                   }
                 />

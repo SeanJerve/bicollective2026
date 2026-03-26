@@ -6,8 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const NotificationCenter = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { counts, dismiss, totalAdmin, totalVendor, totalCustomer } = useNotifications();
-  const { isAdmin, isVendor } = useAuth();
+  const { counts, dismiss, totalAdmin, totalVendor, totalCustomer, recentNotifications, markAsRead } = useNotifications();
+  const { user, isAdmin, isVendor } = useAuth();
   const ref = useRef<HTMLDivElement>(null);
 
   const total = (isAdmin ? totalAdmin : isVendor ? totalVendor + totalCustomer : totalCustomer) + counts.unreadMessages;
@@ -50,7 +50,7 @@ const NotificationCenter = () => {
     ...sharedItems,
   ];
 
-  const activeItems = items.filter((i) => i.count > 0);
+  const actionItems = items.filter((i) => i.count > 0);
 
   return (
     <div className="relative" ref={ref}>
@@ -68,41 +68,102 @@ const NotificationCenter = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-72 bg-background border-2 border-foreground shadow-brutal z-50">
-          <div className="p-3 border-b border-border-subtle">
-            <h3 className="font-heading text-sm uppercase">Notifications</h3>
+        <div className="absolute right-0 top-full mt-2 w-80 bg-background border-2 border-foreground shadow-brutal z-50 overflow-hidden">
+          <div className="p-3 border-b-2 border-foreground flex items-center justify-between">
+            <h3 className="font-heading text-sm uppercase">Quick Alerts</h3>
+            <Link 
+              to="/account/notifications" 
+              onClick={() => setIsOpen(false)}
+              className="text-[10px] font-heading uppercase underline hover:text-primary transition-colors"
+            >
+              All History
+            </Link>
           </div>
 
-          {activeItems.length > 0 ? (
-            <div className="py-1 max-h-80 overflow-y-auto">
-              {activeItems.map((item) => (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  onClick={() => {
-                    setIsOpen(false);
-                    dismiss(item.key as keyof typeof counts);
-                  }}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-secondary transition-colors"
-                >
-                  <div className="w-8 h-8 bg-destructive/10 flex items-center justify-center flex-shrink-0">
-                    <item.icon className="w-4 h-4 text-destructive" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{item.label}</p>
-                  </div>
-                  <span className="min-w-[22px] h-[22px] bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center px-1 rounded-full">
-                    {item.count}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="p-6 text-center">
-              <Bell className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">All caught up!</p>
-            </div>
-          )}
+          <div className="max-h-96 overflow-y-auto overflow-x-hidden">
+            {/* Actionable items (Order updates, messages, etc) */}
+            {actionItems.length > 0 && (
+              <div className="py-1 border-b border-border-subtle bg-secondary/10">
+                {actionItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    onClick={() => {
+                      setIsOpen(false);
+                      dismiss(item.key as keyof typeof counts);
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-secondary transition-colors border-b border-border-subtle last:border-0"
+                  >
+                    <div className="w-8 h-8 bg-destructive text-destructive-foreground flex items-center justify-center flex-shrink-0 border border-foreground shadow-brutal-xs">
+                      <item.icon className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold tracking-tight">{item.label}</p>
+                    </div>
+                    <span className="min-w-[20px] h-[20px] bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 rounded-full border border-foreground">
+                      {item.count}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {/* Persistent History items */}
+            {recentNotifications.length > 0 ? (
+              <div className="py-1">
+                <div className="px-4 py-2 bg-secondary/30">
+                  <p className="text-[10px] font-heading uppercase text-muted-foreground">Recent Activity</p>
+                </div>
+                {recentNotifications.map((notif) => (
+                  <Link
+                    key={notif.id}
+                    to={notif.link || "/account/notifications"}
+                    onClick={() => {
+                      setIsOpen(false);
+                      if (!notif.read_at) markAsRead(notif.id);
+                    }}
+                    className={`flex items-start gap-3 px-4 py-3 hover:bg-secondary transition-colors border-b border-border-subtle last:border-0 ${!notif.read_at ? "bg-primary/5" : "opacity-60"}`}
+                  >
+                    <div className={`w-8 h-8 flex items-center justify-center flex-shrink-0 border border-foreground shadow-brutal-xs ${!notif.read_at ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                      {notif.type === 'order' ? <ShoppingCart className="w-4 h-4" /> : 
+                       notif.type === 'message' ? <MessageSquare className="w-4 h-4" /> :
+                       <Bell className="w-4 h-4" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1 mb-0.5">
+                        <p className={`text-xs uppercase leading-none truncate ${!notif.read_at ? "font-bold" : "font-medium"}`}>
+                          {notif.title}
+                        </p>
+                        {!notif.read_at && <span className="w-1.5 h-1.5 bg-destructive rounded-full" />}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground line-clamp-1">{notif.message}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : actionItems.length === 0 && (
+              <div className="p-8 text-center bg-background">
+                <Bell className="w-8 h-8 mx-auto mb-2 text-muted-foreground opacity-30" />
+                <p className="text-sm text-muted-foreground font-heading uppercase">All caught up!</p>
+              </div>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-2 border-t-2 border-foreground">
+             <Link 
+              to="/account/notifications" 
+              onClick={() => setIsOpen(false)}
+              className="p-3 text-center text-xs font-heading uppercase hover:bg-secondary transition-colors border-r-2 border-foreground"
+            >
+              Full History
+            </Link>
+            <button 
+              onClick={() => setIsOpen(false)}
+              className="p-3 text-center text-xs font-heading uppercase hover:bg-secondary transition-colors"
+            >
+              Close
+            </button>
+          </div>
         </div>
       )}
     </div>

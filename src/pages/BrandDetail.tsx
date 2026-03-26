@@ -1,5 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { BadgeCheck, Star, Shield } from "lucide-react";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import PageLayout from "@/components/layout/PageLayout";
 import ProductCard from "@/components/marketplace/ProductCard";
 import ProductCardSkeleton from "@/components/marketplace/ProductCardSkeleton";
@@ -59,12 +60,18 @@ const BrandDetail = () => {
         <div className="section-container -mt-12 md:-mt-16 pb-6 md:pb-8">
           <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-6">
             {/* Logo */}
-            <div className="w-24 h-24 md:w-32 md:h-32 aspect-square bg-background border-2 border-foreground shadow-brutal overflow-hidden flex-shrink-0">
+            <div className="w-24 h-24 md:w-32 md:h-32 aspect-square bg-background border-2 border-foreground shadow-brutal overflow-hidden flex-shrink-0 relative">
               <img
                 src={brand.logo}
                 alt={brand.name}
                 className="w-full h-full object-cover"
               />
+              {brand.isVerified && (
+                <VerifiedBadge 
+                  size="lg" 
+                  className="absolute -top-2 -right-2 z-10 border-2" 
+                />
+              )}
             </div>
 
             {/* Info */}
@@ -73,12 +80,6 @@ const BrandDetail = () => {
                 <h1 className="font-heading text-3xl md:text-5xl uppercase">
                   {brand.name}
                 </h1>
-                {brand.isVerified && (
-                  <span className="badge-verified">
-                    <BadgeCheck className="w-3 h-3 md:w-4 md:h-4" />
-                    Verified
-                  </span>
-                )}
               </div>
 
               {brand.description && (

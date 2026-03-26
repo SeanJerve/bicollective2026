@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BadgeCheck, Clock, ShoppingBag, Zap } from "lucide-react";
+import { Clock, ShoppingBag, Zap } from "lucide-react";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import { useIsMobile } from "@/hooks/use-mobile";
 import QuickAddDrawer from "./QuickAddDrawer";
 
@@ -127,7 +128,7 @@ const ProductCard = ({
                   {brandName}
                 </span>
                 {isVerifiedBrand && (
-                  <BadgeCheck className="w-3 h-3 md:w-3.5 md:h-3.5 text-success" />
+                  <VerifiedBadge size="sm" />
                 )}
               </span>
 
