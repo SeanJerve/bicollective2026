@@ -1,0 +1,61 @@
+# Bicollective2026 Codebase Audit Report
+
+## 1. High Severity Vulnerabilities
+
+### Hardcoded Credentials Exposed in Frontend
+**Location:** `src/components/auth/TestAccountsBox.tsx`
+**Issue:** Test accounts with emails and plain-text passwords (e.g., `bicollectiveadmin@gmail.com` / `bicollectiveadmin`) are hardcoded directly into the frontend code. 
+**Risk:** If this code is deployed to production, anyone inspecting the client-side JavaScript bundle can extract these credentials and gain unauthorized access as Admin, Vendor, or Customer.
+**Recommendation:** Remove the `TestAccountsBox.tsx` component or conditionally render it ONLY in development environments using `if (import.meta.env.DEV)`. Never commit plain text passwords to version control, even for test accounts.
+
+---
+
+## 2. Medium Severity Vulnerabilities
+
+### Insecure Randomness (Weak PRNG)
+**Locations:**
+- `src/pages/admin/AdminVouchers.tsx` (Voucher Code Generation)
+- `src/pages/account/ToReview.tsx` (File Naming)
+- `src/components/vendor/ProductForm.tsx` (File Naming)
+- `src/components/vendor/DocumentUpload.tsx` (File Naming)
+- `src/components/orders/DisputeForm.tsx` (File Naming)
+**Issue:** `Math.random().toString(36)` and `Date.now()` are used to generate voucher codes and unique file names for uploads.
+**Risk:** `Math.random()` is not cryptographically secure. Attackers could potentially predict voucher codes to steal discounts or predict file names, leading to unauthorized access, file overwrites, or ID collisions.
+**Recommendation:** Use the Web Crypto API (`window.crypto.getRandomValues()`) or a library like `uuid` or `nanoid` for generating unpredictable, cryptographically secure random strings or IDs.
+
+### Potential Cross-Site Scripting (XSS) via `dangerouslySetInnerHTML`
+**Location:** `src/components/ui/chart.tsx` (Line 70)
+**Issue:** React's `dangerouslySetInnerHTML` is used in the chart components.
+**Risk:** If any chart labels, tooltips, or data points come from user-supplied input (like Vendor names or Product titles) and are not strictly sanitized, it could execute malicious JavaScript in the victim's browser.
+**Recommendation:** Ensure any dynamic data passed to the chart's inner HTML is strictly sanitized using a library like `DOMPurify` before rendering.
+
+### Token Storage (XSS Vulnerability)
+**Location:** `src/integrations/supabase/client.ts`
+**Issue:** Supabase is configured to use `localStorage` for session management (which is the default behavior in web applications).
+**Risk:** Data stored in `localStorage` is accessible via JavaScript. If your application suffers an XSS attack (e.g., via the chart issue mentioned above, or user reviews), attackers can steal the Supabase session tokens and impersonate users.
+**Recommendation:** While this is a common setup, understand the risk. Ensure rigorous input validation and output encoding across all user inputs (Reviews, Descriptions, Messages) to mitigate XSS. Consider using secure, `HttpOnly` cookies for authentication if maximum security is required, though this often requires a custom backend setup.
+
+---
+
+## 3. Design & Architecture Issues
+
+### Environment Variable Validation
+**Location:** `src/integrations/supabase/client.ts`
+**Issue:** `import.meta.env.VITE_SUPABASE_URL` is accessed without runtime validation.
+**Risk:** If environment variables are missing during build or runtime, the app will fail silently or throw cryptic errors instead of failing fast.
+**Recommendation:** Use a library like `Zod` (which is already in your `package.json`) to validate environment variables at the application entry point.
+
+### Direct Client-Side File Uploads
+**Issue:** The file naming conventions found in components like `DocumentUpload.tsx` strongly suggest files are uploaded directly from the client to Supabase Storage.
+**Risk:** If Supabase Storage policies are not strictly scoped, users could upload malicious files (e.g., SVG files containing scripts, or executable files), or overwrite other users' files.
+**Recommendation:** Ensure Supabase Storage configuration enforces strict file size limits and allowed MIME types (e.g., `image/jpeg`, `image/png`, `application/pdf`). Ensure Row Level Security (RLS) policies restrict users to only uploading to their specific designated folders.
+
+### Missing Rate Limiting Context on Forms
+**Locations:** `src/pages/auth/Login.tsx`, `src/pages/auth/Register.tsx`
+**Issue:** The UI allows repeated, rapid clicking on authentication endpoints. 
+**Risk:** While Supabase GoTrue limits this strictly on the backend, the frontend UI should implement visual debounce/throttling (loading states) to prevent users from spamming requests or getting blocked unknowingly.
+
+---
+
+## Summary
+The codebase is a modern React/Vite stack using Supabase and Tailwind. The most critical issue that MUST be addressed before deployment is the hardcoded credentials in `TestAccountsBox.tsx`. Additionally, refactor the `Math.random` generation logic to use secure UUIDs, especially for business logic like voucher generation and file handling.

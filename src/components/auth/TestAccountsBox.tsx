@@ -11,22 +11,22 @@ interface TestAccount {
 const testAccounts: TestAccount[] = [
   {
     label: "Admin",
-    email: "admin@bicollective.test",
-    password: "admin123",
+    email: "bicollectiveadmin@gmail.com",
+    password: "bicollectiveadmin",
     icon: <Shield className="w-4 h-4" />,
     role: "Platform Owner",
   },
   {
     label: "Vendor",
-    email: "testvendor@bicollective.test",
-    password: "password123",
+    email: "bicollectivevendor@gmail.com",
+    password: "bicollectivevendor",
     icon: <Store className="w-4 h-4" />,
     role: "Seller Account",
   },
   {
     label: "Customer",
-    email: "customer@bicollective.test",
-    password: "customer123",
+    email: "bicollectivecustomer@gmail.com",
+    password: "bicollectivecustomer",
     icon: <User className="w-4 h-4" />,
     role: "Buyer Account",
   },
