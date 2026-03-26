@@ -13,6 +13,9 @@ const LuckyPromoPopup = () => {
   const [reward, setReward] = useState<{ code: string; value: number; type: "discount" | "free_shipping" } | null>(null);
 
   useEffect(() => {
+    // Check if already shown in this session
+    if (sessionStorage.getItem("lucky_promo_shown") === "true") return;
+
     if (!user || isAdmin || isVendor) return;
 
     const init = async () => {
@@ -31,8 +34,8 @@ const LuckyPromoPopup = () => {
         if (current < s.active_hours_start || current > s.active_hours_end) return;
       }
 
-      // Random delay between 1s and 10min
-      const delay = Math.floor(Math.random() * 599000) + 1000;
+      // Show after a brief delay
+      const delay = 2000;
 
       const timer = setTimeout(async () => {
         // Check daily claim limit
@@ -45,6 +48,7 @@ const LuckyPromoPopup = () => {
 
         if ((count || 0) < s.daily_claim_limit) {
           setIsVisible(true);
+          sessionStorage.setItem("lucky_promo_shown", "true");
         }
       }, delay);
 

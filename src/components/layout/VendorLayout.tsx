@@ -7,7 +7,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 const VendorLayout = () => {
   const location = useLocation();
   const { signOut, user } = useAuth();
-  const { counts } = useNotifications();
+  const { counts, dismiss } = useNotifications();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navItems = [
@@ -19,7 +19,7 @@ const VendorLayout = () => {
     { href: "/vendor/store", label: "Store Settings", icon: Store },
     { href: "/vendor/reviews", label: "Reviews", icon: Star, badge: counts.newReviews },
     { href: "/vendor/analytics", label: "Analytics", icon: BarChart3 },
-    { href: "/vendor/verification", label: "Verification", icon: Settings },
+    { href: "/vendor/verification", label: "Verification", icon: Settings, badge: counts.verificationResubmission },
   ];
 
   const isActive = (path: string, exact?: boolean) => {
@@ -73,7 +73,14 @@ const VendorLayout = () => {
               <li key={item.href}>
                 <Link
                   to={item.href}
-                  onClick={() => setSidebarOpen(false)}
+                  onClick={() => {
+                    setSidebarOpen(false);
+                    if (item.label === "Products") dismiss("lowStockProducts");
+                    if (item.label === "Orders") dismiss("pendingOrders");
+                    if (item.label === "Messages") dismiss("unreadMessages");
+                    if (item.label === "Reviews") dismiss("newReviews");
+                    if (item.label === "Verification") dismiss("verificationResubmission");
+                  }}
                   className={`flex items-center gap-3 px-4 py-3 font-heading text-sm uppercase tracking-wide transition-colors ${
                     isActive(item.href, item.exact)
                       ? "bg-background text-foreground"

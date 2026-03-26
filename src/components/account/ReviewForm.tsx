@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Star, Loader2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { Star, Loader2, ImagePlus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -17,7 +17,24 @@ const ReviewForm = ({ productId, brandId, vendorOrderId, onSuccess }: ReviewForm
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [comment, setComment] = useState("");
+  const [images, setImages] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      if (images.length + newFiles.length > 3) {
+        toast({ title: "Too many images", description: "You can only upload up to 3 images", variant: "destructive" });
+        return;
+      }
+      setImages((prev) => [...prev, ...newFiles]);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +60,25 @@ const ReviewForm = ({ productId, brandId, vendorOrderId, onSuccess }: ReviewForm
     setSubmitting(true);
 
     try {
+      const mediaUrls: string[] = [];
+      
+      // Upload images if any
+      if (images.length > 0) {
+        for (const file of images) {
+          const fileExt = file.name.split(".").pop();
+          const filePath = `${user.id}/${Date.now()}-${Math.random()}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from("review-images")
+            .upload(filePath, file);
+
+          if (uploadError) throw uploadError;
+
+          const { data } = supabase.storage.from("review-images").getPublicUrl(filePath);
+          mediaUrls.push(data.publicUrl);
+        }
+      }
+
       const { error } = await supabase.from("reviews").insert({
         user_id: user.id,
         product_id: productId || null,
@@ -50,6 +86,7 @@ const ReviewForm = ({ productId, brandId, vendorOrderId, onSuccess }: ReviewForm
         vendor_order_id: vendorOrderId,
         rating,
         comment: comment.trim() || null,
+        media_urls: mediaUrls.length > 0 ? mediaUrls : null,
       });
 
       if (error) throw error;
@@ -108,6 +145,46 @@ const ReviewForm = ({ productId, brandId, vendorOrderId, onSuccess }: ReviewForm
           maxLength={500}
         />
         <p className="text-xs text-muted-foreground mt-1">{comment.length}/500</p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-2">Upload Photos (Optional, max 3)</label>
+        <div className="flex flex-wrap gap-2">
+          {images.map((img, i) => (
+            <div key={i} className="relative w-24 h-24 border border-border-subtle group">
+              <img
+                src={URL.createObjectURL(img)}
+                alt="Upload preview"
+                className="w-full h-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => removeImage(i)}
+                className="absolute top-1 right-1 p-1 bg-background/80 hover:bg-destructive hover:text-destructive-foreground transition-colors rounded-sm opacity-0 group-hover:opacity-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+          {images.length < 3 && (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-24 h-24 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border-subtle text-muted-foreground hover:bg-secondary/50 transition-colors"
+            >
+              <ImagePlus className="w-6 h-6" />
+              <span className="text-[10px] uppercase font-heading text-center leading-tight">Add Photo</span>
+            </button>
+          )}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={handleImageSelect}
+        />
       </div>
 
       <button

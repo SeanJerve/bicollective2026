@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Package, Truck, MapPin, Phone, Clock, Star, XCircle, Loader2 } from "lucide-react";
+import { Package, Truck, MapPin, Phone, Clock, Star, XCircle, Loader2, CheckCircle2, RotateCcw } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCart } from "@/contexts/CartContext";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -32,7 +33,7 @@ const statusLabels: Record<string, string> = {
   paid: "Paid",
   processing: "Processing",
   handed_to_courier: "With Courier",
-  for_delivery: "Out for Delivery",
+  for_delivery: "Shipped",
   shipped: "Shipped",
   delivered: "Delivered",
   cancelled: "Cancelled",
@@ -65,9 +66,11 @@ const PaymentProofImage = ({ path }: { path: string }) => {
 const OrderDetail = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const { user } = useAuth();
+  const { addToCart } = useCart();
   const queryClient = useQueryClient();
   const [reviewingVendorOrder, setReviewingVendorOrder] = useState<string | null>(null);
   const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
+  const [confirmingOrder, setConfirmingOrder] = useState<string | null>(null);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
@@ -89,6 +92,49 @@ const OrderDetail = () => {
       toast({ title: "Error", description: "Failed to cancel order. Please try again.", variant: "destructive" });
     } finally {
       setCancellingOrder(null);
+    }
+  };
+
+  const handleConfirmDelivery = async (vendorOrderId: string) => {
+    if (!confirm("Confirm that you have received this order?")) return;
+    setConfirmingOrder(vendorOrderId);
+    try {
+      const { error } = await supabase
+        .from("vendor_orders")
+        .update({ status: "delivered", delivered_at: new Date().toISOString() })
+        .eq("id", vendorOrderId);
+      if (error) throw error;
+      toast({ title: "Order received", description: "Thank you for confirming your delivery!" });
+      queryClient.invalidateQueries({ queryKey: ["order-detail", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["customer-orders"] });
+    } catch (err) {
+      console.error("Confirm error:", err);
+      toast({ title: "Error", description: "Failed to confirm delivery. Please try again.", variant: "destructive" });
+    } finally {
+      setConfirmingOrder(null);
+    }
+  };
+
+  const handleBuyAgain = async (items: any[], brandId: string) => {
+    let added = 0;
+    for (const item of items) {
+      if (item.product_id) {
+        await addToCart(item.product_id, 1, item.size || undefined);
+        added++;
+      }
+    }
+
+    if (added > 0) {
+      toast({
+        title: "Added to cart",
+        description: `Added ${added} item(s) from this order back to your cart.`,
+      });
+    } else {
+      toast({
+        title: "Cannot buy again",
+        description: "Products may no longer be available.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -120,6 +166,26 @@ const OrderDetail = () => {
     },
     enabled: !!orderId && !!user,
   });
+
+  // Auto-confirm logic: if order is "shipped" or "for_delivery" and > 3 days have passed, auto-confirm to delivered
+  useEffect(() => {
+    if (order?.vendor_orders) {
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+      order.vendor_orders.forEach(async (vo: any) => {
+        if ((vo.status === "shipped" || vo.status === "for_delivery") && new Date(vo.updated_at) < threeDaysAgo) {
+          console.log(`Auto-confirming vendor order ${vo.id} due to 3-day threshold`);
+          await supabase
+            .from("vendor_orders")
+            .update({ status: "delivered", delivered_at: new Date().toISOString() })
+            .eq("id", vo.id);
+          queryClient.invalidateQueries({ queryKey: ["order-detail", orderId] });
+          queryClient.invalidateQueries({ queryKey: ["customer-orders"] });
+        }
+      });
+    }
+  }, [order, orderId, queryClient]);
 
   const { data: existingReviews } = useQuery({
     queryKey: ["order-reviews", orderId],
@@ -374,6 +440,37 @@ const OrderDetail = () => {
                     <Star className="w-4 h-4 fill-success" />
                     You've reviewed this order
                   </p>
+                </div>
+              )}
+
+              {/* Confirm Delivery Action */}
+              {(vo.status === "shipped" || vo.status === "for_delivery") && (
+                <div className="border-t border-border-subtle pt-4 mt-4">
+                  <button
+                    onClick={() => handleConfirmDelivery(vo.id)}
+                    disabled={confirmingOrder === vo.id}
+                    className="btn-brutal w-full flex items-center justify-center gap-2"
+                  >
+                    {confirmingOrder === vo.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4" />
+                    )}
+                    Order Received / Confirm Delivery
+                  </button>
+                </div>
+              )}
+
+              {/* Buy Again Action */}
+              {vo.status === "delivered" && (
+                <div className="border-t border-border-subtle pt-4 mt-4">
+                  <button
+                    onClick={() => handleBuyAgain(vo.order_items || [], vo.brand?.id)}
+                    className="btn-brutal-secondary w-full flex items-center justify-center gap-2"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Buy Again
+                  </button>
                 </div>
               )}
             </div>

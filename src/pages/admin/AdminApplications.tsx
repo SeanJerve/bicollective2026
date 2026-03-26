@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Eye, Check, X, RotateCcw, Loader2, FileText, Building2, Rocket, Trash2, Image } from "lucide-react";
+import { Settings2, Check, X, RotateCcw, Loader2, FileText, Building2, Rocket, Trash2, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -48,25 +48,36 @@ const AdminApplications = () => {
   };
 
   // Generate signed URL for private bucket files
+  // Generate signed URL for private bucket files
   const getSignedUrl = async (publicUrl: string): Promise<string> => {
-    if (!publicUrl) return "";
+    if (!publicUrl || !publicUrl.includes("/storage/v1/object/public/")) return publicUrl;
     if (signedUrls[publicUrl]) return signedUrls[publicUrl];
 
     try {
-      // Extract the file path from the public URL
-      const urlParts = publicUrl.split("/storage/v1/object/public/vendor-documents/");
-      if (urlParts.length < 2) return publicUrl;
+      // Find the bucket name by looking at the part after 'public/'
+      const parts = publicUrl.split("/storage/v1/object/public/");
+      if (parts.length < 2) return publicUrl;
       
-      const filePath = urlParts[1];
+      const rest = parts[1];
+      const bucketEndIndex = rest.indexOf("/");
+      if (bucketEndIndex === -1) return publicUrl;
+      
+      const bucketName = rest.substring(0, bucketEndIndex);
+      const filePath = rest.substring(bucketEndIndex + 1);
+      
       const { data, error } = await supabase.storage
-        .from("vendor-documents")
-        .createSignedUrl(filePath, 3600); // 1 hour expiry
+        .from(bucketName)
+        .createSignedUrl(filePath, 3600);
 
-      if (error || !data?.signedUrl) return publicUrl;
+      if (error || !data?.signedUrl) {
+        console.error("Error creating signed URL:", error);
+        return publicUrl;
+      }
       
       setSignedUrls(prev => ({ ...prev, [publicUrl]: data.signedUrl }));
       return data.signedUrl;
-    } catch {
+    } catch (e) {
+      console.error("Failed to parse URL for signing:", e);
       return publicUrl;
     }
   };
@@ -188,8 +199,8 @@ const AdminApplications = () => {
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>{format(new Date(app.created_at), "PP")}</span>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => setSelectedApp(app)} className="p-2 hover:bg-secondary"><Eye className="w-4 h-4" /></button>
-                    <button onClick={() => handleDelete(app.id)} className="p-2 hover:bg-destructive/20"><Trash2 className="w-4 h-4 text-destructive" /></button>
+                    <button onClick={() => setSelectedApp(app)} className="p-2 hover:bg-secondary rounded-full border-2 border-transparent hover:border-foreground"><Settings2 className="w-4 h-4" /></button>
+                    <button onClick={() => handleDelete(app.id)} className="p-2 hover:bg-destructive/10 rounded-full border-2 border-transparent hover:border-destructive"><Trash2 className="w-4 h-4 text-destructive" /></button>
                   </div>
                 </div>
               </div>
@@ -220,8 +231,8 @@ const AdminApplications = () => {
                       <td className="p-4"><span className={`px-2 py-1 text-xs uppercase ${statusColors[app.status as keyof typeof statusColors]}`}>{app.status.replace("_", " ")}</span></td>
                       <td className="p-4">
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => setSelectedApp(app)} className="p-2 hover:bg-secondary"><Eye className="w-4 h-4" /></button>
-                          <button onClick={() => handleDelete(app.id)} className="p-2 hover:bg-destructive/20" title="Delete permanently"><Trash2 className="w-4 h-4 text-destructive" /></button>
+                          <button onClick={() => setSelectedApp(app)} className="p-2 hover:bg-secondary rounded-full border-2 border-transparent hover:border-foreground" title="Review Application"><Settings2 className="w-4 h-4" /></button>
+                          <button onClick={() => handleDelete(app.id)} className="p-2 hover:bg-destructive/10 rounded-full border-2 border-transparent hover:border-destructive" title="Delete permanently"><Trash2 className="w-4 h-4 text-destructive" /></button>
                         </div>
                       </td>
                     </tr>

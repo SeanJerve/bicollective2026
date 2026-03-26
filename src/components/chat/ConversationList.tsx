@@ -46,12 +46,13 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
         return;
       }
 
-      // Group by vendor_order_id
+      // Group by otherUserId (consolidate conversations)
       const grouped = new Map<string, typeof messages>();
       for (const msg of messages) {
-        const existing = grouped.get(msg.vendor_order_id) || [];
+        const otherId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
+        const existing = grouped.get(otherId) || [];
         existing.push(msg);
-        grouped.set(msg.vendor_order_id, existing);
+        grouped.set(otherId, existing);
       }
 
       // Get vendor order details
@@ -85,21 +86,21 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
 
       // Build conversation list
       const convs: Conversation[] = [];
-      for (const [voId, msgs] of grouped.entries()) {
-        const vo = vendorOrders?.find((v) => v.id === voId);
+      for (const [otherId, msgs] of grouped.entries()) {
         const lastMsg = msgs[0]; // already sorted desc
-        const otherUserId = lastMsg.sender_id === user.id ? lastMsg.receiver_id : lastMsg.sender_id;
+        const voId = lastMsg.vendor_order_id;
+        const vo = vendorOrders?.find((v) => v.id === voId);
         const unreadCount = msgs.filter((m) => m.receiver_id === user.id && !m.read_at).length;
 
         const brandData = vo?.brand as any;
         const brandName = brandData?.name || "Unknown Store";
         const otherUserName = role === "customer"
           ? brandName
-          : profileMap.get(otherUserId) || "Customer";
+          : profileMap.get(otherId) || "Customer";
 
         convs.push({
           vendorOrderId: voId,
-          otherUserId,
+          otherUserId: otherId,
           otherUserName,
           lastMessage: lastMsg.content,
           lastMessageAt: lastMsg.created_at,
@@ -179,10 +180,10 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
         ) : (
           filtered.map((conv) => (
             <button
-              key={conv.vendorOrderId}
+              key={conv.otherUserId}
               onClick={() => onSelect(conv)}
               className={`w-full text-left px-4 py-3 border-b border-border-subtle transition-colors hover:bg-secondary/50 ${
-                selectedConversation === conv.vendorOrderId
+                selectedConversation === conv.vendorOrderId || selectedConversation === conv.otherUserId
                   ? "bg-secondary border-l-4 border-l-foreground"
                   : ""
               }`}

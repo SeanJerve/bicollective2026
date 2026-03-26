@@ -34,7 +34,8 @@ const VendorReviews = () => {
         `)
         .eq("brand_id", brand!.id)
         .eq("is_visible", true)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(50);
       if (error) throw error;
       return data || [];
     },

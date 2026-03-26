@@ -1,16 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Bell, ShoppingCart, Star, Shield, FileText, AlertTriangle, Scale, Package } from "lucide-react";
+import { Bell, ShoppingCart, Star, Shield, FileText, AlertTriangle, Scale, Package, MessageSquare } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useAuth } from "@/contexts/AuthContext";
 
 const NotificationCenter = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { counts, totalAdmin, totalVendor, totalCustomer } = useNotifications();
+  const { counts, dismiss, totalAdmin, totalVendor, totalCustomer } = useNotifications();
   const { isAdmin, isVendor } = useAuth();
   const ref = useRef<HTMLDivElement>(null);
 
-  const total = isAdmin ? totalAdmin : isVendor ? totalVendor + totalCustomer : totalCustomer;
+  const total = (isAdmin ? totalAdmin : isVendor ? totalVendor + totalCustomer : totalCustomer) + counts.unreadMessages;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -21,26 +21,33 @@ const NotificationCenter = () => {
   }, []);
 
   const adminItems = [
-    { label: "Pending Applications", count: counts.pendingApplications, icon: FileText, href: "/admin/applications" },
-    { label: "Pending Verifications", count: counts.pendingVerifications, icon: Shield, href: "/admin/verifications" },
-    { label: "Pending Reports", count: counts.pendingReports, icon: AlertTriangle, href: "/admin/reports" },
-    { label: "Pending Disputes", count: counts.pendingDisputes, icon: Scale, href: "/admin/disputes" },
+    { label: "Pending Applications", count: counts.pendingApplications, key: "pendingApplications", icon: FileText, href: "/admin/applications" },
+    { label: "Pending Verifications", count: counts.pendingVerifications, key: "pendingVerifications", icon: Shield, href: "/admin/verifications" },
+    { label: "Pending Reports", count: counts.pendingReports, key: "pendingReports", icon: AlertTriangle, href: "/admin/reports" },
+    { label: "Pending Disputes", count: counts.pendingDisputes, key: "pendingDisputes", icon: Scale, href: "/admin/disputes" },
   ];
 
   const vendorItems = [
-    { label: "Orders Needing Action", count: counts.pendingOrders, icon: ShoppingCart, href: "/vendor/orders" },
-    { label: "New Reviews", count: counts.newReviews, icon: Star, href: "/vendor/reviews" },
-    { label: "Low Stock Products", count: counts.lowStockProducts, icon: Package, href: "/vendor/products" },
+    { label: "Orders Needing Action", count: counts.pendingOrders, key: "pendingOrders", icon: ShoppingCart, href: "/vendor/orders" },
+    { label: "New Reviews", count: counts.newReviews, key: "newReviews", icon: Star, href: "/vendor/reviews" },
+    { label: "Low Stock Products", count: counts.lowStockProducts, key: "lowStockProducts", icon: Package, href: "/vendor/products" },
+    { label: "Verification Resubmission", count: counts.verificationResubmission, key: "verificationResubmission", icon: Shield, href: "/vendor/verification" },
   ];
 
   const customerItems = [
-    { label: "Active Orders", count: counts.orderUpdates, icon: ShoppingCart, href: "/account/orders" },
+    { label: "Active Orders", count: counts.orderUpdates, key: "orderUpdates", icon: ShoppingCart, href: "/account/orders" },
+    { label: "Application Resubmission", count: counts.needsResubmission, key: "needsResubmission", icon: FileText, href: "/vendor/register" },
+  ];
+
+  const sharedItems = [
+    { label: "Unread Messages", count: counts.unreadMessages, key: "unreadMessages", icon: MessageSquare, href: (isVendor && !isAdmin) ? "/vendor/messages" : "/account/messages" }
   ];
 
   const items = [
     ...(isAdmin ? adminItems : []),
     ...(isVendor && !isAdmin ? vendorItems : []),
     ...(!isAdmin ? customerItems : []),
+    ...sharedItems,
   ];
 
   const activeItems = items.filter((i) => i.count > 0);
@@ -72,7 +79,10 @@ const NotificationCenter = () => {
                 <Link
                   key={item.href}
                   to={item.href}
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => {
+                    setIsOpen(false);
+                    dismiss(item.key as keyof typeof counts);
+                  }}
                   className="flex items-center gap-3 px-4 py-3 hover:bg-secondary transition-colors"
                 >
                   <div className="w-8 h-8 bg-destructive/10 flex items-center justify-center flex-shrink-0">

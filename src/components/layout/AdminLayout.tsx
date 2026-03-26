@@ -8,7 +8,7 @@ const AdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
-  const { counts } = useNotifications();
+  const { counts, dismiss } = useNotifications();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const comingSoonItems: string[] = [];
@@ -18,15 +18,12 @@ const AdminLayout = () => {
     { href: "/admin/applications", label: "Applications", icon: Users, badge: counts.pendingApplications },
     { href: "/admin/verifications", label: "Verifications", icon: BadgeCheck, badge: counts.pendingVerifications },
     { href: "/admin/vendors", label: "Vendors", icon: Users },
-    { href: "/admin/products", label: "Products", icon: Package },
-    { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
     { href: "/admin/promotions", label: "Promotions", icon: Tag },
     { href: "/admin/vouchers", label: "Vouchers", icon: Ticket },
     { href: "/admin/lucky-promo", label: "Lucky Promo", icon: Gift },
     { href: "/admin/reports", label: "Reports", icon: Flag, badge: counts.pendingReports },
     { href: "/admin/disputes", label: "Disputes", icon: AlertTriangle, badge: counts.pendingDisputes },
     { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-    
   ];
 
   const isActive = (path: string, exact?: boolean) => {
@@ -34,8 +31,12 @@ const AdminLayout = () => {
     return location.pathname.startsWith(path);
   };
 
-  const handleNavClick = (_e: React.MouseEvent, _item: typeof navItems[0]) => {
+  const handleNavClick = (_e: React.MouseEvent, item: typeof navItems[0]) => {
     setSidebarOpen(false);
+    if (item.label === "Applications") dismiss("pendingApplications");
+    if (item.label === "Verifications") dismiss("pendingVerifications");
+    if (item.label === "Reports") dismiss("pendingReports");
+    if (item.label === "Disputes") dismiss("pendingDisputes");
   };
 
   const currentPage = navItems.find((item) =>

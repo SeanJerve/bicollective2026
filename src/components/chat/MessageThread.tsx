@@ -156,7 +156,7 @@ const MessageThread = ({ vendorOrderId, otherUserId, otherUserName, orderId, onB
         attachmentName = pendingFile.name;
       }
 
-      await supabase.from("messages").insert({
+      const { error: insertError } = await supabase.from("messages").insert({
         sender_id: user.id,
         receiver_id: otherUserId,
         vendor_order_id: vendorOrderId,
@@ -166,6 +166,8 @@ const MessageThread = ({ vendorOrderId, otherUserId, otherUserName, orderId, onB
         attachment_type: attachmentType,
         attachment_name: attachmentName,
       });
+
+      if (insertError) throw insertError;
 
       setNewMessage("");
       clearPendingFile();

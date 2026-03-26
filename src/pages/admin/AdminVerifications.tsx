@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Eye, Check, X, RotateCcw, Loader2, FileText, BadgeCheck } from "lucide-react";
+import { Settings2, Check, X, RotateCcw, Loader2, FileText, BadgeCheck, Image, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -19,6 +19,78 @@ const AdminVerifications = () => {
   const [adminNotes, setAdminNotes] = useState("");
   const [processing, setProcessing] = useState(false);
   const [filter, setFilter] = useState<string>("pending");
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+
+  // Generate signed URL for private bucket files
+  // Generate signed URL for private bucket files
+  const getSignedUrl = async (publicUrl: string): Promise<string> => {
+    if (!publicUrl || !publicUrl.includes("/storage/v1/object/public/")) return publicUrl;
+    if (signedUrls[publicUrl]) return signedUrls[publicUrl];
+
+    try {
+      // Find the bucket name by looking at the part after 'public/'
+      const parts = publicUrl.split("/storage/v1/object/public/");
+      if (parts.length < 2) return publicUrl;
+      
+      const rest = parts[1];
+      const bucketEndIndex = rest.indexOf("/");
+      if (bucketEndIndex === -1) return publicUrl;
+      
+      const bucketName = rest.substring(0, bucketEndIndex);
+      const filePath = rest.substring(bucketEndIndex + 1);
+      
+      const { data, error } = await supabase.storage
+        .from(bucketName)
+        .createSignedUrl(filePath, 3600);
+
+      if (error || !data?.signedUrl) {
+        console.error("Error creating signed URL:", error);
+        return publicUrl;
+      }
+      
+      setSignedUrls(prev => ({ ...prev, [publicUrl]: data.signedUrl }));
+      return data.signedUrl;
+    } catch (e) {
+      console.error("Failed to parse URL for signing:", e);
+      return publicUrl;
+    }
+  };
+
+  // Load signed URLs when selecting a verification
+  useEffect(() => {
+    if (!selectedVerification) return;
+    
+    const loadUrls = async () => {
+      const urls = [selectedVerification.dti_registration_url, selectedVerification.bir_certificate_url, selectedVerification.mayor_permit_url].filter(Boolean);
+      for (const url of urls) {
+        await getSignedUrl(url);
+      }
+    };
+    loadUrls();
+  }, [selectedVerification]);
+
+  const DocumentViewer = ({ url, label }: { url: string; label: string }) => {
+    const signedUrl = signedUrls[url] || url;
+    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          {isImage ? <Image className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+          {label}
+        </div>
+        {isImage ? (
+          <a href={signedUrl} target="_blank" rel="noopener noreferrer">
+            <img src={signedUrl} alt={label} className="max-w-full max-h-64 border-2 border-border-subtle object-contain bg-muted" />
+          </a>
+        ) : (
+          <a href={signedUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm hover:underline text-primary">
+            <FileText className="w-4 h-4" />View Document
+          </a>
+        )}
+      </div>
+    );
+  };
 
   useEffect(() => {
     fetchVerifications();
@@ -152,12 +224,12 @@ const AdminVerifications = () => {
                   </span>
                 </div>
                 <div className="flex justify-end">
-                  <button
-                    onClick={() => setSelectedVerification(v)}
-                    className="p-2 hover:bg-secondary"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
+                    <button
+                      onClick={() => setSelectedVerification(v)}
+                      className="p-2 hover:bg-secondary rounded-full border-2 border-transparent hover:border-foreground"
+                    >
+                      <Settings2 className="w-4 h-4" />
+                    </button>
                 </div>
               </div>
             ))}
@@ -201,9 +273,9 @@ const AdminVerifications = () => {
                         <div className="flex items-center justify-end">
                           <button
                             onClick={() => setSelectedVerification(v)}
-                            className="p-2 hover:bg-secondary"
+                            className="p-2 hover:bg-secondary rounded-full border-2 border-transparent hover:border-foreground"
                           >
-                            <Eye className="w-4 h-4" />
+                            <Settings2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -243,39 +315,15 @@ const AdminVerifications = () => {
 
               <div>
                 <span className="text-muted-foreground text-sm">Documents</span>
-                <div className="mt-2 space-y-2">
+                <div className="mt-2 space-y-4">
                   {selectedVerification.dti_registration_url && (
-                    <a
-                      href={selectedVerification.dti_registration_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm hover:underline"
-                    >
-                      <FileText className="w-4 h-4" />
-                      DTI/SEC Registration
-                    </a>
+                    <DocumentViewer url={selectedVerification.dti_registration_url} label="DTI/SEC Registration" />
                   )}
                   {selectedVerification.bir_certificate_url && (
-                    <a
-                      href={selectedVerification.bir_certificate_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm hover:underline"
-                    >
-                      <FileText className="w-4 h-4" />
-                      BIR Certificate
-                    </a>
+                    <DocumentViewer url={selectedVerification.bir_certificate_url} label="BIR Certificate" />
                   )}
                   {selectedVerification.mayor_permit_url && (
-                    <a
-                      href={selectedVerification.mayor_permit_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm hover:underline"
-                    >
-                      <FileText className="w-4 h-4" />
-                      Mayor's/Business Permit
-                    </a>
+                    <DocumentViewer url={selectedVerification.mayor_permit_url} label="Mayor's/Business Permit" />
                   )}
                 </div>
               </div>

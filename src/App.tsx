@@ -56,8 +56,6 @@ const AdminVendors = lazy(() => import("./pages/admin/AdminVendors"));
 const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
 const AdminApplications = lazy(() => import("./pages/admin/AdminApplications"));
 const AdminVerifications = lazy(() => import("./pages/admin/AdminVerifications"));
-const AdminProducts = lazy(() => import("./pages/admin/AdminProducts"));
-const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
 const AdminPromotions = lazy(() => import("./pages/admin/AdminPromotions"));
 const AdminDisputes = lazy(() => import("./pages/admin/AdminDisputes"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
@@ -191,8 +189,6 @@ const App = () => (
                   <Route path="vendors" element={<AdminVendors />} />
                   <Route path="applications" element={<AdminApplications />} />
                   <Route path="verifications" element={<AdminVerifications />} />
-                  <Route path="products" element={<AdminProducts />} />
-                  <Route path="orders" element={<AdminOrders />} />
                   <Route path="reports" element={<AdminReports />} />
                   <Route path="promotions" element={<AdminPromotions />} />
                   <Route path="vouchers" element={<AdminVouchers />} />

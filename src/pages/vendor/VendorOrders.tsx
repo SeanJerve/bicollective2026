@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle, Truck, Package, Loader2, HandMetal, MapPin, AlertCircle } from "lucide-react";
+import { CheckCircle, Truck, Package, Loader2, HandMetal, MapPin, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import OrderChat from "@/components/chat/OrderChat";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,6 +37,11 @@ const VendorOrders = () => {
   const [filter, setFilter] = useState<string>("all");
   const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
   const [updatingTracking, setUpdatingTracking] = useState<string | null>(null);
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+
+  const toggleOrder = (orderId: string) => {
+    setExpandedOrder(prev => prev === orderId ? null : orderId);
+  };
 
   const { data: brand, isLoading: brandLoading } = useQuery({
     queryKey: ["vendor-brand", user?.id],
@@ -108,8 +113,7 @@ const VendorOrders = () => {
           processing: "📦 Your order is now being processed.",
           confirmed: "✅ Your order has been confirmed!",
           handed_to_courier: "📦 Your order has been handed to the courier.",
-          for_delivery: "🚚 Your order is out for delivery!",
-          shipped: `🚚 Your order has been shipped! Tracking: ${order.tracking_number || "N/A"}`,
+          shipped: "🚚 Your order is on its way!",
           delivered: "✅ Your order has been delivered. Thank you for shopping!",
         };
         const msg = statusMessages[status];
@@ -208,9 +212,9 @@ const VendorOrders = () => {
         return "bg-primary text-primary-foreground";
       case "handed_to_courier":
         return "bg-primary text-primary-foreground";
-      case "for_delivery":
-        return "bg-primary text-primary-foreground";
       case "shipped":
+        return "bg-primary text-primary-foreground";
+      case "for_delivery":
         return "bg-primary text-primary-foreground";
       case "delivered":
         return "bg-success text-success-foreground";
@@ -274,8 +278,6 @@ const VendorOrders = () => {
           { value: "confirmed", label: "COD Confirmed" },
           { value: "paid", label: "Paid" },
           { value: "processing", label: "Processing" },
-          { value: "handed_to_courier", label: "With Courier" },
-          { value: "for_delivery", label: "Out for Delivery" },
           { value: "shipped", label: "Shipped" },
           { value: "delivered", label: "Delivered" },
           { value: "cancelled", label: "Cancelled" },
@@ -297,15 +299,24 @@ const VendorOrders = () => {
 
       {filteredOrders.length > 0 ? (
         <div className="space-y-4">
-          {filteredOrders.map((order) => (
+          {filteredOrders.map((order) => {
+            const isExpanded = expandedOrder === order.id;
+            
+            return (
             <div key={order.id} className="card-brutal">
-              <div className="p-4 md:p-6 border-b border-border-subtle">
+              <div 
+                className={`p-4 md:p-6 cursor-pointer hover:bg-secondary/50 transition-colors ${isExpanded ? 'border-b border-border-subtle bg-secondary/30' : ''}`}
+                onClick={() => toggleOrder(order.id)}
+              >
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div>
-                    <p className="font-heading uppercase text-sm md:text-base">
-                      {order.order?.shipping_name}
-                    </p>
-                    <p className="text-xs md:text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <p className="font-heading uppercase text-sm md:text-base">
+                        {order.order?.shipping_name}
+                      </p>
+                      {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                    </div>
+                    <p className="text-xs md:text-sm text-muted-foreground mt-1">
                       {new Date(order.created_at).toLocaleDateString()}
                     </p>
                     {order.payment_method && (
@@ -329,7 +340,8 @@ const VendorOrders = () => {
                 </div>
               </div>
 
-              <div className="p-4 md:p-6">
+              {isExpanded && (
+              <div className="p-4 md:p-6 animate-fade-in">
                 {/* Order Items */}
                 <div className="mb-4 md:mb-6">
                   <h4 className="font-heading text-xs md:text-sm uppercase mb-2 md:mb-3">Items</h4>
@@ -347,13 +359,15 @@ const VendorOrders = () => {
                 </div>
 
                 {/* Shipping Info */}
-                <div className="mb-4 md:mb-6 p-3 md:p-4 bg-secondary">
-                  <h4 className="font-heading text-xs md:text-sm uppercase mb-2">Shipping</h4>
-                  <p className="text-xs md:text-sm">{order.order?.shipping_address}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">
-                    {order.order?.shipping_phone}
-                  </p>
-                </div>
+                {order.order?.shipping_address && (
+                  <div className="mb-4 md:mb-6 p-3 md:p-4 bg-secondary">
+                    <h4 className="font-heading text-xs md:text-sm uppercase mb-2">Shipping</h4>
+                    <p className="text-xs md:text-sm">{order.order?.shipping_address}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">
+                      {order.order?.shipping_phone}
+                    </p>
+                  </div>
+                )}
 
                 {/* Payment Proof */}
                 {order.payment_proof_url && (
@@ -399,32 +413,39 @@ const VendorOrders = () => {
                     </button>
                   )}
                   {order.status === "handed_to_courier" && (
-                    <button
-                      onClick={() => updateOrderStatus(order.id, "for_delivery", "for_delivery_at")}
-                      className="btn-brutal flex items-center gap-2 text-sm"
-                    >
-                      <MapPin className="w-4 h-4" />
-                      Out for Delivery
-                    </button>
-                  )}
-                  {order.status === "for_delivery" && (
-                    <button
-                      onClick={() => updateOrderStatus(order.id, "delivered", "delivered_at")}
-                      className="btn-brutal flex items-center gap-2 text-sm"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Mark as Delivered
-                    </button>
-                  )}
-                  {/* Legacy shipped → delivered path */}
-                  {order.status === "shipped" && (
-                    <button
-                      onClick={() => updateOrderStatus(order.id, "delivered", "delivered_at")}
-                      className="btn-brutal flex items-center gap-2 text-sm"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Mark as Delivered
-                    </button>
+                    <div className="w-full space-y-3">
+                      {!order.tracking_number && (
+                        <div className="p-3 bg-warning/10 border border-warning text-warning text-xs uppercase font-heading">
+                          Please add a tracking number below before shipping
+                        </div>
+                      )}
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => {
+                            if (!order.tracking_number) {
+                              toast({
+                                title: "Tracking number required",
+                                description: "Please enter and save a tracking number below first.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            updateOrderStatus(order.id, "shipped", "shipped_at");
+                          }}
+                          className={`btn-brutal flex items-center gap-2 text-sm ${!order.tracking_number ? "opacity-50 cursor-not-allowed" : ""}`}
+                        >
+                          <Truck className="w-4 h-4" />
+                          Order Shipped
+                        </button>
+                        <button
+                          onClick={() => toast({ title: "Scanner unavailable", description: "The tracking scanner is not available in your region yet." })}
+                          className="btn-brutal-secondary flex items-center gap-2 text-sm"
+                        >
+                          <MapPin className="w-4 h-4" />
+                          Scan Tracking Number
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
 
@@ -474,8 +495,10 @@ const VendorOrders = () => {
                   />
                 </div>
               </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="card-brutal p-8 md:p-12 text-center">

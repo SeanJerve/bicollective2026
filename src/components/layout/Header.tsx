@@ -16,7 +16,7 @@ const Header = () => {
   const navigate = useNavigate();
   const { user, signOut, isVendor, isAdmin } = useAuth();
   const { itemCount } = useCart();
-  const { totalAdmin, totalVendor, totalCustomer, counts } = useNotifications();
+  const { totalAdmin, totalVendor, totalCustomer, counts, dismiss } = useNotifications();
 
   const navLinks = [
     { href: "/", label: "Home" },
@@ -45,6 +45,9 @@ const Header = () => {
 
   const handleNavClick = (href: string, closeMenu: () => void) => {
     closeMenu();
+    if (href === "/account/orders") dismiss("orderUpdates");
+    if (href === "/account/messages") dismiss("unreadMessages");
+    
     if (isDisabledForAdmin(href)) {
       navigate("/coming-soon");
       return;
@@ -110,7 +113,7 @@ const Header = () => {
                 <User className="w-5 h-5" />
                 {user && (
                   <NotificationBadge
-                    count={isAdmin ? totalAdmin : isVendor ? totalVendor + totalCustomer : totalCustomer}
+                    count={(isAdmin ? totalAdmin : isVendor ? totalVendor + totalCustomer : totalCustomer) + counts.unreadMessages}
                   />
                 )}
               </button>
@@ -157,11 +160,17 @@ const Header = () => {
                         {!isVendor && !isAdmin && (
                           <Link
                             to="/vendor/register"
-                            onClick={() => setIsUserMenuOpen(false)}
-                            className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary"
+                            onClick={() => {
+                              setIsUserMenuOpen(false);
+                              dismiss("needsResubmission");
+                            }}
+                            className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary relative"
                           >
                             <Store className="w-4 h-4" />
                             Become a Vendor
+                            {counts.needsResubmission > 0 && (
+                              <span className="ml-auto w-2 h-2 bg-destructive rounded-full"></span>
+                            )}
                           </Link>
                         )}
                         {isAdmin && (
@@ -208,9 +217,12 @@ const Header = () => {
                       <Link
                         to="/vendor/register"
                         onClick={() => setIsUserMenuOpen(false)}
-                        className="block px-4 py-2 text-sm hover:bg-secondary"
+                        className="flex items-center justify-between px-4 py-2 text-sm hover:bg-secondary"
                       >
                         Become a Vendor
+                        {counts.needsResubmission > 0 && (
+                          <span className="w-2 h-2 bg-destructive rounded-full"></span>
+                        )}
                       </Link>
                     </div>
                   )}
@@ -261,7 +273,7 @@ const Header = () => {
               {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               {user && (
                 <NotificationBadge
-                  count={isAdmin ? totalAdmin : isVendor ? totalVendor + totalCustomer : totalCustomer}
+                  count={(isAdmin ? totalAdmin : isVendor ? totalVendor + totalCustomer : totalCustomer) + counts.unreadMessages}
                 />
               )}
             </button>

@@ -157,9 +157,9 @@ const VendorVerification = () => {
   }
 
   // Show existing verification status
-  if (verification && verification.status !== "needs_resubmission") {
-    const isPending = verification.status === "pending";
-    const isRejected = verification.status === "rejected";
+  if (verification && verification.status === "pending") {
+    const isPending = true;
+    const isRejected = false;
 
     return (
       <div className="p-4 md:p-8">
@@ -224,6 +224,30 @@ const VendorVerification = () => {
               <p className="text-sm text-muted-foreground">{verification.admin_notes}</p>
             </div>
           </div>
+        </div>
+      )}
+
+      {verification?.status === "rejected" && (
+        <div className="card-brutal p-6 md:p-8 bg-destructive/10 mb-6">
+          <div className="flex items-start gap-4">
+            <div className="p-3 border-2 border-foreground bg-background">
+              <AlertCircle className="w-6 h-6 text-destructive" />
+            </div>
+            <div>
+              <h2 className="font-heading text-xl uppercase mb-2">
+                Verification Not Approved
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                Your verification request was not approved. You can submit new documents below.
+              </p>
+            </div>
+          </div>
+          {verification.admin_notes && (
+            <div className="mt-6 p-4 bg-background border-2 border-foreground">
+              <h3 className="font-heading text-sm uppercase mb-2">Admin Notes</h3>
+              <p className="text-sm">{verification.admin_notes}</p>
+            </div>
+          )}
         </div>
       )}
 

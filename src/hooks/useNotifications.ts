@@ -12,8 +12,10 @@ interface NotificationCounts {
   pendingOrders: number;
   newReviews: number;
   lowStockProducts: number;
+  verificationResubmission: number;
   // Customer counts
   orderUpdates: number;
+  needsResubmission: number;
   // Shared
   unreadMessages: number;
 }
@@ -26,7 +28,9 @@ const EMPTY_COUNTS: NotificationCounts = {
   pendingOrders: 0,
   newReviews: 0,
   lowStockProducts: 0,
+  verificationResubmission: 0,
   orderUpdates: 0,
+  needsResubmission: 0,
   unreadMessages: 0,
 };
 
@@ -65,28 +69,41 @@ export const useNotifications = () => {
       if (isVendor && !isAdmin) {
         const { data: brand } = await supabase.from("brands").select("id").eq("owner_id", user.id).maybeSingle();
         if (brand) {
-          const [orders, reviews, lowStock] = await Promise.all([
+          const [orders, reviews, lowStock, verifs] = await Promise.all([
             supabase.from("vendor_orders").select("*", { count: "exact", head: true }).eq("brand_id", brand.id).in("status", ["payment_uploaded", "pending_payment"]),
             supabase.from("reviews").select("*", { count: "exact", head: true }).eq("brand_id", brand.id).eq("is_visible", true),
             supabase.from("products").select("*", { count: "exact", head: true }).eq("brand_id", brand.id).lt("stock_quantity", 5),
+            supabase.from("vendor_verifications").select("status").eq("brand_id", brand.id).order("submitted_at", { ascending: false }).limit(1),
           ]);
           newCounts.pendingOrders = orders.count || 0;
           newCounts.newReviews = reviews.count || 0;
           newCounts.lowStockProducts = lowStock.count || 0;
+          newCounts.verificationResubmission = (verifs.data && verifs.data[0]?.status === "needs_resubmission") ? 1 : 0;
         }
       }
 
       if (!isAdmin) {
         // Customer: count orders with recent status changes
-        const { count: orderUpdates } = await supabase
+        // We select vendor_orders directly and count unique order_ids
+        // Let's use the working 'orders' with inner join pattern but fixed
+        const { data: customerOrders } = await supabase
           .from("orders")
-          .select(`
-            *,
-            vendor_orders!inner(status)
-          `, { count: "exact", head: true })
+          .select("id, vendor_orders!inner(status)")
           .eq("customer_id", user.id)
           .in("vendor_orders.status", ["payment_uploaded", "paid", "confirmed", "handed_to_courier", "for_delivery", "shipped"]);
-        newCounts.orderUpdates = orderUpdates || 0;
+
+        // Deduplicate order IDs
+        const uniqueOrderIds = new Set(customerOrders?.map(o => o.id) || []);
+        newCounts.orderUpdates = uniqueOrderIds.size;
+
+        // Check for vendor applications needing resubmission
+        const { data: apps } = await supabase
+          .from("vendor_applications")
+          .select("status")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        newCounts.needsResubmission = (apps && apps[0]?.status === "needs_resubmission") ? 1 : 0;
       }
 
       // Unread messages for all authenticated users
@@ -96,6 +113,14 @@ export const useNotifications = () => {
         .eq("receiver_id", user.id)
         .is("read_at", null);
       newCounts.unreadMessages = unreadMessages || 0;
+
+      // Zero out dismissed counts
+      Object.keys(newCounts).forEach((k) => {
+        const key = k as keyof NotificationCounts;
+        if (dismissedKeys.has(key)) {
+          newCounts[key] = 0;
+        }
+      });
 
       setCounts(newCounts);
     } catch (error) {
@@ -154,16 +179,21 @@ export const useNotifications = () => {
     const messagesChannel = supabase
       .channel("messages-notifications")
       .on("postgres_changes", {
-        event: "INSERT",
+        event: "*",
         schema: "public",
         table: "messages",
-        filter: `receiver_id=eq.${user.id}`,
-      }, debouncedFetchCounts)
-      .on("postgres_changes", {
-        event: "UPDATE",
-        schema: "public",
-        table: "messages",
-      }, debouncedFetchCounts)
+      }, (payload: any) => {
+        // Simple check if we are involved
+        const isParticipant = 
+          payload.new?.receiver_id === user.id || 
+          payload.new?.sender_id === user.id || 
+          payload.old?.receiver_id === user.id || 
+          payload.old?.sender_id === user.id;
+          
+        if (isParticipant) {
+          fetchCounts(); // Call directly for messages
+        }
+      })
       .subscribe();
     channels.push(messagesChannel);
 
@@ -179,8 +209,8 @@ export const useNotifications = () => {
   };
 
   const totalAdmin = counts.pendingApplications + counts.pendingVerifications + counts.pendingReports + counts.pendingDisputes;
-  const totalVendor = counts.pendingOrders + counts.lowStockProducts;
-  const totalCustomer = counts.orderUpdates;
+  const totalVendor = counts.pendingOrders + counts.lowStockProducts + counts.verificationResubmission;
+  const totalCustomer = counts.orderUpdates + counts.needsResubmission;
 
   return { counts, loading, dismiss, totalAdmin, totalVendor, totalCustomer, refetch: fetchCounts };
 };

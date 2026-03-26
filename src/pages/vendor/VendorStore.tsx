@@ -184,7 +184,7 @@ const VendorStore = () => {
         </p>
       </div>
 
-      <div className="max-w-2xl">
+      <div className="w-full">
         <form onSubmit={handleSubmit} className="card-brutal p-4 md:p-8 space-y-5 md:space-y-6">
           <div>
             <label className="font-heading text-xs md:text-sm uppercase tracking-wide mb-2 block">
