@@ -215,6 +215,11 @@ const ProductDetail = () => {
                 {product.isVerifiedBrand && (
                   <BadgeCheck className="w-3 h-3 md:w-4 md:h-4 text-success" />
                 )}
+                {(product as any).subscriptionTier === "premium" && (
+                  <span className="badge-premium px-1.5 py-0.5 text-[8px] md:text-[10px] flex items-center gap-1">
+                    <Zap className="w-2.5 h-2.5" /> PREMIUM STORE
+                  </span>
+                )}
               </Link>
 
               {/* Title */}
@@ -488,7 +493,7 @@ const ProductDetail = () => {
             <div className="product-grid">
               {relatedLoading
                 ? Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)
-                : filteredRelated.map((p) => <ProductCard key={p.id} {...p} />)
+                : (filteredRelated as any[]).map((p) => <ProductCard key={p.id} {...p} />)
               }
             </div>
           </div>

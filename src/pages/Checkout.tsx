@@ -351,6 +351,12 @@ const Checkout = () => {
           : brandShippingAfterVoucher;
 
         const initialStatus = paymentMethod === "cod" ? "confirmed" : (paymentProofUrl ? "payment_uploaded" : "pending_payment");
+        
+        // Calculate Platform Fees
+        const commissionRate = group.items[0]?.product?.brand?.commission_rate || 5;
+        const platformCommission = Math.round((group.subtotal * commissionRate) / 100);
+        const shippingMargin = 20; // Fixed 20 pesos margin
+        const totalPlatformFee = platformCommission + shippingMargin;
 
         const { data: vendorOrder, error: vendorOrderError } = await supabase
           .from("vendor_orders")
@@ -367,11 +373,23 @@ const Checkout = () => {
             status: initialStatus,
             payment_method: paymentMethod,
             payment_proof_url: paymentProofUrl,
+            platform_commission: platformCommission,
+            platform_shipping_margin: shippingMargin,
+            total_platform_fee: totalPlatformFee,
           })
           .select()
           .single();
 
         if (vendorOrderError) throw vendorOrderError;
+
+        // Update Platform Debt if COD
+        if (paymentMethod === "cod") {
+          const { error: debtError } = await (supabase.rpc as any)("increment_brand_debt", {
+            brand_id_param: brandId,
+            amount_param: totalPlatformFee
+          });
+          if (debtError) console.error("Error updating brand debt:", debtError);
+        }
 
         const orderItems = group.items.map((item) => ({
           vendor_order_id: vendorOrder.id,

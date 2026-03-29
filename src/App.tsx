@@ -48,6 +48,9 @@ const VendorReviews = lazy(() => import("./pages/vendor/VendorReviews"));
 const VendorPromotions = lazy(() => import("./pages/vendor/VendorPromotions"));
 const VendorAnalytics = lazy(() => import("./pages/vendor/VendorAnalytics"));
 const VendorMessages = lazy(() => import("./pages/vendor/VendorMessages"));
+const VendorFinances = lazy(() => import("@/pages/vendor/VendorFinances"));
+const VendorMarketing = lazy(() => import("@/pages/vendor/VendorMarketing"));
+const VendorPremium = lazy(() => import("@/pages/vendor/VendorPremium"));
 
 // Admin pages
 const AdminLayout = lazy(() => import("./components/layout/AdminLayout"));
@@ -62,6 +65,7 @@ const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminVouchers = lazy(() => import("./pages/admin/AdminVouchers"));
 const AdminLuckyPromo = lazy(() => import("./pages/admin/AdminLuckyPromo"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminFinances = lazy(() => import("./pages/admin/AdminFinances"));
 
 // Customer pages extension
 const Vouchers = lazy(() => import("./pages/account/Vouchers"));
@@ -183,6 +187,9 @@ const App = () => (
                   <Route path="promotions" element={<VendorPromotions />} />
                   <Route path="analytics" element={<VendorAnalytics />} />
                   <Route path="messages" element={<VendorMessages />} />
+                  <Route path="finances" element={<VendorFinances />} />
+                  <Route path="marketing" element={<VendorMarketing />} />
+                  <Route path="premium" element={<VendorPremium />} />
                 </Route>
 
                 {/* Admin Routes */}
@@ -204,7 +211,7 @@ const App = () => (
                   <Route path="lucky-promo" element={<AdminLuckyPromo />} />
                   <Route path="disputes" element={<AdminDisputes />} />
                   <Route path="analytics" element={<AdminAnalytics />} />
-                  
+                  <Route path="finances" element={<AdminFinances />} />
                 </Route>
 
                 {/* Customer Account Routes */}

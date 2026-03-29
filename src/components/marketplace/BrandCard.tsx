@@ -12,6 +12,7 @@ interface BrandCardProps {
   isVerified?: boolean;
   rating?: number;
   productCount?: number;
+  subscriptionTier?: string;
 }
 
 const BrandCard = ({
@@ -23,6 +24,7 @@ const BrandCard = ({
   isVerified = false,
   rating,
   productCount,
+  subscriptionTier,
 }: BrandCardProps) => {
   return (
     <Link to={`/brands/${slug}`} className="block group">
@@ -53,6 +55,11 @@ const BrandCard = ({
                 size="sm" 
                 className="absolute -top-1 -right-1 z-10 scale-110" 
               />
+            )}
+            {subscriptionTier === "premium" && (
+              <div className="absolute top-0 left-0 bg-foreground text-background p-0.5 z-20" title="Premium Store">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-crown"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
+              </div>
             )}
           </div>
         </div>

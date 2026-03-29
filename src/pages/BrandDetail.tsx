@@ -80,6 +80,12 @@ const BrandDetail = () => {
                 <h1 className="font-heading text-3xl md:text-5xl uppercase">
                   {brand.name}
                 </h1>
+                {brand.subscriptionTier === "premium" && (
+                  <span className="badge-premium px-2 py-0.5 text-[10px] md:text-xs flex items-center gap-1">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-crown"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
+                    PREMIUM VENDOR
+                  </span>
+                )}
               </div>
 
               {brand.description && (
@@ -113,6 +119,12 @@ const BrandDetail = () => {
                 <Shield className="w-4 h-4 md:w-5 md:h-5" />
                 <span>Buyer Protection Active</span>
               </div>
+              {brand.subscriptionTier === "premium" && (
+                <div className="inline-flex items-center gap-2 px-3 md:px-4 py-2 bg-foreground text-background font-heading text-[10px] md:text-xs uppercase tracking-widest">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-crown"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
+                  Premium Member
+                </div>
+              )}
             </div>
           )}
         </div>

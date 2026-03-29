@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, Package, ShoppingCart, Flag, BadgeCheck, LogOut, Tag, Ticket, Gift, BarChart3, AlertTriangle, Menu, X, UserCog, ChevronLeft } from "lucide-react";
+import { LayoutDashboard, Users, Package, ShoppingCart, Flag, BadgeCheck, LogOut, Tag, Ticket, Gift, BarChart3, AlertTriangle, Menu, X, UserCog, ChevronLeft, DollarSign } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
 
@@ -24,6 +24,7 @@ const AdminLayout = () => {
     { href: "/admin/reports", label: "Reports", icon: Flag, badge: counts.pendingReports },
     { href: "/admin/disputes", label: "Disputes", icon: AlertTriangle, badge: counts.pendingDisputes },
     { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/admin/finances", label: "Finances", icon: DollarSign },
   ];
 
   const isActive = (path: string, exact?: boolean) => {

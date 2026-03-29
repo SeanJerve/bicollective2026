@@ -68,7 +68,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             brand:brands (
               id,
               name,
-              slug
+              slug,
+              commission_rate
             )
           )
         `)

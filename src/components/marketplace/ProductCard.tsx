@@ -22,6 +22,7 @@ interface ProductCardProps {
   storeSalePercent?: number;
   storeSaleEndsAt?: string;
   sizes?: string[];
+  isBoosted?: boolean;
 }
 
 const ProductCard = ({
@@ -41,6 +42,7 @@ const ProductCard = ({
   storeSalePercent,
   storeSaleEndsAt,
   sizes,
+  isBoosted = false,
 }: ProductCardProps) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -95,6 +97,11 @@ const ProductCard = ({
                 <span className="absolute top-2 left-2 md:top-3 md:left-3 badge-category text-[10px] md:text-xs">
                   {category}
                 </span>
+              )}
+              {isBoosted && (
+                <div className="absolute bottom-2 left-2 md:bottom-3 md:left-3 px-1.5 py-0.5 md:px-2 md:py-1 bg-background/80 border border-foreground text-[8px] md:text-[10px] font-heading uppercase tracking-tighter flex items-center gap-1 z-10 backdrop-blur-sm">
+                   SPONSORED
+                </div>
               )}
 
               {/* Mobile Quick Add Button */}

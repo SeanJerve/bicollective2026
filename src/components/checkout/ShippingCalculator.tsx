@@ -54,11 +54,11 @@ const calculateShippingFee = (
   const distanceMultipliers = [1.0, 1.3, 1.5, 1.8];
   const multiplier = distanceMultipliers[Math.min(distance, 3)];
 
-  const fee = baseFee + (itemCount * perItemFee * multiplier);
+  const fee = baseFee + (itemCount * perItemFee * multiplier) + 20; // Added 20 pesos platform margin
 
-  // Cap at ₱100
-  return Math.min(100, Math.round(fee));
-};
+  // Cap at ₱120 (was ₱100 + 20)
+  return Math.min(120, Math.round(fee));
+}
 
 const ShippingCalculator = ({
   sellerLocation,

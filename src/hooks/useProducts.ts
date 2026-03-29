@@ -24,6 +24,8 @@ export interface Product {
   storeSalePercent?: number;
   storeSaleEndsAt?: string;
   sizes?: string[];
+  brandCommissionRate?: number;
+  isBoosted?: boolean;
 }
 
 export interface Brand {
@@ -37,6 +39,7 @@ export interface Brand {
   rating?: number;
   productCount?: number;
   location?: string;
+  subscriptionTier?: string;
 }
 
 export interface Category {
@@ -52,19 +55,21 @@ export const useProducts = () => {
   return useQuery({
     queryKey: ["products"],
     queryFn: async (): Promise<Product[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("products")
         .select(`
           *,
-          brand:brands!inner(id, name, slug, status, location, store_sale_percent, store_sale_ends_at),
-          category:categories(id, name, slug)
-        `)
+          brand:brands!inner(id, name, slug, status, location, store_sale_percent, store_sale_ends_at, commission_rate, subscription_tier),
+          category:categories(id, name, slug),
+          ad_boosts(id, status, starts_at, ends_at)
+        `) as any)
         .eq("is_active", true)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
+      const products = (data as any[]) || [];
 
-      return (data || []).map((p) => ({
+      return products.map((p) => ({
         id: p.id,
         name: p.name,
         slug: p.slug,
@@ -87,7 +92,13 @@ export const useProducts = () => {
         storeSalePercent: p.brand?.store_sale_percent || undefined,
         storeSaleEndsAt: p.brand?.store_sale_ends_at || undefined,
         sizes: p.sizes || undefined,
-      }));
+        brandCommissionRate: p.brand?.commission_rate ? Number(p.brand.commission_rate) : 5,
+        isBoosted: (p.ad_boosts || []).some((b: any) => 
+          b.status === "active" && 
+          (!b.starts_at || new Date(b.starts_at) <= new Date()) && 
+          (!b.ends_at || new Date(b.ends_at) >= new Date())
+        ),
+      })).sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));
     },
   });
 };
@@ -97,42 +108,50 @@ export const useProduct = (slug: string) => {
   return useQuery({
     queryKey: ["product", slug],
     queryFn: async (): Promise<Product | null> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("products")
         .select(`
           *,
-          brand:brands!inner(id, name, slug, status, location, store_sale_percent, store_sale_ends_at),
-          category:categories(id, name, slug)
-        `)
+          brand:brands!inner(id, name, slug, status, location, store_sale_percent, store_sale_ends_at, commission_rate, subscription_tier),
+          category:categories(id, name, slug),
+          ad_boosts(id, status, starts_at, ends_at)
+        `) as any)
         .eq("slug", slug)
         .maybeSingle();
 
       if (error) throw error;
       if (!data) return null;
+      const product = data as any;
 
       return {
-        id: data.id,
-        name: data.name,
-        slug: data.slug,
-        price: Number(data.price),
-        originalPrice: data.original_price ? Number(data.original_price) : undefined,
-        image: data.image_url || "/placeholder.svg",
-        images: data.images || [],
-        brandId: data.brand?.id || "",
-        brandName: data.brand?.name || "",
-        brandSlug: data.brand?.slug || "",
-        brandLocation: data.brand?.location || undefined,
-        isVerifiedBrand: data.brand?.status === "verified",
-        category: data.category?.name || "",
-        categorySlug: data.category?.slug || "",
-        description: data.description || "",
-        inStock: data.in_stock ?? true,
-        listingType: data.listing_type || "regular",
-        releaseDate: data.release_date || undefined,
-        preorderDiscountPercent: data.preorder_discount_percent || undefined,
-        storeSalePercent: data.brand?.store_sale_percent || undefined,
-        storeSaleEndsAt: data.brand?.store_sale_ends_at || undefined,
-        sizes: data.sizes || undefined,
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        price: Number(product.price),
+        originalPrice: product.original_price ? Number(product.original_price) : undefined,
+        image: product.image_url || "/placeholder.svg",
+        images: product.images || [],
+        brandId: product.brand?.id || "",
+        brandName: product.brand?.name || "",
+        brandSlug: product.brand?.slug || "",
+        brandLocation: product.brand?.location || undefined,
+        isVerifiedBrand: product.brand?.status === "verified",
+        category: product.category?.name || "",
+        categorySlug: product.category?.slug || "" ,
+        description: product.description || "",
+        inStock: product.in_stock ?? true,
+        listingType: product.listing_type || "regular",
+        releaseDate: product.release_date || undefined,
+        preorderDiscountPercent: product.preorder_discount_percent || undefined,
+        storeSalePercent: product.brand?.store_sale_percent || undefined,
+        storeSaleEndsAt: product.brand?.store_sale_ends_at || undefined,
+        sizes: product.sizes || undefined,
+        brandCommissionRate: product.brand?.commission_rate ? Number(product.brand.commission_rate) : 5,
+        isBoosted: (product.ad_boosts || []).some((b: any) => 
+          b.status === "active" && 
+          (!b.starts_at || new Date(b.starts_at) <= new Date()) && 
+          (!b.ends_at || new Date(b.ends_at) >= new Date())
+        ),
       };
     },
     enabled: !!slug,
@@ -144,16 +163,16 @@ export const useBrands = () => {
   return useQuery({
     queryKey: ["brands"],
     queryFn: async (): Promise<Brand[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("brands")
-        .select("*, location")
+        .select("*, location, subscription_tier") as any)
         .in("status", ["approved", "verified"])
         .order("name");
 
       if (error) throw error;
 
       // Get product counts for each brand
-      const brandIds = (data || []).map((b) => b.id);
+      const brandIds = (data || []).map((b: any) => b.id);
       const { data: productCounts } = await supabase
         .from("products")
         .select("brand_id")
@@ -161,11 +180,11 @@ export const useBrands = () => {
         .in("brand_id", brandIds);
 
       const countMap: Record<string, number> = {};
-      (productCounts || []).forEach((p) => {
+      (productCounts || []).forEach((p: any) => {
         countMap[p.brand_id] = (countMap[p.brand_id] || 0) + 1;
       });
 
-      return (data || []).map((b) => ({
+      return (data || []).map((b: any) => ({
         id: b.id,
         name: b.name,
         slug: b.slug,
@@ -176,6 +195,7 @@ export const useBrands = () => {
         rating: b.rating ? Number(b.rating) : undefined,
         productCount: countMap[b.id] || 0,
         location: b.location || undefined,
+        subscriptionTier: b.subscription_tier,
       }));
     },
   });
@@ -186,32 +206,34 @@ export const useBrand = (slug: string) => {
   return useQuery({
     queryKey: ["brand", slug],
     queryFn: async (): Promise<Brand | null> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("brands")
-        .select("*")
+        .select("*, subscription_tier") as any)
         .eq("slug", slug)
         .maybeSingle();
 
       if (error) throw error;
       if (!data) return null;
+      const brand = data as any;
 
       // Get product count
       const { count } = await supabase
         .from("products")
         .select("*", { count: "exact", head: true })
-        .eq("brand_id", data.id)
+        .eq("brand_id", brand.id)
         .eq("is_active", true);
 
       return {
-        id: data.id,
-        name: data.name,
-        slug: data.slug,
-        logo: data.logo_url || "/placeholder.svg",
-        banner: data.banner_url || undefined,
-        description: data.description || "",
-        isVerified: data.status === "verified",
-        rating: data.rating ? Number(data.rating) : undefined,
+        id: brand.id,
+        name: brand.name,
+        slug: brand.slug,
+        logo: brand.logo_url || "/placeholder.svg",
+        banner: brand.banner_url || undefined,
+        description: brand.description || "",
+        isVerified: brand.status === "verified",
+        rating: brand.rating ? Number(brand.rating) : undefined,
         productCount: count || 0,
+        subscriptionTier: brand.subscription_tier,
       };
     },
     enabled: !!slug,
@@ -223,20 +245,21 @@ export const useProductsByBrand = (brandSlug: string) => {
   return useQuery({
     queryKey: ["products", "brand", brandSlug],
     queryFn: async (): Promise<Product[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("products")
         .select(`
           *,
-          brand:brands!inner(id, name, slug, status),
-          category:categories(id, name, slug)
-        `)
+          brand:brands!inner(id, name, slug, status, commission_rate, subscription_tier),
+          category:categories(id, name, slug),
+          ad_boosts(id, status, starts_at, ends_at)
+        `) as any)
         .eq("brand.slug", brandSlug)
         .eq("is_active", true)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      return (data || []).map((p) => ({
+      return (data || []).map((p: any) => ({
         id: p.id,
         name: p.name,
         slug: p.slug,
@@ -255,7 +278,13 @@ export const useProductsByBrand = (brandSlug: string) => {
         listingType: p.listing_type || "regular",
         releaseDate: p.release_date || undefined,
         preorderDiscountPercent: p.preorder_discount_percent || undefined,
-      }));
+        brandCommissionRate: p.brand?.commission_rate ? Number(p.brand.commission_rate) : 5,
+        isBoosted: (p.ad_boosts || []).some((b: any) => 
+          b.status === "active" && 
+          (!b.starts_at || new Date(b.starts_at) <= new Date()) && 
+          (!b.ends_at || new Date(b.ends_at) >= new Date())
+        ),
+      })).sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));
     },
     enabled: !!brandSlug,
   });
@@ -274,7 +303,7 @@ export const useCategories = () => {
       if (error) throw error;
 
       // Get product counts per category
-      const categoryIds = (data || []).map((c) => c.id);
+      const categoryIds = (data || []).map((c: any) => c.id);
       const { data: productCounts } = await supabase
         .from("products")
         .select("category_id")
@@ -282,11 +311,11 @@ export const useCategories = () => {
         .in("category_id", categoryIds);
 
       const countMap: Record<string, number> = {};
-      (productCounts || []).forEach((p) => {
+      (productCounts || []).forEach((p: any) => {
         if (p.category_id) countMap[p.category_id] = (countMap[p.category_id] || 0) + 1;
       });
 
-      return (data || []).map((c) => ({
+      return (data || []).map((c: any) => ({
         id: c.id,
         name: c.name,
         slug: c.slug,
@@ -302,20 +331,21 @@ export const useProductsByCategory = (categorySlug: string) => {
   return useQuery({
     queryKey: ["products", "category", categorySlug],
     queryFn: async (): Promise<Product[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("products")
         .select(`
           *,
-          brand:brands!inner(id, name, slug, status),
-          category:categories!inner(id, name, slug)
-        `)
+          brand:brands!inner(id, name, slug, status, commission_rate, subscription_tier),
+          category:categories!inner(id, name, slug),
+          ad_boosts(id, status, starts_at, ends_at)
+        `) as any)
         .eq("category.slug", categorySlug)
         .eq("is_active", true)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      return (data || []).map((p) => ({
+      return (data || []).map((p: any) => ({
         id: p.id,
         name: p.name,
         slug: p.slug,
@@ -334,7 +364,13 @@ export const useProductsByCategory = (categorySlug: string) => {
         listingType: p.listing_type || "regular",
         releaseDate: p.release_date || undefined,
         preorderDiscountPercent: p.preorder_discount_percent || undefined,
-      }));
+        brandCommissionRate: p.brand?.commission_rate ? Number(p.brand.commission_rate) : 5,
+        isBoosted: (p.ad_boosts || []).some((b: any) => 
+          b.status === "active" && 
+          (!b.starts_at || new Date(b.starts_at) <= new Date()) && 
+          (!b.ends_at || new Date(b.ends_at) >= new Date())
+        ),
+      })).sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));
     },
     enabled: !!categorySlug,
   });
@@ -353,19 +389,20 @@ export const useCategory = (slug: string) => {
 
       if (error) throw error;
       if (!data) return null;
+      const category = data as any;
 
       // Get actual product count
       const { count } = await supabase
         .from("products")
         .select("*", { count: "exact", head: true })
-        .eq("category_id", data.id)
+        .eq("category_id", category.id)
         .eq("is_active", true);
 
       return {
-        id: data.id,
-        name: data.name,
-        slug: data.slug,
-        image: data.image_url || undefined,
+        id: category.id,
+        name: category.name,
+        slug: category.slug,
+        image: category.image_url || undefined,
         productCount: count || 0,
       };
     },
