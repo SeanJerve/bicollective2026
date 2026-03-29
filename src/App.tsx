@@ -43,7 +43,7 @@ const VendorOrders = lazy(() => import("./pages/vendor/VendorOrders"));
 const VendorStore = lazy(() => import("./pages/vendor/VendorStore"));
 const VendorRegister = lazy(() => import("./pages/vendor/VendorRegister"));
 const VendorApplicationStatus = lazy(() => import("./pages/vendor/VendorApplicationStatus"));
-const VendorVerification = lazy(() => import("./pages/vendor/VendorVerification"));
+
 const VendorReviews = lazy(() => import("./pages/vendor/VendorReviews"));
 const VendorPromotions = lazy(() => import("./pages/vendor/VendorPromotions"));
 const VendorAnalytics = lazy(() => import("./pages/vendor/VendorAnalytics"));
@@ -178,7 +178,7 @@ const App = () => (
                   <Route path="products" element={<VendorProducts />} />
                   <Route path="orders" element={<VendorOrders />} />
                   <Route path="store" element={<VendorStore />} />
-                  <Route path="verification" element={<VendorVerification />} />
+
                   <Route path="reviews" element={<VendorReviews />} />
                   <Route path="promotions" element={<VendorPromotions />} />
                   <Route path="analytics" element={<VendorAnalytics />} />

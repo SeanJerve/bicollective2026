@@ -64,70 +64,29 @@ export const useNotifications = () => {
         .limit(10);
       setRecentNotifications(history || []);
 
-      // 2. Aggregate unread count from history
-      const unreadHistory = (history || []).filter(n => !n.read_at).length;
+      // 2. Aggregate unread counts from history for badge numbers
+      const unreadAlerts = history || [];
+      
+      // Reset counts to be alert-driven for the badge
+      newCounts.newReviews = unreadAlerts.filter(n => !n.read_at && n.type === 'review').length;
+      newCounts.pendingOrders = unreadAlerts.filter(n => !n.read_at && n.type === 'order' && n.link?.includes('/vendor')).length;
+      newCounts.orderUpdates = unreadAlerts.filter(n => !n.read_at && n.type === 'order' && n.link?.includes('/account')).length;
+      newCounts.pendingApplications = unreadAlerts.filter(n => !n.read_at && n.type === 'admin' && n.link?.includes('applications')).length;
+      newCounts.pendingVerifications = unreadAlerts.filter(n => !n.read_at && n.type === 'admin' && n.link?.includes('verifications')).length;
+      newCounts.pendingReports = unreadAlerts.filter(n => !n.read_at && n.type === 'admin' && n.link?.includes('reports')).length;
+      newCounts.pendingDisputes = unreadAlerts.filter(n => !n.read_at && (n.type === 'admin' || n.type === 'dispute') && n.link?.includes('disputes')).length;
+      newCounts.needsResubmission = unreadAlerts.filter(n => !n.read_at && n.type === 'status').length;
+      newCounts.lowStockProducts = unreadAlerts.filter(n => !n.read_at && n.type === 'inventory').length;
 
-      // 3. Admin specific counts
-      if (isAdmin) {
-        const [apps, verifs, reports, disputes] = await Promise.all([
-          supabase.from("vendor_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
-          supabase.from("vendor_verifications").select("*", { count: "exact", head: true }).eq("status", "pending"),
-          supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "pending"),
-          supabase.from("disputes").select("*", { count: "exact", head: true }).eq("status", "pending"),
-        ]);
-        newCounts.pendingApplications = apps.count || 0;
-        newCounts.pendingVerifications = verifs.count || 0;
-        newCounts.pendingReports = reports.count || 0;
-        newCounts.pendingDisputes = disputes.count || 0;
-      }
-
-      // 4. Vendor counts (Allow for admins who are also vendors)
-      if (isVendor) {
-        const { data: brand } = await supabase.from("brands").select("id").eq("owner_id", user.id).maybeSingle();
-        if (brand) {
-          const [orders, reviews, lowStock, verifs] = await Promise.all([
-            // Include paid/processing as pending for vendor
-            supabase.from("vendor_orders").select("*", { count: "exact", head: true }).eq("brand_id", brand.id).in("status", ["payment_uploaded", "pending_payment", "paid", "confirmed", "processing"]),
-            supabase.from("reviews").select("*", { count: "exact", head: true }).eq("brand_id", brand.id).eq("is_visible", true),
-            supabase.from("products").select("*", { count: "exact", head: true }).eq("brand_id", brand.id).lt("stock_quantity", 5),
-            supabase.from("vendor_verifications").select("status").eq("brand_id", brand.id).order("submitted_at", { ascending: false }).limit(1),
-          ]);
-          newCounts.pendingOrders = orders.count || 0;
-          newCounts.newReviews = reviews.count || 0;
-          newCounts.lowStockProducts = lowStock.count || 0;
-          newCounts.verificationResubmission = (verifs.data && verifs.data[0]?.status === "needs_resubmission") ? 1 : 0;
-        }
-      }
-
-      // 5. Customer specific counts
-      if (!isAdmin) {
-        const { data: customerOrders } = await supabase
-          .from("orders")
-          .select("id, vendor_orders!inner(status)")
-          .eq("customer_id", user.id)
-          .in("vendor_orders.status", ["payment_uploaded", "paid", "confirmed", "handed_to_courier", "for_delivery", "shipped"]);
-
-        const uniqueOrderIds = new Set(customerOrders?.map(o => o.id) || []);
-        newCounts.orderUpdates = uniqueOrderIds.size;
-
-        const { data: apps } = await supabase
-          .from("vendor_applications")
-          .select("status")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(1);
-        newCounts.needsResubmission = (apps && apps[0]?.status === "needs_resubmission") ? 1 : 0;
-      }
-
-      // 6. Messaging
+      // 6. Messaging (Already head-count based, but we can unify if needed)
       const { count: unreadMessages } = await supabase
         .from("messages")
         .select("*", { count: "exact", head: true })
         .eq("receiver_id", user.id)
         .is("read_at", null);
-      newCounts.unreadMessages = (unreadMessages || 0) + unreadHistory;
+      newCounts.unreadMessages = unreadMessages || 0;
 
-      // Filter out dismissed session counts
+      // Filter out dismissed session counts (if still needed, though database now handles persistence)
       Object.keys(newCounts).forEach((k) => {
         const key = k as keyof NotificationCounts;
         if (dismissedKeys.has(key)) {
@@ -237,7 +196,7 @@ export const useNotifications = () => {
   };
 
   const totalAdmin = counts.pendingApplications + counts.pendingVerifications + counts.pendingReports + counts.pendingDisputes;
-  const totalVendor = counts.pendingOrders + counts.lowStockProducts + counts.verificationResubmission;
+  const totalVendor = counts.pendingOrders + counts.lowStockProducts + counts.verificationResubmission + counts.newReviews;
   const totalCustomer = counts.orderUpdates + counts.needsResubmission;
 
   return { 

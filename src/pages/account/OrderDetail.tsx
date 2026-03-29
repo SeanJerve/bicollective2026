@@ -69,7 +69,7 @@ const OrderDetail = () => {
   const { user } = useAuth();
   const { addToCart } = useCart();
   const queryClient = useQueryClient();
-  const [reviewingVendorOrder, setReviewingVendorOrder] = useState<string | null>(null);
+  const [reviewingOrderItem, setReviewingOrderItem] = useState<string | null>(null);
   const [confirmingOrder, setConfirmingOrder] = useState<string | null>(null);
   const [showConfirmId, setShowConfirmId] = useState<string | null>(null);
   const [showCancelConfirmId, setShowCancelConfirmId] = useState<string | null>(null);
@@ -149,6 +149,7 @@ const OrderDetail = () => {
           *,
           vendor_orders(
             id,
+            brand_id,
             status,
             subtotal,
             shipping_fee,
@@ -332,16 +333,66 @@ const OrderDetail = () => {
 
               <div className="divide-y divide-border-subtle">
                 {vo.order_items?.map((item: any) => (
-                  <div key={item.id} className="py-3 flex justify-between items-center">
-                    <div>
-                      <p className="font-medium text-sm">{item.product_name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {item.size && `Size: ${item.size} · `}Qty: {item.quantity}
+                  <div key={item.id} className="py-3 border-b border-border-subtle last:border-0">
+                    <div className="flex justify-between items-center mb-1">
+                      <div>
+                        <p className="font-medium text-sm">{item.product_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.size && `Size: ${item.size} · `}Qty: {item.quantity}
+                        </p>
+                      </div>
+                      <p className="font-heading text-sm">
+                        {formatPrice(Number(item.product_price) * item.quantity)}
                       </p>
                     </div>
-                    <p className="font-heading text-sm">
-                      {formatPrice(Number(item.product_price) * item.quantity)}
-                    </p>
+
+                    {/* Per-item Review Section */}
+                    {vo.status === "delivered" && item.product_id && (
+                      <div className="mt-2">
+                        {existingReviews?.includes(item.product_id) ? (
+                          <p className="text-xs text-success flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            Item reviewed
+                          </p>
+                        ) : reviewingOrderItem === item.id ? (
+                          <div className="mt-4 p-4 bg-secondary/5 border border-foreground/10 animate-fade-in">
+                            <div className="flex items-center justify-between mb-4">
+                              <h4 className="font-heading text-xs uppercase flex items-center gap-2">
+                                <Star className="w-3.5 h-3.5" />
+                                Reviewing {item.product_name}
+                              </h4>
+                              <button 
+                                onClick={() => setReviewingOrderItem(null)}
+                                className="text-[10px] font-heading uppercase underline hover:text-destructive"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                            <ReviewForm
+                              productId={item.product_id}
+                              brandId={vo.brand_id}
+                              vendorOrderId={vo.id}
+                              onSuccess={() => {
+                                setReviewingOrderItem(null);
+                                queryClient.invalidateQueries({ queryKey: ["order-reviews", orderId] });
+                                queryClient.invalidateQueries({ queryKey: ["vendor-brand"] });
+                                queryClient.invalidateQueries({ queryKey: ["vendor-reviews"] });
+                                queryClient.invalidateQueries({ queryKey: ["vendor-stats"] });
+                                queryClient.invalidateQueries({ queryKey: ["product-reviews"] });
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setReviewingOrderItem(item.id)}
+                            className="text-xs font-heading uppercase flex items-center gap-1.5 px-3 py-1.5 border border-foreground hover:bg-foreground hover:text-background transition-colors"
+                          >
+                            <Star className="w-3.5 h-3.5" />
+                            Review Item
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -437,44 +488,6 @@ const OrderDetail = () => {
                 <div className="border-t border-border-subtle pt-4 mt-4">
                   <p className="text-xs text-muted-foreground italic">
                     This order is being processed and can no longer be cancelled.
-                  </p>
-                </div>
-              )}
-              {/* Review section for delivered orders */}
-              {vo.status === "delivered" && !existingReviews?.includes(vo.id) && (
-                <div className="border-t border-border-subtle pt-4 mt-4">
-                  {reviewingVendorOrder === vo.id ? (
-                    <div>
-                      <h4 className="font-heading text-sm uppercase mb-3 flex items-center gap-2">
-                        <Star className="w-4 h-4" />
-                        Leave a Review
-                      </h4>
-                      <ReviewForm
-                        brandId={vo.brand?.id}
-                        vendorOrderId={vo.id}
-                        onSuccess={() => {
-                          setReviewingVendorOrder(null);
-                          queryClient.invalidateQueries({ queryKey: ["order-reviews", orderId] });
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setReviewingVendorOrder(vo.id)}
-                      className="btn-brutal-secondary w-full flex items-center justify-center gap-2"
-                    >
-                      <Star className="w-4 h-4" />
-                      Leave a Review
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {vo.status === "delivered" && existingReviews?.includes(vo.id) && (
-                <div className="border-t border-border-subtle pt-4 mt-4">
-                  <p className="text-sm text-success flex items-center gap-2">
-                    <Star className="w-4 h-4 fill-success" />
-                    You've reviewed this order
                   </p>
                 </div>
               )}

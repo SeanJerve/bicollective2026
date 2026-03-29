@@ -29,15 +29,31 @@ const VendorReviews = () => {
         .from("reviews")
         .select(`
           *,
-          product:products(name, slug),
-          reviewer:profiles!reviews_user_id_fkey(full_name, avatar_url)
+          product:products(name, slug)
         `)
         .eq("brand_id", brand!.id)
-        .eq("is_visible", true)
         .order("created_at", { ascending: false })
         .limit(50);
+      
       if (error) throw error;
-      return data || [];
+      if (!data) return [];
+
+      // Manual enrichment for profiles
+      const userIds = [...new Set(data.map(r => r.user_id))];
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name, avatar_url")
+          .in("user_id", userIds);
+        
+        const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+        return data.map(r => ({
+          ...r,
+          reviewer: profileMap.get(r.user_id) || { full_name: "Anonymous", avatar_url: null }
+        }));
+      }
+      
+      return data;
     },
     enabled: !!brand,
   });

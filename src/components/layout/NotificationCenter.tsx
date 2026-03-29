@@ -28,8 +28,8 @@ const NotificationCenter = () => {
   ];
 
   const vendorItems = [
-    { label: "Orders Needing Action", count: counts.pendingOrders, key: "pendingOrders", icon: ShoppingCart, href: "/vendor/orders" },
-    { label: "New Reviews", count: counts.newReviews, key: "newReviews", icon: Star, href: "/vendor/reviews" },
+    { label: "New Orders to Process", count: counts.pendingOrders, key: "pendingOrders", icon: ShoppingCart, href: "/vendor/orders" },
+    { label: "New Review Alerts", count: counts.newReviews, key: "newReviews", icon: Star, href: "/vendor/reviews" },
     { label: "Low Stock Products", count: counts.lowStockProducts, key: "lowStockProducts", icon: Package, href: "/vendor/products" },
     { label: "Verification Resubmission", count: counts.verificationResubmission, key: "verificationResubmission", icon: Shield, href: "/vendor/verification" },
   ];
@@ -126,6 +126,7 @@ const NotificationCenter = () => {
                   >
                     <div className={`w-8 h-8 flex items-center justify-center flex-shrink-0 border border-foreground shadow-brutal-xs ${!notif.read_at ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                       {notif.type === 'order' ? <ShoppingCart className="w-4 h-4" /> : 
+                       notif.type === 'review' ? <Star className="w-4 h-4" /> : 
                        notif.type === 'message' ? <MessageSquare className="w-4 h-4" /> :
                        <Bell className="w-4 h-4" />}
                     </div>

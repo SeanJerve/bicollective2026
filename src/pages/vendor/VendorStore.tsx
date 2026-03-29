@@ -172,7 +172,7 @@ const VendorStore = () => {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto">
+    <div className="p-4 md:p-8 w-full">
       <div className="mb-6 md:mb-8">
         <h1 className="font-heading text-2xl md:text-4xl uppercase">
           {brand ? "Store Settings" : "Set Up Your Store"}

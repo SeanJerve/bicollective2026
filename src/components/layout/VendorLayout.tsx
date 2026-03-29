@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, ShoppingCart, Store, Star, Settings, LogOut, Tag, Menu, X, BarChart3, MessageSquare } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Store, Star, LogOut, Tag, Menu, X, BarChart3, MessageSquare, ChevronLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
 
@@ -19,7 +19,7 @@ const VendorLayout = () => {
     { href: "/vendor/store", label: "Store Settings", icon: Store },
     { href: "/vendor/reviews", label: "Reviews", icon: Star, badge: counts.newReviews },
     { href: "/vendor/analytics", label: "Analytics", icon: BarChart3 },
-    { href: "/vendor/verification", label: "Verification", icon: Settings, badge: counts.verificationResubmission },
+
   ];
 
   const isActive = (path: string, exact?: boolean) => {
@@ -54,10 +54,10 @@ const VendorLayout = () => {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — slides in from the RIGHT on mobile */}
       <aside
-        className={`fixed md:sticky top-0 left-0 z-50 md:z-auto h-screen w-64 bg-foreground text-background border-r-2 border-foreground flex flex-col transition-transform duration-200 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        className={`fixed md:sticky top-0 right-0 md:left-0 z-50 md:z-auto h-screen w-64 bg-foreground text-background border-l-2 md:border-l-0 md:border-r-2 border-foreground flex flex-col transition-transform duration-200 ${
+          sidebarOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"
         }`}
       >
         <div className="p-6 border-b border-background/20">
@@ -68,6 +68,12 @@ const VendorLayout = () => {
         </div>
 
         <nav className="flex-1 p-4 overflow-y-auto">
+          <div className="mb-4 px-4">
+            <Link to="/" className="text-[10px] font-heading uppercase flex items-center gap-1.5 text-background/60 hover:text-background transition-colors">
+              <ChevronLeft className="w-3 h-3" />
+              Back to Marketplace
+            </Link>
+          </div>
           <ul className="space-y-2">
             {navItems.map((item) => (
               <li key={item.href}>
@@ -79,7 +85,7 @@ const VendorLayout = () => {
                     if (item.label === "Orders") dismiss("pendingOrders");
                     if (item.label === "Messages") dismiss("unreadMessages");
                     if (item.label === "Reviews") dismiss("newReviews");
-                    if (item.label === "Verification") dismiss("verificationResubmission");
+
                   }}
                   className={`flex items-center gap-3 px-4 py-3 font-heading text-sm uppercase tracking-wide transition-colors ${
                     isActive(item.href, item.exact)

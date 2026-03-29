@@ -114,6 +114,7 @@ const Header = () => {
                 {user && (
                   <NotificationBadge
                     count={(isAdmin ? totalAdmin : isVendor ? totalVendor + totalCustomer : totalCustomer) + counts.unreadMessages}
+                    dot
                   />
                 )}
               </button>

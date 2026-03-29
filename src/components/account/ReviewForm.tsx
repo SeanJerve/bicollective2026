@@ -19,6 +19,7 @@ const ReviewForm = ({ productId, brandId, vendorOrderId, onSuccess }: ReviewForm
   const [comment, setComment] = useState("");
   const [images, setImages] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [triedSubmitting, setTriedSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,6 +39,7 @@ const ReviewForm = ({ productId, brandId, vendorOrderId, onSuccess }: ReviewForm
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setTriedSubmitting(true);
 
     if (!user) {
       toast({
@@ -87,6 +89,7 @@ const ReviewForm = ({ productId, brandId, vendorOrderId, onSuccess }: ReviewForm
         rating,
         comment: comment.trim() || null,
         media_urls: mediaUrls.length > 0 ? mediaUrls : null,
+        is_visible: true,
       });
 
       if (error) throw error;
@@ -133,6 +136,11 @@ const ReviewForm = ({ productId, brandId, vendorOrderId, onSuccess }: ReviewForm
             </button>
           ))}
         </div>
+        {triedSubmitting && rating === 0 && (
+          <p className="text-destructive text-xs font-heading uppercase mt-2 animate-in fade-in slide-in-from-top-1">
+            Please select a rating from 1-5 stars
+          </p>
+        )}
       </div>
 
       <div>
@@ -189,7 +197,7 @@ const ReviewForm = ({ productId, brandId, vendorOrderId, onSuccess }: ReviewForm
 
       <button
         type="submit"
-        disabled={submitting || rating === 0}
+        disabled={submitting}
         className="btn-brutal w-full flex items-center justify-center gap-2"
       >
         {submitting ? (

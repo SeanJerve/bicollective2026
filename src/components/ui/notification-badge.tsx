@@ -1,10 +1,19 @@
 interface NotificationBadgeProps {
   count: number;
   className?: string;
+  dot?: boolean;
 }
 
-const NotificationBadge = ({ count, className = "" }: NotificationBadgeProps) => {
+const NotificationBadge = ({ count, className = "", dot = false }: NotificationBadgeProps) => {
   if (count <= 0) return null;
+
+  if (dot) {
+    return (
+      <span
+        className={`absolute -top-1 -right-1 w-2.5 h-2.5 bg-destructive rounded-full border border-background shadow-sm ${className}`}
+      />
+    );
+  }
 
   return (
     <span

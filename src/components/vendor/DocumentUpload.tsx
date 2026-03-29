@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Upload, X, FileText, Loader2 } from "lucide-react";
+import { Upload, X, FileText, Loader2, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -104,13 +104,23 @@ const DocumentUpload = ({
       )}
 
       {value ? (
-        <div className="flex items-center gap-3 p-3 border-2 border-foreground bg-secondary">
-          <FileText className="w-5 h-5 flex-shrink-0" />
-          <span className="flex-1 text-sm truncate">{getFileName(value)}</span>
+        <div className="flex items-center gap-2 p-3 border-2 border-foreground bg-secondary group">
+          <a
+            href={value}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-70 transition-opacity"
+            title="Click to view document"
+          >
+            <FileText className="w-5 h-5 flex-shrink-0" />
+            <span className="flex-1 text-sm truncate">{getFileName(value)}</span>
+            <ExternalLink className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground" />
+          </a>
           <button
             type="button"
             onClick={handleRemove}
-            className="p-1 hover:bg-background transition-colors"
+            className="p-1 hover:bg-background transition-colors flex-shrink-0"
+            title="Remove file"
           >
             <X className="w-4 h-4" />
           </button>

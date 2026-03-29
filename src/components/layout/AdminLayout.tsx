@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, Package, ShoppingCart, Flag, BadgeCheck, LogOut, Tag, Ticket, Gift, BarChart3, AlertTriangle, Menu, X, UserCog } from "lucide-react";
+import { LayoutDashboard, Users, Package, ShoppingCart, Flag, BadgeCheck, LogOut, Tag, Ticket, Gift, BarChart3, AlertTriangle, Menu, X, UserCog, ChevronLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
 
@@ -68,8 +68,8 @@ const AdminLayout = () => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed md:sticky top-0 left-0 z-50 md:z-auto h-screen w-64 bg-foreground text-background border-r-2 border-foreground flex flex-col transition-transform duration-200 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        className={`fixed md:sticky top-0 right-0 md:left-0 z-50 md:z-auto h-screen w-64 bg-foreground text-background border-l-2 md:border-l-0 md:border-r-2 border-foreground flex flex-col transition-transform duration-200 ${
+          sidebarOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"
         }`}
       >
         <div className="p-6 border-b border-background/20">
@@ -80,6 +80,12 @@ const AdminLayout = () => {
         </div>
 
         <nav className="flex-1 p-4 overflow-y-auto">
+          <div className="mb-4 px-4">
+            <Link to="/" className="text-[10px] font-heading uppercase flex items-center gap-1.5 text-background/60 hover:text-background transition-colors">
+              <ChevronLeft className="w-3 h-3" />
+              Back to Marketplace
+            </Link>
+          </div>
           <ul className="space-y-2">
             {navItems.map((item) => (
               <li key={item.href}>
