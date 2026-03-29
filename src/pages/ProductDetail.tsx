@@ -469,9 +469,22 @@ const ProductDetail = () => {
       {filteredRelated.length > 0 && (
         <section className="py-12 md:py-16 border-t-2 border-foreground">
           <div className="section-container">
-            <h2 className="font-heading text-2xl md:text-3xl uppercase mb-6 md:mb-8">
-              More from {product.brandName}
-            </h2>
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6 md:mb-8">
+              <div>
+                <span className="text-xs uppercase tracking-widest text-muted-foreground block mb-1">
+                  {product.brandName}
+                </span>
+                <h2 className="font-heading text-2xl md:text-3xl uppercase">
+                  More From The Same Shop
+                </h2>
+              </div>
+              <Link
+                to={`/brands/${product.brandSlug}`}
+                className="font-heading text-sm uppercase hover:opacity-60 transition-opacity inline-flex items-center gap-1"
+              >
+                View Shop
+              </Link>
+            </div>
             <div className="product-grid">
               {relatedLoading
                 ? Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)
