@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { Globe } from "lucide-react";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -13,14 +14,14 @@ const Footer = () => {
     ],
     forVendors: isVendor
       ? [
-          { href: "/vendor", label: "Vendor Dashboard" },
-          { href: "/vendor/guidelines", label: "Seller Guidelines" },
-        ]
+        { href: "/vendor", label: "Vendor Dashboard" },
+        { href: "/vendor/guidelines", label: "Seller Guidelines" },
+      ]
       : [
-          { href: "/vendor/register", label: "Become a Vendor" },
-          { href: "/login", label: "Sign In as Vendor" },
-          { href: "/vendor/guidelines", label: "Seller Guidelines" },
-        ],
+        { href: "/vendor/register", label: "Become a Vendor" },
+        { href: "/login", label: "Sign In as Vendor" },
+        { href: "/vendor/guidelines", label: "Seller Guidelines" },
+      ],
     support: [
       { href: "/help", label: "Help Center" },
       { href: "/contact", label: "Contact Us" },
@@ -127,10 +128,22 @@ const Footer = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-12 pt-8 border-t border-background/20 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm opacity-60">
-            © {currentYear} Bicollective. All rights reserved.
-          </p>
+        <div className="mt-12 pt-8 border-t border-background/20 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            <p className="text-sm opacity-60">
+              © {currentYear} Bicollective. All rights reserved.
+            </p>
+            <div className="h-1 w-1 bg-background/20 rounded-full hidden md:block" />
+            <div className="flex items-center gap-2 px-3 py-1.5 border border-background/20 rounded-none bg-background/5 text-sm">
+              <Globe className="w-3.5 h-3.5" />
+              <select
+                className="bg-transparent border-none focus:ring-0 cursor-default font-heading uppercase text-xs"
+                disabled
+              >
+                <option value="en">English</option>
+              </select>
+            </div>
+          </div>
           <p className="text-sm opacity-60">
             Supporting local Bicolano fashion 🇵🇭
           </p>

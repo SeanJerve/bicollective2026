@@ -152,7 +152,7 @@
 
   /* Neo-Brutalist Button */
   .btn-brutal {
-    @apply bg-primary text-primary-foreground font-heading uppercase tracking-wide px-6 py-3 border-2 border-foreground;
+    @apply flex inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-heading uppercase tracking-wide px-6 py-3 border-2 border-foreground whitespace-nowrap;
     box-shadow: var(--shadow-brutal);
     transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
   }
@@ -169,7 +169,7 @@
 
   /* Secondary Button */
   .btn-brutal-secondary {
-    @apply bg-background text-foreground font-heading uppercase tracking-wide px-6 py-3 border-2 border-foreground;
+    @apply flex inline-flex items-center justify-center gap-2 bg-background text-foreground font-heading uppercase tracking-wide px-6 py-3 border-2 border-foreground whitespace-nowrap;
     box-shadow: var(--shadow-brutal);
     transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
   }

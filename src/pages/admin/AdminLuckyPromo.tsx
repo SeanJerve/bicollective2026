@@ -68,13 +68,13 @@ const AdminLuckyPromo = () => {
 
   return (
     <div className="p-4 md:p-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="font-heading text-2xl md:text-4xl uppercase">Lucky Promo Config</h1>
           <p className="text-muted-foreground text-sm">Configure the random daily reward popup for logged-in users</p>
         </div>
-        <button onClick={handleSave} disabled={saving} className="btn-brutal">
-          {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+        <button onClick={handleSave} disabled={saving} className="btn-brutal w-full md:w-auto">
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           Save Settings
         </button>
       </div>

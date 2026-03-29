@@ -185,6 +185,7 @@ const VendorFinances = () => {
                     <th className="p-4">Date</th>
                     <th className="p-4">Amount</th>
                     <th className="p-4">Status</th>
+                    <th className="p-4">Receipt</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-subtle">
@@ -202,6 +203,20 @@ const VendorFinances = () => {
                         }`}>
                           {t.status}
                         </span>
+                      </td>
+                      <td className="p-4">
+                        {t.payment_proof_url ? (
+                          <a 
+                            href={t.payment_proof_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-accent hover:underline flex items-center gap-1 font-heading text-[10px]"
+                          >
+                            <Upload className="w-3 h-3" /> View
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground opacity-40">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}

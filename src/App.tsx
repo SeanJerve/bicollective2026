@@ -173,7 +173,7 @@ const App = () => (
                 <Route
                   path="/vendor"
                   element={
-                    <ProtectedRoute requireAuth requireVendor>
+                    <ProtectedRoute requireAuth={true} requireVendor={true}>
                       <VendorLayout />
                     </ProtectedRoute>
                   }
@@ -196,7 +196,7 @@ const App = () => (
                 <Route
                   path="/admin"
                   element={
-                    <ProtectedRoute requireAuth requireAdmin>
+                    <ProtectedRoute requireAuth={true} requireAdmin={true}>
                       <AdminLayout />
                     </ProtectedRoute>
                   }

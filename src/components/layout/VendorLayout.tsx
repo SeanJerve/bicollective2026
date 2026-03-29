@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import { LayoutDashboard, Package, ShoppingCart, Store, Star, LogOut, Tag, Menu, X, BarChart3, MessageSquare, ChevronLeft, DollarSign, Zap, Award } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
+import Breadcrumbs from "./Breadcrumbs";
 
 const VendorLayout = () => {
   const location = useLocation();
@@ -22,7 +23,6 @@ const VendorLayout = () => {
     { href: "/vendor/finances", label: "Finances", icon: DollarSign },
     { href: "/vendor/marketing", label: "Marketing", icon: Zap },
     { href: "/vendor/premium", label: "Premium Plan", icon: Award },
-
   ];
 
   const isActive = (path: string, exact?: boolean) => {
@@ -71,12 +71,6 @@ const VendorLayout = () => {
         </div>
 
         <nav className="flex-1 p-4 overflow-y-auto">
-          <div className="mb-4 px-4">
-            <Link to="/" className="text-[10px] font-heading uppercase flex items-center gap-1.5 text-background/60 hover:text-background transition-colors">
-              <ChevronLeft className="w-3 h-3" />
-              Back to Marketplace
-            </Link>
-          </div>
           <ul className="space-y-2">
             {navItems.map((item) => (
               <li key={item.href}>
@@ -88,7 +82,6 @@ const VendorLayout = () => {
                     if (item.label === "Orders") dismiss("pendingOrders");
                     if (item.label === "Messages") dismiss("unreadMessages");
                     if (item.label === "Reviews") dismiss("newReviews");
-
                   }}
                   className={`flex items-center gap-3 px-4 py-3 font-heading text-sm uppercase tracking-wide transition-colors ${
                     isActive(item.href, item.exact)
@@ -126,7 +119,10 @@ const VendorLayout = () => {
 
       {/* Main Content */}
       <main className="flex-1 bg-background overflow-auto pt-14 md:pt-0">
-        <Outlet />
+        <div className="p-4 md:p-8">
+          <Breadcrumbs />
+          <Outlet />
+        </div>
       </main>
     </div>
   );

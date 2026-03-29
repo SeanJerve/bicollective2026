@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Users, Package, ShoppingCart, Flag, BadgeCheck, LogOut, Tag, Ticket, Gift, BarChart3, AlertTriangle, Menu, X, UserCog, ChevronLeft, DollarSign } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
+import Breadcrumbs from "./Breadcrumbs";
 
 const AdminLayout = () => {
   const location = useLocation();
@@ -10,8 +11,6 @@ const AdminLayout = () => {
   const { signOut, user } = useAuth();
   const { counts, dismiss } = useNotifications();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const comingSoonItems: string[] = [];
 
   const navItems = [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -81,12 +80,6 @@ const AdminLayout = () => {
         </div>
 
         <nav className="flex-1 p-4 overflow-y-auto">
-          <div className="mb-4 px-4">
-            <Link to="/" className="text-[10px] font-heading uppercase flex items-center gap-1.5 text-background/60 hover:text-background transition-colors">
-              <ChevronLeft className="w-3 h-3" />
-              Back to Marketplace
-            </Link>
-          </div>
           <ul className="space-y-2">
             {navItems.map((item) => (
               <li key={item.href}>
@@ -132,7 +125,10 @@ const AdminLayout = () => {
 
       {/* Main Content */}
       <main className="flex-1 bg-background overflow-auto pt-14 md:pt-0">
-        <Outlet />
+        <div className="p-4 md:p-8">
+          <Breadcrumbs />
+          <Outlet />
+        </div>
       </main>
     </div>
   );

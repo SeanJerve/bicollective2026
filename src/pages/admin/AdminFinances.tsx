@@ -107,7 +107,7 @@ const AdminFinances = () => {
   };
 
   return (
-    <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto">
+    <div className="p-4 md:p-8 space-y-8 max-w-7xl">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-heading text-3xl uppercase">Financial Management</h1>
@@ -129,7 +129,7 @@ const AdminFinances = () => {
                   <p className="text-xs font-heading text-muted-foreground uppercase">
                     {t.transaction_type === 'debt_payment' ? 'Debt Settlement' : 'Premium Sub'} - ₱{t.amount}
                   </p>
-                  <a href={`${supabase.storage.from('payment-proofs').getPublicUrl(t.payment_proof_url).data.publicUrl}`} target="_blank" className="text-[10px] text-accent font-bold uppercase hover:underline flex items-center gap-1">
+                  <a href={t.payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent font-bold uppercase hover:underline flex items-center gap-1">
                     <Eye className="w-3 h-3" /> View Receipt
                   </a>
                 </div>
@@ -159,7 +159,7 @@ const AdminFinances = () => {
                   <div className="space-y-1">
                     <p className="font-heading text-sm uppercase leading-tight">{b.product?.name}</p>
                     <p className="text-[10px] opacity-60 uppercase font-heading">{b.brand?.name} • {b.boost_type} Boost</p>
-                    <a href={`${supabase.storage.from('payment-proofs').getPublicUrl(b.payment_proof_url).data.publicUrl}`} target="_blank" className="text-[10px] text-accent font-bold uppercase hover:underline flex items-center gap-1">
+                    <a href={b.payment_proof_url || "#"} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent font-bold uppercase hover:underline flex items-center gap-1">
                       <Eye className="w-3 h-3" /> View Receipt
                     </a>
                   </div>
