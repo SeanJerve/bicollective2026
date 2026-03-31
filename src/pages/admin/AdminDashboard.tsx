@@ -7,14 +7,13 @@ const AdminDashboard = () => {
   const { data: stats } = useQuery({
     queryKey: ["admin-dashboard-stats"],
     queryFn: async () => {
-      const [totalVendors, verifiedVendors, totalProducts, totalOrders, pendingReports, pendingApplications, pendingDisputes, deliveredOrders] = await Promise.all([
+      const [totalVendors, verifiedVendors, totalProducts, totalOrders, pendingReports, pendingApplications, deliveredOrders] = await Promise.all([
         supabase.from("brands").select("*", { count: "exact", head: true }),
         supabase.from("brands").select("*", { count: "exact", head: true }).eq("status", "verified"),
         supabase.from("products").select("*", { count: "exact", head: true }),
         supabase.from("orders").select("*", { count: "exact", head: true }),
         supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("vendor_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.from("disputes").select("*", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("vendor_orders").select("subtotal, shipping_fee").eq("status", "delivered"),
       ]);
 
@@ -29,7 +28,6 @@ const AdminDashboard = () => {
         totalOrders: totalOrders.count || 0,
         pendingReports: pendingReports.count || 0,
         pendingApplications: pendingApplications.count || 0,
-        pendingDisputes: pendingDisputes.count || 0,
         revenue,
       };
     },
@@ -48,7 +46,7 @@ const AdminDashboard = () => {
     },
   });
 
-  const s = stats || { totalVendors: 0, verifiedVendors: 0, totalProducts: 0, totalOrders: 0, pendingReports: 0, pendingApplications: 0, pendingDisputes: 0, revenue: 0 };
+  const s = stats || { totalVendors: 0, verifiedVendors: 0, totalProducts: 0, totalOrders: 0, pendingReports: 0, pendingApplications: 0, revenue: 0 };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -90,7 +88,6 @@ const AdminDashboard = () => {
           { icon: ShoppingCart, label: "Total Orders", value: s.totalOrders },
           { icon: AlertTriangle, label: "Reports", value: s.pendingReports, highlight: s.pendingReports > 0 },
           { icon: FileText, label: "Applications", value: s.pendingApplications, highlight: s.pendingApplications > 0 },
-          { icon: Scale, label: "Disputes", value: s.pendingDisputes, highlight: s.pendingDisputes > 0 },
         ].map((item) => (
           <div key={item.label} className="card-brutal p-4 md:p-6">
             <div className="flex items-center gap-3 md:gap-4">
@@ -114,7 +111,6 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 md:mb-8">
         {[
           { label: "Applications", to: "/admin/applications", count: s.pendingApplications },
-          { label: "Disputes", to: "/admin/disputes", count: s.pendingDisputes },
           { label: "Reports", to: "/admin/reports", count: s.pendingReports },
           { label: "Analytics", to: "/admin/analytics", count: null },
         ].map((link) => (

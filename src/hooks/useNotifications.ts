@@ -7,7 +7,6 @@ interface NotificationCounts {
   pendingApplications: number;
   pendingVerifications: number;
   pendingReports: number;
-  pendingDisputes: number;
   // Vendor counts
   pendingOrders: number;
   newReviews: number;
@@ -24,7 +23,6 @@ const EMPTY_COUNTS: NotificationCounts = {
   pendingApplications: 0,
   pendingVerifications: 0,
   pendingReports: 0,
-  pendingDisputes: 0,
   pendingOrders: 0,
   newReviews: 0,
   lowStockProducts: 0,
@@ -34,14 +32,27 @@ const EMPTY_COUNTS: NotificationCounts = {
   unreadMessages: 0,
 };
 
-// Track dismissed notifications per session
-const dismissedKeys = new Set<string>();
+// Session persistence key
+const DISMISSED_STORAGE_KEY = "bicollective_dismissed_notifications";
 
 export const useNotifications = () => {
   const { user, isAdmin, isVendor } = useAuth();
   const [counts, setCounts] = useState<NotificationCounts>(EMPTY_COUNTS);
   const [loading, setLoading] = useState(false);
   const [recentNotifications, setRecentNotifications] = useState<any[]>([]);
+  const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(new Set());
+
+  // Re-hydrate dismissed keys from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(DISMISSED_STORAGE_KEY);
+    if (saved) {
+      try {
+        setDismissedKeys(new Set(JSON.parse(saved)));
+      } catch (e) {
+        console.error("Failed to load dismissed notifications", e);
+      }
+    }
+  }, []);
 
   const fetchCounts = useCallback(async () => {
     if (!user) {
@@ -64,19 +75,24 @@ export const useNotifications = () => {
         .limit(10);
       setRecentNotifications(history || []);
 
-      // 2. Aggregate unread counts from history for badge numbers
-      const unreadAlerts = history || [];
+      // 2. Fetch ALL unread notifications for accurate badge counting
+      const { data: unreadAlerts } = await (supabase as any)
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user.id)
+        .is("read_at", null);
+
+      const allUnreads = unreadAlerts || [];
       
-      // Reset counts to be alert-driven for the badge
-      newCounts.newReviews = unreadAlerts.filter(n => !n.read_at && n.type === 'review').length;
-      newCounts.pendingOrders = unreadAlerts.filter(n => !n.read_at && n.type === 'order' && n.link?.includes('/vendor')).length;
-      newCounts.orderUpdates = unreadAlerts.filter(n => !n.read_at && n.type === 'order' && n.link?.includes('/account')).length;
-      newCounts.pendingApplications = unreadAlerts.filter(n => !n.read_at && n.type === 'admin' && n.link?.includes('applications')).length;
-      newCounts.pendingVerifications = unreadAlerts.filter(n => !n.read_at && n.type === 'admin' && n.link?.includes('verifications')).length;
-      newCounts.pendingReports = unreadAlerts.filter(n => !n.read_at && n.type === 'admin' && n.link?.includes('reports')).length;
-      newCounts.pendingDisputes = unreadAlerts.filter(n => !n.read_at && (n.type === 'admin' || n.type === 'dispute') && n.link?.includes('disputes')).length;
-      newCounts.needsResubmission = unreadAlerts.filter(n => !n.read_at && n.type === 'status').length;
-      newCounts.lowStockProducts = unreadAlerts.filter(n => !n.read_at && n.type === 'inventory').length;
+      // Reset counts based on all unread alerts
+      newCounts.newReviews = allUnreads.filter(n => n.type === 'review').length;
+      newCounts.pendingOrders = allUnreads.filter(n => n.type === 'order' && (n.link?.includes('/vendor') || n.link?.includes('/orders'))).length;
+      newCounts.orderUpdates = allUnreads.filter(n => n.type === 'order' && n.link?.includes('/account')).length;
+      newCounts.pendingApplications = allUnreads.filter(n => n.type === 'admin' && n.link?.includes('applications')).length;
+      newCounts.pendingVerifications = allUnreads.filter(n => n.type === 'admin' && n.link?.includes('verifications')).length;
+      newCounts.pendingReports = allUnreads.filter(n => n.type === 'admin' && n.link?.includes('reports')).length;
+      newCounts.needsResubmission = allUnreads.filter(n => n.type === 'status').length;
+      newCounts.lowStockProducts = allUnreads.filter(n => n.type === 'inventory').length;
 
       // 6. Messaging (Already head-count based, but we can unify if needed)
       const { count: unreadMessages } = await supabase
@@ -85,14 +101,6 @@ export const useNotifications = () => {
         .eq("receiver_id", user.id)
         .is("read_at", null);
       newCounts.unreadMessages = unreadMessages || 0;
-
-      // Filter out dismissed session counts (if still needed, though database now handles persistence)
-      Object.keys(newCounts).forEach((k) => {
-        const key = k as keyof NotificationCounts;
-        if (dismissedKeys.has(key)) {
-          newCounts[key] = 0;
-        }
-      });
 
       setCounts(newCounts);
     } catch (error) {
@@ -139,7 +147,6 @@ export const useNotifications = () => {
         .on("postgres_changes", { event: "*", schema: "public", table: "vendor_applications" }, debouncedFetchCounts)
         .on("postgres_changes", { event: "*", schema: "public", table: "vendor_verifications" }, debouncedFetchCounts)
         .on("postgres_changes", { event: "*", schema: "public", table: "reports" }, debouncedFetchCounts)
-        .on("postgres_changes", { event: "*", schema: "public", table: "disputes" }, debouncedFetchCounts)
         .subscribe();
       channels.push(adminChannel);
     }
@@ -190,12 +197,46 @@ export const useNotifications = () => {
     };
   }, [user, isAdmin, isVendor, fetchCounts, debouncedFetchCounts]);
 
-  const dismiss = (key: keyof NotificationCounts) => {
-    dismissedKeys.add(key);
+  const dismiss = async (key: keyof NotificationCounts) => {
+    // Immediate UI feedback
     setCounts((prev) => ({ ...prev, [key]: 0 }));
+    
+    // Persist session-level dismissal to avoid flicker on re-fetches
+    const newDismissed = new Set(dismissedKeys);
+    newDismissed.add(key);
+    setDismissedKeys(newDismissed);
+    localStorage.setItem(DISMISSED_STORAGE_KEY, JSON.stringify(Array.from(newDismissed)));
+
+    if (!user) return;
+
+    try {
+      // Specialized dismissal logic for each key
+      if (key === "unreadMessages") {
+        await supabase.from("messages").update({ read_at: new Date().toISOString() }).eq("receiver_id", user.id).is("read_at", null);
+      } else {
+        // Map keys to notification types/links for database-level "read" status
+        let query: any = (supabase as any).from("notifications").update({ read_at: new Date().toISOString() }).eq("user_id", user.id).is("read_at", null);
+        
+        if (key === "pendingApplications") query = query.eq("type", "admin").ilike("link", "%applications%");
+        if (key === "pendingVerifications") query = query.eq("type", "admin").ilike("link", "%verifications%");
+        if (key === "pendingReports") query = query.eq("type", "admin").ilike("link", "%reports%");
+        if (key === "newReviews") query = query.eq("type", "review");
+        if (key === "pendingOrders") query = query.filter("type", "eq", "order").or("link.ilike.%vendor%,link.ilike.%orders%");
+        if (key === "orderUpdates") query = query.eq("type", "order").ilike("link", "%account%");
+        if (key === "needsResubmission") query = query.eq("type", "status");
+        if (key === "lowStockProducts") query = query.eq("type", "inventory");
+
+        await query;
+      }
+      
+      // Refresh to ensure database state and local count match
+      fetchCounts();
+    } catch (e) {
+      console.error("Failed to persist notification dismissal", e);
+    }
   };
 
-  const totalAdmin = counts.pendingApplications + counts.pendingVerifications + counts.pendingReports + counts.pendingDisputes;
+  const totalAdmin = counts.pendingApplications + counts.pendingVerifications + counts.pendingReports;
   const totalVendor = counts.pendingOrders + counts.lowStockProducts + counts.verificationResubmission + counts.newReviews;
   const totalCustomer = counts.orderUpdates + counts.needsResubmission;
 

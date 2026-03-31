@@ -70,7 +70,7 @@ const Login = () => {
   };
 
   return (
-    <PageLayout>
+    <PageLayout hideHeader>
       <section className="py-8 md:py-16">
         <div className="section-container">
           {/* Title */}

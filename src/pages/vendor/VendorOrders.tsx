@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle, Truck, Package, Loader2, HandMetal, MapPin, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle, XCircle, Truck, Package, Loader2, HandMetal, MapPin, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import OrderChat from "@/components/chat/OrderChat";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,14 +30,46 @@ const VendorPaymentProofImage = ({ path, paymentMethod }: { path: string; paymen
   );
 };
 
+// Filter definition
+type FilterValue =
+  | "all"
+  | "pending_payment"
+  | "payment_uploaded"
+  | "confirmed"
+  | "processing"
+  | "paid_delivered"
+  | "cancelled";
+
+const FILTERS: { value: FilterValue; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "pending_payment", label: "Pending Payment" },
+  { value: "payment_uploaded", label: "Payment Uploaded" },
+  { value: "confirmed", label: "COD Confirmed" },
+  { value: "processing", label: "Processing" },
+  { value: "paid_delivered", label: "Paid / Delivered" },
+  { value: "cancelled", label: "Cancelled" },
+];
+
+// Statuses that map to each filter tab
+const PROCESSING_STATUSES = ["paid", "processing", "handed_to_courier", "shipped", "for_delivery"];
+const PAID_DELIVERED_STATUSES = ["delivered"];
+
+const matchesFilter = (status: string, filter: FilterValue): boolean => {
+  if (filter === "all") return true;
+  if (filter === "processing") return PROCESSING_STATUSES.includes(status);
+  if (filter === "paid_delivered") return PAID_DELIVERED_STATUSES.includes(status);
+  return status === filter;
+};
+
 const VendorOrders = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [filter, setFilter] = useState<string>("all");
+  const [filter, setFilter] = useState<FilterValue>("all");
   const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
   const [updatingTracking, setUpdatingTracking] = useState<string | null>(null);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [refusingOrderId, setRefusingOrderId] = useState<string | null>(null);
 
   const toggleOrder = (orderId: string) => {
     setExpandedOrder(prev => prev === orderId ? null : orderId);
@@ -152,6 +184,51 @@ const VendorOrders = () => {
     }
   };
 
+  const handleRefusePayment = async (orderId: string) => {
+    try {
+      const { error } = await supabase
+        .from("vendor_orders")
+        .update({ status: "pending_payment", payment_proof_url: null })
+        .eq("id", orderId);
+
+      if (error) throw error;
+
+      const order = orders.find((o) => o.id === orderId);
+      if (order && user) {
+        const { data: parentOrder } = await supabase
+          .from("orders")
+          .select("customer_id")
+          .eq("id", order.order_id)
+          .single();
+
+        if (parentOrder) {
+          await supabase.from("messages").insert({
+            sender_id: user.id,
+            receiver_id: parentOrder.customer_id,
+            vendor_order_id: orderId,
+            content: "❌ Your payment proof was not accepted. Please re-upload a clear screenshot of your payment and try again.",
+            is_system_message: true,
+          });
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["vendor-orders", brand?.id] });
+      setRefusingOrderId(null);
+
+      toast({
+        title: "Payment refused",
+        description: "The customer has been notified to re-upload their proof.",
+      });
+    } catch (error) {
+      console.error("Error refusing payment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to refuse payment",
+        variant: "destructive",
+      });
+    }
+  };
+
   const updateTrackingNumber = async (orderId: string) => {
     const trackingNumber = trackingInputs[orderId]?.trim();
     if (!trackingNumber) {
@@ -220,17 +297,12 @@ const VendorOrders = () => {
         return "bg-success text-success-foreground";
       case "cancelled":
         return "bg-destructive text-destructive-foreground";
-      case "disputed":
-        return "bg-warning text-warning-foreground";
       default:
         return "bg-muted text-muted-foreground";
     }
   };
 
-  const filteredOrders = orders.filter((o) => {
-    if (filter === "all") return true;
-    return o.status === filter;
-  });
+  const filteredOrders = orders.filter((o) => matchesFilter(o.status, filter));
 
   if (loading) {
     return (
@@ -263,48 +335,47 @@ const VendorOrders = () => {
   return (
     <div className="p-4 md:p-8">
       <div className="mb-6 md:mb-8">
-        <h1 className="font-heading text-2xl md:text-4xl uppercase">Orders</h1>
+        <h1 className="font-heading text-2xl md:text-4xl uppercase">Manage Customer Orders</h1>
         <p className="text-muted-foreground mt-1 text-sm md:text-base">
-          Manage your customer orders
+          Track and manage your customer orders
         </p>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-6">
-        {[
-          { value: "all", label: "All" },
-          { value: "pending_payment", label: "Pending Payment" },
-          { value: "payment_uploaded", label: "Payment Uploaded" },
-          { value: "confirmed", label: "COD Confirmed" },
-          { value: "paid", label: "Paid" },
-          { value: "processing", label: "Processing" },
-          { value: "shipped", label: "Shipped" },
-          { value: "delivered", label: "Delivered" },
-          { value: "cancelled", label: "Cancelled" },
-          { value: "disputed", label: "Disputed" },
-        ].map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setFilter(f.value)}
-            className={`px-4 py-2 font-heading text-sm uppercase ${
-              filter === f.value
-                ? "bg-foreground text-background"
-                : "bg-secondary hover:bg-accent"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+        {FILTERS.map((f) => {
+          const count = orders.filter((o) => matchesFilter(o.status, f.value)).length;
+          return (
+            <button
+              key={f.value}
+              onClick={() => setFilter(f.value)}
+              className={`px-3 py-2 font-heading text-xs uppercase flex items-center gap-1.5 ${
+                filter === f.value
+                  ? "bg-foreground text-background"
+                  : "bg-secondary hover:bg-accent"
+              }`}
+            >
+              {f.label}
+              {f.value !== "all" && count > 0 && (
+                <span className={`min-w-[18px] h-[18px] text-[10px] font-bold flex items-center justify-center rounded-full px-1 ${
+                  filter === f.value ? "bg-background text-foreground" : "bg-foreground text-background"
+                }`}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {filteredOrders.length > 0 ? (
         <div className="space-y-4">
           {filteredOrders.map((order) => {
             const isExpanded = expandedOrder === order.id;
-            
+
             return (
             <div key={order.id} className="card-brutal">
-              <div 
+              <div
                 className={`p-4 md:p-6 cursor-pointer hover:bg-secondary/50 transition-colors ${isExpanded ? 'border-b border-border-subtle bg-secondary/30' : ''}`}
                 onClick={() => toggleOrder(order.id)}
               >
@@ -376,24 +447,63 @@ const VendorOrders = () => {
 
                 {/* Actions — Full Pipeline */}
                 <div className="flex flex-wrap gap-2">
-                  {order.status === "payment_uploaded" && (
-                    <button
-                      onClick={() => updateOrderStatus(order.id, "paid")}
-                      className="btn-brutal flex items-center gap-2 text-sm"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Verify Payment
-                    </button>
+                  {/* GCash/Bank: Accept OR Refuse when proof uploaded */}
+                  {order.status === "payment_uploaded" && order.payment_method !== "cod" && (
+                    <div className="w-full space-y-2">
+                      {refusingOrderId === order.id ? (
+                        <div className="p-3 border-2 border-destructive bg-destructive/10 animate-fade-in">
+                          <p className="text-xs font-heading uppercase text-destructive mb-2">
+                            Refuse this payment? The customer will be notified to resubmit.
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setRefusingOrderId(null)}
+                              className="flex-1 btn-brutal-secondary text-xs"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => handleRefusePayment(order.id)}
+                              className="flex-1 btn-brutal bg-destructive text-destructive-foreground text-xs flex items-center justify-center gap-1"
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                              Confirm Refuse
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => updateOrderStatus(order.id, "paid")}
+                            className="btn-brutal flex items-center gap-2 text-sm"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            Accept Payment
+                          </button>
+                          <button
+                            onClick={() => setRefusingOrderId(order.id)}
+                            className="flex items-center gap-2 px-4 py-2 border-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors font-heading text-sm uppercase"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            Refuse Payment
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   )}
+
+                  {/* COD confirmed → process */}
                   {order.status === "confirmed" && (
                     <button
                       onClick={() => updateOrderStatus(order.id, "processing")}
                       className="btn-brutal flex items-center gap-2 text-sm"
                     >
                       <Package className="w-4 h-4" />
-                      Confirm &amp; Process (COD)
+                      Confirm & Process (COD)
                     </button>
                   )}
+
+                  {/* Paid (GCash/Bank verified) → start processing */}
                   {order.status === "paid" && (
                     <button
                       onClick={() => updateOrderStatus(order.id, "processing")}
@@ -403,6 +513,7 @@ const VendorOrders = () => {
                       Start Processing
                     </button>
                   )}
+
                   {order.status === "processing" && (
                     <button
                       onClick={() => updateOrderStatus(order.id, "handed_to_courier", "handed_to_courier_at")}
@@ -412,6 +523,7 @@ const VendorOrders = () => {
                       Hand to Courier
                     </button>
                   )}
+
                   {order.status === "handed_to_courier" && (
                     <div className="w-full space-y-3">
                       {!order.tracking_number && (
@@ -502,9 +614,11 @@ const VendorOrders = () => {
         </div>
       ) : (
         <div className="card-brutal p-8 md:p-12 text-center">
-          <h3 className="font-heading text-xl md:text-2xl uppercase mb-4">No Orders Yet</h3>
+          <h3 className="font-heading text-xl md:text-2xl uppercase mb-4">No Orders</h3>
           <p className="text-muted-foreground text-sm md:text-base">
-            Orders will appear here when customers purchase your products.
+            {filter === "all"
+              ? "Orders will appear here when customers purchase your products."
+              : `No orders with status "${FILTERS.find(f => f.value === filter)?.label}".`}
           </p>
         </div>
       )}

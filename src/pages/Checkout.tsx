@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { CheckCircle, Ticket, ChevronDown, ChevronUp, MapPin } from "lucide-react";
+import { CheckCircle, Ticket, ChevronDown, ChevronUp, MapPin, Upload, X } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import ShippingCalculator, { calculateShippingFee, BICOL_PROVINCES } from "@/components/checkout/ShippingCalculator";
 import PromoCodeInput from "@/components/checkout/PromoCodeInput";
@@ -36,10 +36,18 @@ type GroupedItems = Record<string, { brand: { id: string; name: string; slug: st
 
 const Checkout = () => {
   const { items, total, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Redirect admin users who try to access checkout
+  useEffect(() => {
+    if (isAdmin) {
+      navigate("/admin");
+    }
+  }, [isAdmin, navigate]);
+
   const [loading, setLoading] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -65,6 +73,7 @@ const Checkout = () => {
   const [appliedPromo, setAppliedPromo] = useState<any>(null);
   const [showVouchers, setShowVouchers] = useState(false);
   const [notes, setNotes] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
 
   // Fetch user addresses
   const { data: addresses, isLoading: addressesLoading } = useQuery({
@@ -594,27 +603,65 @@ const Checkout = () => {
 
                   {/* Payment Proof Upload for GCash/Bank Transfer */}
                   {paymentMethod !== "cod" && (
-                    <div className="mt-4 p-4 border-2 border-border-subtle">
-                      <label className="font-heading text-xs uppercase mb-2 block">
+                    <div className="mt-4">
+                      <label className="font-heading text-xs uppercase mb-3 block">
                         Upload Proof of Payment <span className="text-destructive">*</span>
                       </label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => setPaymentProofFile(e.target.files?.[0] || null)}
-                        className="w-full text-sm"
-                      />
-                      {paymentProofFile && (
-                        <div className="mt-2">
-                          <img
-                            src={URL.createObjectURL(paymentProofFile)}
-                            alt="Payment proof preview"
-                            className="w-32 h-32 object-cover border border-border-subtle"
-                          />
-                        </div>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Upload a screenshot of your {paymentMethod === "gcash" ? "GCash" : "bank transfer"} transaction.
+                      <div
+                        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                        onDragLeave={() => setIsDragging(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setIsDragging(false);
+                          const file = e.dataTransfer.files?.[0];
+                          if (file && file.type.startsWith("image/")) {
+                            setPaymentProofFile(file);
+                          }
+                        }}
+                        className={`relative border-2 border-dashed p-8 transition-all text-center ${
+                          isDragging ? "border-foreground bg-secondary" : "border-border-subtle hover:border-foreground/50"
+                        } ${paymentProofFile ? "bg-secondary/20" : ""}`}
+                      >
+                        {!paymentProofFile ? (
+                          <div className="space-y-4">
+                            <div className="w-12 h-12 bg-secondary flex items-center justify-center mx-auto rounded-full">
+                              <Upload className="w-6 h-6 text-muted-foreground" />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="font-heading text-sm uppercase">Drag & Drop Proof Here</p>
+                              <p className="text-xs text-muted-foreground">or click to browse from device</p>
+                            </div>
+                            <input
+                              id="payment-upload"
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => setPaymentProofFile(e.target.files?.[0] || null)}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            />
+                            <div className="pt-2">
+                              <span className="btn-brutal py-1.5 px-4 text-[10px]">Select File</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="relative group max-w-[200px] mx-auto">
+                            <img
+                              src={URL.createObjectURL(paymentProofFile)}
+                              alt="Payment proof preview"
+                              className="w-full aspect-[3/4] object-cover border-2 border-foreground"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setPaymentProofFile(null)}
+                              className="absolute -top-2 -right-2 w-8 h-8 bg-destructive text-destructive-foreground border-2 border-foreground flex items-center justify-center hover:scale-110 transition-transform shadow-brutal"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                            <p className="mt-3 text-[10px] font-heading uppercase truncate">{paymentProofFile.name}</p>
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-3 italic">
+                        Upload a clear screenshot of your {paymentMethod === "gcash" ? "GCash" : "bank"} transaction.
                       </p>
                     </div>
                   )}

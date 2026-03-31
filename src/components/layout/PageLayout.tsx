@@ -6,15 +6,17 @@ import Footer from "./Footer";
 
 interface PageLayoutProps {
   children: ReactNode;
+  hideHeader?: boolean;
+  hideFooter?: boolean;
 }
 
-const PageLayout = ({ children }: PageLayoutProps) => {
+const PageLayout = ({ children, hideHeader, hideFooter }: PageLayoutProps) => {
   return (
     <div className="min-h-screen flex flex-col">
       <SaleBanner />
-      <Header />
+      {!hideHeader && <Header />}
       <main className="flex-1">{children}</main>
-      <Footer />
+      {!hideFooter && <Footer />}
       <LuckyPromoPopup />
     </div>
   );

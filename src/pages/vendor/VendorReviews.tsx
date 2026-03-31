@@ -349,7 +349,7 @@ const VendorReviews = () => {
             </div>
 
             <p className="text-xs text-muted-foreground mt-3 text-center">
-              Only admins can dispute, hide, or delete reported reviews.
+              Only admins can hide or delete reported reviews.
             </p>
           </div>
         </div>

@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { MessageSquare, Loader2, Search, Paperclip } from "lucide-react";
+import { MessageSquare, Loader2, Search, Paperclip, Trash2, X } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 
 interface Conversation {
@@ -22,106 +22,134 @@ interface ConversationListProps {
   role: "customer" | "vendor";
 }
 
+const STORAGE_KEY = "bicollective_deleted_convs";
+
+const getDeletedConvs = (): Set<string> => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  } catch {
+    return new Set();
+  }
+};
+
+const saveDeletedConv = (key: string) => {
+  try {
+    const existing = getDeletedConvs();
+    existing.add(key);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...existing]));
+  } catch {
+    // ignore
+  }
+};
+
 const ConversationList = ({ selectedConversation, onSelect, role }: ConversationListProps) => {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const fetchConversations = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+
+    const deleted = getDeletedConvs();
+
+    // Get all messages where user is sender or receiver
+    const { data: messages, error } = await supabase
+      .from("messages")
+      .select("vendor_order_id, sender_id, receiver_id, content, created_at, read_at, attachment_type")
+      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+      .order("created_at", { ascending: false });
+
+    if (error || !messages) {
+      setLoading(false);
+      return;
+    }
+
+    // Group by otherUserId (consolidate conversations)
+    const grouped = new Map<string, typeof messages>();
+    for (const msg of messages) {
+      const otherId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
+      const existing = grouped.get(otherId) || [];
+      existing.push(msg);
+      grouped.set(otherId, existing);
+    }
+
+    // Get all vendor order IDs from all messages to fetch their brands
+    const allVoIds = new Set<string>();
+    for (const msgs of grouped.values()) {
+      msgs.forEach(m => {
+        if (m.vendor_order_id) allVoIds.add(m.vendor_order_id);
+      });
+    }
+
+    const { data: vendorOrders } = await supabase
+      .from("vendor_orders")
+      .select("id, order_id, brand:brands(id, name, owner_id)")
+      .in("id", Array.from(allVoIds));
+
+    // Get other user profiles
+    const otherUserIds = Array.from(grouped.keys());
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .in("user_id", otherUserIds);
+
+    const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name || "User"]) || []);
+
+    // Build conversation list
+    const convs: Conversation[] = [];
+    for (const [otherId, msgs] of grouped.entries()) {
+      const lastMsg = msgs[0]; // already sorted desc
+
+      // Find brand name and order ID from messages in this conversation
+      let brandName = "Unknown Store";
+      let orderId = "";
+
+      for (const msg of msgs) {
+        const vo = vendorOrders?.find((v) => v.id === msg.vendor_order_id);
+        if (vo) {
+          orderId = vo.order_id;
+          const brandData = vo.brand as any;
+          if (brandData?.name) {
+            brandName = brandData.name;
+            break;
+          }
+        }
+      }
+
+      // Build a stable key to check against localStorage deletions
+      const convKey = `${user.id}:${otherId}`;
+      if (deleted.has(convKey)) continue;
+
+      const unreadCount = msgs.filter((m) => m.receiver_id === user.id && !m.read_at).length;
+      const otherUserName = role === "customer"
+        ? brandName
+        : profileMap.get(otherId) || "Customer";
+
+      convs.push({
+        vendorOrderId: lastMsg.vendor_order_id,
+        otherUserId: otherId,
+        otherUserName,
+        lastMessage: lastMsg.content,
+        lastMessageAt: lastMsg.created_at,
+        unreadCount,
+        orderId,
+        brandName,
+        hasAttachment: !!lastMsg.attachment_type,
+      });
+    }
+
+    // Sort by latest message
+    convs.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+    setConversations(convs);
+    setLoading(false);
+  }, [user, role]);
 
   useEffect(() => {
     if (!user) return;
-
-    const fetchConversations = async () => {
-      setLoading(true);
-
-      // Get all messages where user is sender or receiver
-      const { data: messages, error } = await supabase
-        .from("messages")
-        .select("vendor_order_id, sender_id, receiver_id, content, created_at, read_at, attachment_type")
-        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-        .order("created_at", { ascending: false });
-
-      if (error || !messages) {
-        setLoading(false);
-        return;
-      }
-
-      // Group by otherUserId (consolidate conversations)
-      const grouped = new Map<string, typeof messages>();
-      for (const msg of messages) {
-        const otherId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
-        const existing = grouped.get(otherId) || [];
-        existing.push(msg);
-        grouped.set(otherId, existing);
-      }
-
-      // Get all vendor order IDs from all messages to fetch their brands
-      const allVoIds = new Set<string>();
-      for (const msgs of grouped.values()) {
-        msgs.forEach(m => {
-          if (m.vendor_order_id) allVoIds.add(m.vendor_order_id);
-        });
-      }
-
-      const { data: vendorOrders } = await supabase
-        .from("vendor_orders")
-        .select("id, order_id, brand:brands(id, name, owner_id)")
-        .in("id", Array.from(allVoIds));
-
-      // Get other user profiles
-      const otherUserIds = Array.from(grouped.keys());
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", otherUserIds);
-
-      const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name || "User"]) || []);
-
-      // Build conversation list
-      const convs: Conversation[] = [];
-      for (const [otherId, msgs] of grouped.entries()) {
-        const lastMsg = msgs[0]; // already sorted desc
-        
-        // Find brand name and order ID from messages in this conversation
-        let brandName = "Unknown Store";
-        let orderId = "";
-        
-        for (const msg of msgs) {
-          const vo = vendorOrders?.find((v) => v.id === msg.vendor_order_id);
-          if (vo) {
-            orderId = vo.order_id;
-            const brandData = vo.brand as any;
-            if (brandData?.name) {
-              brandName = brandData.name;
-              break;
-            }
-          }
-        }
-
-        const unreadCount = msgs.filter((m) => m.receiver_id === user.id && !m.read_at).length;
-        const otherUserName = role === "customer"
-          ? brandName
-          : profileMap.get(otherId) || "Customer";
-
-        convs.push({
-          vendorOrderId: lastMsg.vendor_order_id,
-          otherUserId: otherId,
-          otherUserName,
-          lastMessage: lastMsg.content,
-          lastMessageAt: lastMsg.created_at,
-          unreadCount,
-          orderId,
-          brandName,
-          hasAttachment: !!lastMsg.attachment_type,
-        });
-      }
-
-      // Sort by latest message
-      convs.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
-      setConversations(convs);
-      setLoading(false);
-    };
-
     fetchConversations();
 
     // Subscribe to new messages for live updates
@@ -137,7 +165,7 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [user, role]);
+  }, [user, role, fetchConversations]);
 
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -146,9 +174,16 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
     return format(date, "MMM d");
   };
 
+  const handleDeleteConversation = (conv: Conversation) => {
+    const convKey = `${user!.id}:${conv.otherUserId}`;
+    saveDeletedConv(convKey);
+    setConversations(prev => prev.filter(c => c.otherUserId !== conv.otherUserId));
+    setConfirmDeleteId(null);
+  };
+
   const filtered = conversations.filter((c) =>
     c.otherUserName.toLowerCase().includes(search.toLowerCase()) ||
-    c.lastMessage.toLowerCase().includes(search.toLowerCase())
+    (c.lastMessage || "").toLowerCase().includes(search.toLowerCase())
   );
 
   if (loading) {
@@ -175,6 +210,33 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
         </div>
       </div>
 
+      {/* Confirm Delete Overlay */}
+      {confirmDeleteId && (() => {
+        const conv = conversations.find(c => c.otherUserId === confirmDeleteId);
+        if (!conv) return null;
+        return (
+          <div className="mx-3 mt-2 mb-1 p-3 border-2 border-destructive bg-destructive/10 animate-fade-in">
+            <p className="text-xs font-heading uppercase text-destructive mb-2">
+              Remove conversation with {conv.otherUserName}?
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 border-2 border-foreground text-xs font-heading uppercase hover:bg-secondary transition-colors"
+              >
+                <X className="w-3 h-3" /> Keep
+              </button>
+              <button
+                onClick={() => handleDeleteConversation(conv)}
+                className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 border-2 border-destructive bg-destructive text-destructive-foreground text-xs font-heading uppercase hover:bg-destructive/90 transition-colors"
+              >
+                <Trash2 className="w-3 h-3" /> Delete
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Conversation Items */}
       <div className="flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
@@ -184,40 +246,56 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
           </div>
         ) : (
           filtered.map((conv) => (
-            <button
+            <div
               key={conv.otherUserId}
-              onClick={() => onSelect(conv)}
-              className={`w-full text-left px-4 py-3 border-b border-border-subtle transition-colors hover:bg-secondary/50 ${
+              className={`group relative border-b border-border-subtle transition-colors ${
                 selectedConversation === conv.vendorOrderId || selectedConversation === conv.otherUserId
                   ? "bg-secondary border-l-4 border-l-foreground"
-                  : ""
+                  : "hover:bg-secondary/50"
               }`}
             >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-sm truncate ${conv.unreadCount > 0 ? "font-bold" : "font-medium"}`}>
-                      {conv.otherUserName}
-                    </span>
-                    {conv.unreadCount > 0 && (
-                      <span className="shrink-0 w-5 h-5 bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center rounded-full">
-                        {conv.unreadCount}
+              <button
+                onClick={() => onSelect(conv)}
+                className="w-full text-left px-4 py-3 pr-10"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm truncate ${conv.unreadCount > 0 ? "font-bold" : "font-medium"}`}>
+                        {conv.otherUserName}
                       </span>
-                    )}
+                      {conv.unreadCount > 0 && (
+                        <span className="shrink-0 w-5 h-5 bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center rounded-full">
+                          {conv.unreadCount}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mt-0.5">
+                      Order #{conv.orderId.slice(0, 8)}
+                    </p>
+                    <p className={`text-xs mt-1 truncate flex items-center gap-1 ${conv.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                      {conv.hasAttachment && <Paperclip className="w-3 h-3 shrink-0" />}
+                      {conv.lastMessage || (conv.hasAttachment ? "Attachment" : "")}
+                    </p>
                   </div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mt-0.5">
-                    Order #{conv.orderId.slice(0, 8)}
-                  </p>
-                  <p className={`text-xs mt-1 truncate flex items-center gap-1 ${conv.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                    {conv.hasAttachment && <Paperclip className="w-3 h-3 shrink-0" />}
-                    {conv.lastMessage || (conv.hasAttachment ? "Attachment" : "")}
-                  </p>
+                  <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
+                    {formatTime(conv.lastMessageAt)}
+                  </span>
                 </div>
-                <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
-                  {formatTime(conv.lastMessageAt)}
-                </span>
-              </div>
-            </button>
+              </button>
+
+              {/* Delete button — appears on hover */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setConfirmDeleteId(conv.otherUserId);
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                title="Delete conversation"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
           ))
         )}
       </div>

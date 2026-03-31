@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { Upload, X, Loader2, Image } from "lucide-react";
+import { useState, useRef, useCallback } from "react";
+import { Upload, Loader2, Image, CloudUpload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,14 +16,11 @@ const PaymentProofUpload = ({
 }: PaymentProofUploadProps) => {
   const [uploading, setUploading] = useState(false);
   const [proofUrl, setProofUrl] = useState(currentProofUrl);
+  const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file size (max 5MB)
+  const processFile = async (file: File) => {
     if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "File too large",
@@ -33,11 +30,10 @@ const PaymentProofUpload = ({
       return;
     }
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
       toast({
         title: "Invalid file type",
-        description: "Please upload an image file",
+        description: "Please upload an image file (JPG, PNG, etc.)",
         variant: "destructive",
       });
       return;
@@ -56,8 +52,6 @@ const PaymentProofUpload = ({
 
       if (uploadError) throw uploadError;
 
-      // Store the path — use signed URLs when viewing since bucket is private
-      // Update vendor order with proof path and status
       const { error: updateError } = await supabase
         .from("vendor_orders")
         .update({
@@ -91,13 +85,42 @@ const PaymentProofUpload = ({
     }
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) await processFile(file);
+  };
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+
+      const file = e.dataTransfer.files?.[0];
+      if (file) await processFile(file);
+    },
+    [vendorOrderId]
+  );
+
   if (proofUrl) {
     return (
       <div className="space-y-2">
         <p className="text-xs text-muted-foreground">Payment proof uploaded</p>
         <div className="flex items-center gap-3 p-3 border-2 border-success bg-success/10">
           <Image className="w-5 h-5 flex-shrink-0 text-success" />
-          <span className="flex-1 text-sm text-success">Proof submitted</span>
+          <span className="flex-1 text-sm text-success">Proof submitted — awaiting verification</span>
         </div>
       </div>
     );
@@ -105,21 +128,57 @@ const PaymentProofUpload = ({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-muted-foreground">Upload payment screenshot</p>
+      <p className="text-xs text-muted-foreground font-heading uppercase tracking-wide">
+        Upload Payment Screenshot
+      </p>
+
+      {/* Drop zone */}
       <div
-        onClick={() => inputRef.current?.click()}
-        className="border-2 border-dashed border-warning p-4 text-center cursor-pointer hover:border-foreground transition-colors bg-warning/5"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`relative border-2 border-dashed p-6 text-center transition-all duration-150 ${
+          isDragging
+            ? "border-foreground bg-secondary scale-[1.01]"
+            : "border-warning bg-warning/5 hover:border-foreground hover:bg-secondary/30"
+        }`}
       >
         {uploading ? (
           <div className="flex flex-col items-center gap-2">
-            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Uploading...</span>
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            <span className="text-xs text-muted-foreground font-heading uppercase">Uploading...</span>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-2">
-            <Upload className="w-6 h-6 text-warning" />
-            <span className="text-xs font-medium">Upload Payment Proof</span>
-            <span className="text-xs text-muted-foreground">JPG, PNG (max 5MB)</span>
+          <div className="flex flex-col items-center gap-3">
+            <CloudUpload
+              className={`w-8 h-8 transition-colors ${isDragging ? "text-foreground" : "text-warning"}`}
+            />
+            <div>
+              <p className="text-sm font-heading uppercase font-medium">
+                {isDragging ? "Drop file here" : "Drag & Drop your screenshot"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                JPG, PNG, WEBP — max 5MB
+              </p>
+            </div>
+
+            {/* Divider */}
+            <div className="flex items-center gap-3 w-full max-w-[200px]">
+              <div className="flex-1 h-px bg-border-subtle" />
+              <span className="text-xs text-muted-foreground">or</span>
+              <div className="flex-1 h-px bg-border-subtle" />
+            </div>
+
+            {/* Select button */}
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={uploading}
+              className="flex items-center gap-2 px-4 py-2 border-2 border-foreground font-heading text-xs uppercase hover:bg-foreground hover:text-background transition-colors"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              Select File
+            </button>
           </div>
         )}
       </div>
@@ -128,7 +187,7 @@ const PaymentProofUpload = ({
         ref={inputRef}
         type="file"
         accept="image/*"
-        onChange={handleUpload}
+        onChange={handleFileChange}
         className="hidden"
         disabled={uploading}
       />

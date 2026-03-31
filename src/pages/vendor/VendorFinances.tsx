@@ -5,6 +5,7 @@ import { DollarSign, AlertCircle, TrendingUp, History, Upload, Info, CheckCircle
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import DocumentUpload from "@/components/vendor/DocumentUpload";
+import { addMonths, format } from "date-fns";
 
 const VendorFinances = () => {
   const { user } = useAuth();
@@ -96,13 +97,24 @@ const VendorFinances = () => {
 
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className={`card-brutal p-6 ${Number(brand?.platform_debt) > 0 ? "bg-destructive/5" : "bg-success/5"}`}>
+        <div className={`card-brutal p-6 ${Number(brand?.platform_debt) > 0 ? "bg-destructive/10" : "bg-success/5"}`}>
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm font-heading uppercase text-muted-foreground">Current Platform Debt</span>
             <AlertCircle className={`w-5 h-5 ${Number(brand?.platform_debt) > 0 ? "text-destructive" : "text-success"}`} />
           </div>
           <p className="text-3xl font-heading">{formatPrice(Number(brand?.platform_debt || 0))}</p>
-          <p className="text-xs text-muted-foreground mt-2">Accrued from COD commissions and margins.</p>
+          <p className="text-xs text-muted-foreground mt-2 font-medium">
+            {Number(brand?.platform_debt) > 0 ? (
+              <span className="text-destructive animate-pulse uppercase">
+                Deadline: {format(addMonths(new Date(), 1), "MMM do, yyyy")}
+              </span>
+            ) : (
+              "Settled - No outstanding debt."
+            )}
+          </p>
+          <p className="text-[10px] text-muted-foreground mt-1 font-heading uppercase">
+            Mandatory: 1-Month Settlement Cycle
+          </p>
         </div>
 
         <div className="card-brutal p-6">

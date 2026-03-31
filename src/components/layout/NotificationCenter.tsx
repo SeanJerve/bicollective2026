@@ -24,7 +24,6 @@ const NotificationCenter = () => {
     { label: "Pending Applications", count: counts.pendingApplications, key: "pendingApplications", icon: FileText, href: "/admin/applications" },
     { label: "Pending Verifications", count: counts.pendingVerifications, key: "pendingVerifications", icon: Shield, href: "/admin/verifications" },
     { label: "Pending Reports", count: counts.pendingReports, key: "pendingReports", icon: AlertTriangle, href: "/admin/reports" },
-    { label: "Pending Disputes", count: counts.pendingDisputes, key: "pendingDisputes", icon: Scale, href: "/admin/disputes" },
   ];
 
   const vendorItems = [

@@ -18,10 +18,24 @@ const ProductDetail = () => {
   const { data: relatedProducts, isLoading: relatedLoading } = useProductsByBrand(product?.brandSlug || "");
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { user, isAdmin, isVendor } = useAuth();
   const { addToCart } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Fetch the vendor's own brand to block self-purchasing
+  const [vendorBrandId, setVendorBrandId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isVendor || !user) return;
+    supabase
+      .from("brands")
+      .select("id")
+      .eq("owner_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setVendorBrandId(data.id);
+      });
+  }, [isVendor, user]);
 
   usePageSEO({
     title: product?.name || "Product",
@@ -333,68 +347,78 @@ const ProductDetail = () => {
               </div>
 
               {/* Actions */}
-              <div className="space-y-3">
-                {/* Buy Now */}
-                <button
-                  onClick={() => {
-                    if (!selectedSize) {
-                      toast({
-                        title: "Please select a size",
-                        description: "Choose a size before buying",
-                        variant: "destructive",
-                      });
-                      return;
-                    }
-                    navigate("/checkout", {
-                      state: {
-                        buyNowItem: {
-                          product_id: product.id,
-                          quantity,
-                          size: selectedSize,
-                          product: {
-                            id: product.id,
-                            name: product.name,
-                            price: product.price,
-                            image_url: product.image,
-                            brand_id: product.brandId,
-                            brand: {
-                              id: product.brandId,
-                              name: product.brandName,
-                              slug: product.brandSlug,
-                              location: product.brandLocation || "Albay",
+              {isAdmin ? (
+                <div className="p-4 border-2 border-border-subtle bg-secondary text-center">
+                  <p className="text-xs font-heading uppercase text-muted-foreground">Admin accounts cannot purchase products</p>
+                </div>
+              ) : isVendor && vendorBrandId && vendorBrandId === product.brandId ? (
+                <div className="p-4 border-2 border-border-subtle bg-secondary text-center">
+                  <p className="text-xs font-heading uppercase text-muted-foreground">You cannot purchase your own products</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {/* Buy Now */}
+                  <button
+                    onClick={() => {
+                      if (!selectedSize) {
+                        toast({
+                          title: "Please select a size",
+                          description: "Choose a size before buying",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      navigate("/checkout", {
+                        state: {
+                          buyNowItem: {
+                            product_id: product.id,
+                            quantity,
+                            size: selectedSize,
+                            product: {
+                              id: product.id,
+                              name: product.name,
+                              price: product.price,
+                              image_url: product.image,
+                              brand_id: product.brandId,
+                              brand: {
+                                id: product.brandId,
+                                name: product.brandName,
+                                slug: product.brandSlug,
+                                location: product.brandLocation || "Albay",
+                              },
                             },
                           },
                         },
-                      },
-                    });
-                  }}
-                  className="btn-brutal w-full flex items-center justify-center gap-2 text-sm md:text-base"
-                  disabled={!product.inStock || product.listingType === "teaser"}
-                >
-                  <Zap className="w-4 h-4 md:w-5 md:h-5" />
-                  {product.listingType === "teaser" ? "Coming Soon" : product.listingType === "preorder" ? "Pre-order Now" : product.inStock ? "Buy Now" : "Out of Stock"}
-                </button>
-
-                {/* Add to Cart */}
-                <button
-                  onClick={() => {
-                    if (!selectedSize) {
-                      toast({
-                        title: "Please select a size",
-                        description: "Choose a size before adding to cart",
-                        variant: "destructive",
                       });
-                      return;
-                    }
-                    addToCart(product.id, quantity, selectedSize);
-                  }}
-                  className="btn-brutal-secondary w-full flex items-center justify-center gap-2 text-sm md:text-base"
-                  disabled={!product.inStock || product.listingType === "teaser"}
-                >
-                  <ShoppingBag className="w-4 h-4 md:w-5 md:h-5" />
-                  {product.listingType === "teaser" ? "Add to Wishlist" : "Add to Cart"}
-                </button>
-              </div>
+                    }}
+                    className="btn-brutal w-full flex items-center justify-center gap-2 text-sm md:text-base"
+                    disabled={!product.inStock || product.listingType === "teaser"}
+                  >
+                    <Zap className="w-4 h-4 md:w-5 md:h-5" />
+                    {product.listingType === "teaser" ? "Coming Soon" : product.listingType === "preorder" ? "Pre-order Now" : product.inStock ? "Buy Now" : "Out of Stock"}
+                  </button>
+
+                  {/* Add to Cart */}
+                  <button
+                    onClick={() => {
+                      if (!selectedSize) {
+                        toast({
+                          title: "Please select a size",
+                          description: "Choose a size before adding to cart",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      addToCart(product.id, quantity, selectedSize);
+                    }}
+                    className="btn-brutal-secondary w-full flex items-center justify-center gap-2 text-sm md:text-base"
+                    disabled={!product.inStock || product.listingType === "teaser"}
+                  >
+                    <ShoppingBag className="w-4 h-4 md:w-5 md:h-5" />
+                    {product.listingType === "teaser" ? "Add to Wishlist" : "Add to Cart"}
+                  </button>
+                </div>
+              )}
 
               {/* Trust Badges */}
               <div className="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-border-subtle">

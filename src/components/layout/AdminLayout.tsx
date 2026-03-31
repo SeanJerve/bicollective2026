@@ -21,7 +21,6 @@ const AdminLayout = () => {
     { href: "/admin/vouchers", label: "Vouchers", icon: Ticket },
     { href: "/admin/lucky-promo", label: "Lucky Promo", icon: Gift },
     { href: "/admin/reports", label: "Reports", icon: Flag, badge: counts.pendingReports },
-    { href: "/admin/disputes", label: "Disputes", icon: AlertTriangle, badge: counts.pendingDisputes },
     { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/admin/finances", label: "Finances", icon: DollarSign },
   ];
@@ -36,7 +35,6 @@ const AdminLayout = () => {
     if (item.label === "Applications") dismiss("pendingApplications");
     if (item.label === "Verifications") dismiss("pendingVerifications");
     if (item.label === "Reports") dismiss("pendingReports");
-    if (item.label === "Disputes") dismiss("pendingDisputes");
   };
 
   const currentPage = navItems.find((item) =>

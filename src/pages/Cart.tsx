@@ -8,8 +8,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 const Cart = () => {
   const { items, loading, updateQuantity, removeItem } = useCart();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect admin users who try to access cart
+  useEffect(() => {
+    if (isAdmin) {
+      navigate("/admin");
+    }
+  }, [isAdmin, navigate]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const formatPrice = (amount: number) =>

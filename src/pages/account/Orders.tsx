@@ -20,7 +20,6 @@ const statusColors: Record<string, string> = {
   shipped: "bg-primary text-primary-foreground",
   delivered: "bg-success text-success-foreground",
   cancelled: "bg-destructive text-destructive-foreground",
-  disputed: "bg-destructive text-destructive-foreground",
 };
 
 const statusLabels: Record<string, string> = {
@@ -34,7 +33,6 @@ const statusLabels: Record<string, string> = {
   shipped: "Shipped",
   delivered: "Delivered",
   cancelled: "Cancelled",
-  disputed: "Disputed",
 };
 
 const Orders = () => {
@@ -110,7 +108,7 @@ const Orders = () => {
   };
 
   const { data: orders, isLoading } = useQuery({
-    queryKey: ["customer-orders", user?.id],
+    queryKey: ["customer-orders", user?.id, filter],
     queryFn: async () => {
       let supabaseQuery = supabase
         .from("orders")

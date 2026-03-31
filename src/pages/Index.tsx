@@ -11,7 +11,7 @@ import usePageSEO from "@/hooks/usePageSEO";
 import heroBanner from "@/assets/hero-banner.jpg";
 
 const Index = () => {
-  const { isVendor } = useAuth();
+  const { isVendor, isAdmin } = useAuth();
   const { data: products, isLoading: productsLoading } = useProducts();
   const { data: brands, isLoading: brandsLoading } = useBrands();
   const { data: categories, isLoading: categoriesLoading } = useCategories();
@@ -189,7 +189,7 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      {!isVendor && (
+      {!isVendor && !isAdmin && (
         <section className="py-16 md:py-32 bg-secondary border-t-2 border-foreground">
           <div className="section-container text-center px-4">
             <h2 className="font-heading text-3xl md:text-6xl uppercase mb-4 md:mb-6">

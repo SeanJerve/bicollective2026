@@ -60,7 +60,6 @@ const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
 const AdminApplications = lazy(() => import("./pages/admin/AdminApplications"));
 const AdminVerifications = lazy(() => import("./pages/admin/AdminVerifications"));
 const AdminPromotions = lazy(() => import("./pages/admin/AdminPromotions"));
-const AdminDisputes = lazy(() => import("./pages/admin/AdminDisputes"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminVouchers = lazy(() => import("./pages/admin/AdminVouchers"));
 const AdminLuckyPromo = lazy(() => import("./pages/admin/AdminLuckyPromo"));
@@ -69,7 +68,6 @@ const AdminFinances = lazy(() => import("./pages/admin/AdminFinances"));
 
 // Customer pages extension
 const Vouchers = lazy(() => import("./pages/account/Vouchers"));
-const Disputes = lazy(() => import("./pages/account/Disputes"));
 const Profile = lazy(() => import("./pages/account/Profile"));
 const Wishlist = lazy(() => import("./pages/account/Wishlist"));
 const AddAddress = lazy(() => import("./pages/account/AddAddress"));
@@ -209,14 +207,12 @@ const App = () => (
                   <Route path="promotions" element={<AdminPromotions />} />
                   <Route path="vouchers" element={<AdminVouchers />} />
                   <Route path="lucky-promo" element={<AdminLuckyPromo />} />
-                  <Route path="disputes" element={<AdminDisputes />} />
                   <Route path="analytics" element={<AdminAnalytics />} />
                   <Route path="finances" element={<AdminFinances />} />
                 </Route>
 
                 {/* Customer Account Routes */}
                 <Route path="/account/vouchers" element={<ProtectedRoute><Vouchers /></ProtectedRoute>} />
-                <Route path="/account/disputes" element={<ProtectedRoute><Disputes /></ProtectedRoute>} />
                 <Route path="/account/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/account/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
                 <Route path="/account/add-address" element={<ProtectedRoute><AddAddress /></ProtectedRoute>} />
