@@ -5,11 +5,79 @@ import PageLayout from "@/components/layout/PageLayout";
 import ProductCard from "@/components/marketplace/ProductCard";
 import ProductCardSkeleton from "@/components/marketplace/ProductCardSkeleton";
 import { useBrand, useProductsByBrand } from "@/hooks/useProducts";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { Calendar, Bell, BellRing } from "lucide-react";
 
 const BrandDetail = () => {
   const { slug } = useParams();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: brand, isLoading: brandLoading } = useBrand(slug || "");
   const { data: brandProducts, isLoading: productsLoading } = useProductsByBrand(slug || "");
+
+  const { data: drops } = useQuery({
+    queryKey: ["brand-drops", brand?.id, user?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase
+        .from("product_drops" as any)
+        .select(`
+          *,
+          notifications:product_drop_notifications(id, user_id)
+        `)
+        .eq("brand_id", brand?.id)
+        .eq("is_active", true)
+        .gte("launch_date", new Date().toISOString())
+        .order("launch_date", { ascending: true }) as any);
+      
+      if (error) throw error;
+
+      // Transform to check if current user is notified
+      return (data || []).map((drop: any) => ({
+        ...drop,
+        isNotified: user ? drop.notifications.some((n: any) => n.user_id === user.id) : false,
+      }));
+    },
+    enabled: !!brand?.id,
+  });
+
+  const toggleNotifyMutation = useMutation({
+    mutationFn: async ({ dropId, isNotified }: { dropId: string, isNotified: boolean }) => {
+      if (!user) throw new Error("Must be logged in to enable notifications");
+
+      if (isNotified) {
+        const { error } = await (supabase
+          .from("product_drop_notifications" as any)
+          .delete()
+          .eq("drop_id", dropId)
+          .eq("user_id", user.id) as any);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase
+          .from("product_drop_notifications" as any)
+          .insert({ drop_id: dropId, user_id: user.id }) as any);
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["brand-drops", brand?.id] });
+      toast({
+        title: variables.isNotified ? "Notifications off" : "Notifications on",
+        description: variables.isNotified ? "You will not be notified of this drop." : "We'll let you know when this drops!",
+      });
+    },
+    onError: (err: any) => {
+      if (err.message === "Must be logged in to enable notifications") {
+        toast({ title: "Login required", description: "Please sign in to get notified.", variant: "destructive" });
+      } else {
+        toast({ title: "Error", description: "Could not update notification settings.", variant: "destructive" });
+      }
+    }
+  });
 
   if (brandLoading) {
     return (
@@ -129,6 +197,63 @@ const BrandDetail = () => {
           )}
         </div>
       </section>
+
+      {/* Upcoming Drops / Trailers */}
+      {drops && drops.length > 0 && (
+        <section className="bg-foreground text-background py-12 md:py-16">
+          <div className="section-container">
+            <div className="flex items-center gap-3 mb-8 md:mb-10">
+              <Calendar className="w-6 h-6 md:w-8 md:h-8" />
+              <h2 className="font-heading text-2xl md:text-3xl uppercase tracking-widest text-[#FF0000]">Upcoming Drops</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+              {drops.map((drop: any) => (
+                <div key={drop.id} className="border-2 border-background bg-secondary text-foreground group overflow-hidden">
+                  <div className="aspect-video relative overflow-hidden bg-muted">
+                    <img 
+                      src={drop.image_url} 
+                      alt={drop.title} 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                    />
+                    <div className="absolute top-4 left-4 bg-background text-foreground font-heading text-sm px-3 py-1 uppercase tracking-widest shadow-brutal">
+                      {format(new Date(drop.launch_date), "MMM d, yyyy")}
+                    </div>
+                  </div>
+                  
+                  <div className="p-5 md:p-6 flex flex-col items-start">
+                    <h3 className="font-heading text-xl md:text-2xl uppercase mb-2 line-clamp-1">{drop.title}</h3>
+                    
+                    {drop.description && (
+                      <p className="text-muted-foreground text-sm line-clamp-2 mb-6">
+                        {drop.description}
+                      </p>
+                    )}
+
+                    <div className="mt-auto w-full flex items-center justify-between pt-4 border-t border-border-subtle">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-1">Drops In</span>
+                        <span className="font-mono font-medium">
+                          {format(new Date(drop.launch_date), "h:mm a")} 
+                        </span>
+                      </div>
+                      
+                      <button 
+                        onClick={() => toggleNotifyMutation.mutate({ dropId: drop.id, isNotified: drop.isNotified })}
+                        disabled={toggleNotifyMutation.isPending}
+                        className={`btn-brutal flex items-center gap-2 text-xs md:text-sm shadow-none ${drop.isNotified ? 'bg-success text-success-foreground' : ''}`}
+                      >
+                        {drop.isNotified ? <BellRing className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+                        {drop.isNotified ? "Notified" : "Notify Me"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Products */}
       <section className="py-8 md:py-12">

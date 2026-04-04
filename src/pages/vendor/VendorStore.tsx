@@ -286,7 +286,7 @@ const VendorStore = () => {
           <div>
             <DocumentUpload
               label="Store Banner"
-              description="Wide image recommended (1200×400px). JPG or PNG."
+              description="IMPORTANT: Please use a 3:1 ratio (e.g. 1200×400px) so the image displays perfectly on your store page without cropping. JPG or PNG."
               bucket="brand-assets"
               folder={user?.id || "unknown"}
               accept="image/*"

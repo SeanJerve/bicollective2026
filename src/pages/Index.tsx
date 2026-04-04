@@ -5,6 +5,7 @@ import ProductCard from "@/components/marketplace/ProductCard";
 import ProductCardSkeleton from "@/components/marketplace/ProductCardSkeleton";
 import BrandCard from "@/components/marketplace/BrandCard";
 import BrandCardSkeleton from "@/components/marketplace/BrandCardSkeleton";
+import SitePopup from "@/components/ui/SitePopup";
 import { useProducts, useBrands, useCategories } from "@/hooks/useProducts";
 import { useAuth } from "@/contexts/AuthContext";
 import usePageSEO from "@/hooks/usePageSEO";
@@ -26,6 +27,7 @@ const Index = () => {
 
   return (
     <PageLayout>
+      <SitePopup />
       {/* Hero Section */}
       <section className="relative min-h-[60vh] md:min-h-[80vh] flex items-center border-b-2 border-foreground overflow-hidden">
         {/* Plain Background */}

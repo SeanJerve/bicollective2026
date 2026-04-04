@@ -43,6 +43,7 @@ const VendorOrders = lazy(() => import("./pages/vendor/VendorOrders"));
 const VendorStore = lazy(() => import("./pages/vendor/VendorStore"));
 const VendorRegister = lazy(() => import("./pages/vendor/VendorRegister"));
 const VendorApplicationStatus = lazy(() => import("./pages/vendor/VendorApplicationStatus"));
+const VendorDrops = lazy(() => import("./pages/vendor/VendorDrops"));
 
 const VendorReviews = lazy(() => import("./pages/vendor/VendorReviews"));
 const VendorPromotions = lazy(() => import("./pages/vendor/VendorPromotions"));
@@ -61,8 +62,7 @@ const AdminApplications = lazy(() => import("./pages/admin/AdminApplications"));
 const AdminVerifications = lazy(() => import("./pages/admin/AdminVerifications"));
 const AdminPromotions = lazy(() => import("./pages/admin/AdminPromotions"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
-const AdminVouchers = lazy(() => import("./pages/admin/AdminVouchers"));
-const AdminLuckyPromo = lazy(() => import("./pages/admin/AdminLuckyPromo"));
+// AdminVouchers and AdminLuckyPromo are now imported directly in AdminPromotions
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminFinances = lazy(() => import("./pages/admin/AdminFinances"));
 
@@ -179,6 +179,7 @@ const App = () => (
                   <Route index element={<VendorDashboard />} />
                   <Route path="products" element={<VendorProducts />} />
                   <Route path="orders" element={<VendorOrders />} />
+                  <Route path="drops" element={<VendorDrops />} />
                   <Route path="store" element={<VendorStore />} />
 
                   <Route path="reviews" element={<VendorReviews />} />
@@ -205,8 +206,6 @@ const App = () => (
                   <Route path="verifications" element={<AdminVerifications />} />
                   <Route path="reports" element={<AdminReports />} />
                   <Route path="promotions" element={<AdminPromotions />} />
-                  <Route path="vouchers" element={<AdminVouchers />} />
-                  <Route path="lucky-promo" element={<AdminLuckyPromo />} />
                   <Route path="analytics" element={<AdminAnalytics />} />
                   <Route path="finances" element={<AdminFinances />} />
                 </Route>
