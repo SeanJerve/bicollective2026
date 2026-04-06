@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format, formatDistanceToNow } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface BulkVoucherForm {
@@ -26,6 +27,7 @@ const defaultBulkForm: BulkVoucherForm = {
 };
 
 const AdminVouchers = () => {
+  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showBulkForm, setShowBulkForm] = useState(false);
@@ -36,13 +38,30 @@ const AdminVouchers = () => {
   const { data: vouchers, isLoading } = useQuery({
     queryKey: ["admin-vouchers"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vouchers")
-        .select("*")
+      const { data, error } = await ((supabase
+        .from("user_discount_claims") as any)
+        .select(`
+          *,
+          discounts:discounts(*),
+          platform_promo:platform_promos(*)
+        `)
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(200));
       if (error) throw error;
-      return data;
+      return (data || []).map((v: any) => ({
+        id: v.id,
+        discount_id: v.discount_id,
+        user_id: v.user_id,
+        status: v.status,
+        created_at: v.created_at,
+        name: v.discounts?.name,
+        description: v.discounts?.description,
+        type: v.discounts?.discount_type === "percentage" ? "percentage_discount" : (v.discounts?.discount_type === "fixed" ? "fixed_discount" : "free_shipping"),
+        discount_value: v.discounts?.discount_value,
+        expires_at: v.discounts?.ends_at,
+        code: v.platform_promo?.code || "CLAIMED",
+        source: "admin_grant"
+      }));
     },
   });
 
@@ -66,7 +85,6 @@ const AdminVouchers = () => {
       if (form.target_audience === "all") {
         userIds = profiles.map((p) => p.user_id);
       } else {
-        // For simplicity, "all" distributes to everyone, others too for now
         userIds = profiles.map((p) => p.user_id);
       }
 
@@ -74,27 +92,50 @@ const AdminVouchers = () => {
       userIds = userIds.slice(0, form.count);
 
       const expiresAt = getExpiryDate(form.expires_in);
-      const vouchers = userIds.map((userId) => ({
+      
+      // Step 1: Create the Discount Template
+      const { data: discount, error: dError } = await (supabase
+        .from("discounts")
+        .insert({
+          name: form.name,
+          description: form.description || null,
+          discount_type: form.type.replace("_discount", ""),
+          discount_value: form.discount_value,
+          min_order_amount: form.min_order_amount,
+          max_discount_amount: form.max_discount_amount,
+          starts_at: new Date().toISOString(),
+          ends_at: expiresAt,
+          is_active: true,
+        })
+        .select()
+        .single() as any);
+
+      if (dError) throw dError;
+
+      // Step 2: Create Claims for each user
+      const claims = userIds.map((userId) => ({
         user_id: userId,
-        name: form.name,
-        description: form.description || null,
-        code: `ADMIN-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
-        type: form.type,
-        discount_value: form.discount_value,
-        min_order_amount: form.min_order_amount,
-        max_discount_amount: form.max_discount_amount,
-        expires_at: expiresAt,
-        source: "admin_grant",
-        target_audience: form.target_audience,
+        discount_id: discount.id,
+        status: "active",
       }));
 
-      const { error } = await supabase.from("vouchers").insert(vouchers);
-      if (error) throw error;
-      return vouchers.length;
+      const { error: cError } = await (supabase.from("user_discount_claims") as any).insert(claims);
+      if (cError) throw cError;
+
+      // Optional: If we want them to have unique codes, we'd need platform_promos too.
+      // For now, let's just create one platform_promo so they can see "CLAIMED" or a generic code.
+      await (supabase.from("platform_promos") as any).insert({
+        discount_id: discount.id,
+        code: `REWARD-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+        deployment_target: "manual_code",
+        created_by: user!.id,
+      });
+
+      return userIds.length;
     },
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ["admin-vouchers"] });
-      toast({ title: `${count} vouchers created!` });
+      toast({ title: `${count} vouchers granted!` });
       setShowBulkForm(false);
       setBulkForm(defaultBulkForm);
     },
@@ -103,7 +144,7 @@ const AdminVouchers = () => {
 
   const revokeMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("vouchers").update({ status: "cancelled" }).eq("id", id);
+      const { error } = await (supabase.from("user_discount_claims") as any).update({ status: "expired" }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -114,7 +155,7 @@ const AdminVouchers = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("vouchers").delete().eq("id", id);
+      const { error } = await supabase.from("user_discount_claims").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -136,7 +177,7 @@ const AdminVouchers = () => {
     total: vouchers?.length || 0,
     active: vouchers?.filter((v) => v.status === "active").length || 0,
     used: vouchers?.filter((v) => v.status === "used").length || 0,
-    expired: vouchers?.filter((v) => v.status === "expired").length || 0,
+    expired: vouchers?.filter((v) => v.status === "expired" || v.status === "cancelled").length || 0,
   };
 
   return (

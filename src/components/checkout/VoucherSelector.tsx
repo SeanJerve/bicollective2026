@@ -29,16 +29,25 @@ const VoucherSelector = ({ onSelect, selectedVoucherId, orderTotal }: VoucherSel
   const { data: vouchers, isLoading } = useQuery({
     queryKey: ["available-vouchers", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vouchers")
-        .select("*")
+      const now = new Date().toISOString();
+      const { data, error } = await ((supabase
+        .from("user_discount_claims") as any)
+        .select(`
+          *,
+          discounts!inner(*)
+        `)
         .eq("user_id", user!.id)
         .eq("status", "active")
-        .gte("expires_at", new Date().toISOString())
-        .order("discount_value", { ascending: false });
+        .gte("discounts.ends_at", now)
+        .order("discounts(discount_value)", { ascending: false }));
 
       if (error) throw error;
-      return data as Voucher[];
+      return (data || []).map((v: any) => ({
+        ...v.discounts,
+        id: v.discount_id, // Important: use discount_id for application
+        claim_id: v.id,
+        type: v.discounts.discount_type,
+      })) as Voucher[];
     },
     enabled: !!user,
   });

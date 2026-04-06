@@ -58,24 +58,31 @@ const AdminPromotions = () => {
   const { data: promotions, isLoading } = useQuery({
     queryKey: ["admin-promotions"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("promotions")
-        .select("*")
-        .is("brand_id", null)
+      const { data, error } = await (supabase
+        .from("platform_promos")
+        .select(`
+          *,
+          discounts:discounts(*)
+        `) as any)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return (data || []).map((p: any) => ({
+        ...p.discounts,
+        code: p.code,
+        promo_id: p.id,
+        deployment_target: p.deployment_target,
+        target_locations: p.target_locations,
+        created_by: p.created_by
+      }));
     },
   });
 
   const saveMutation = useMutation({
     mutationFn: async (formData: PromoForm) => {
-      const payload = {
+      const discountPayload = {
         name: formData.name,
         description: formData.description || null,
-        code: formData.code.toUpperCase() || null,
-        type: formData.type,
-        scope: formData.scope,
+        discount_type: formData.type.replace("_discount", ""),
         discount_value: formData.discount_value,
         min_order_amount: formData.min_order_amount,
         max_discount_amount: formData.max_discount_amount,
@@ -84,17 +91,47 @@ const AdminPromotions = () => {
         starts_at: new Date(formData.starts_at).toISOString(),
         ends_at: new Date(formData.ends_at).toISOString(),
         is_stackable: formData.is_stackable,
-        deployment_target: formData.deployment_target,
-        target_locations: formData.target_locations.length > 0 ? formData.target_locations : null,
-        created_by: user!.id,
+        is_active: true,
       };
 
       if (editId) {
-        const { error } = await supabase.from("promotions").update(payload).eq("id", editId);
-        if (error) throw error;
+        // Find the platform_promo to get the discount_id
+        const { data: existing } = await supabase
+          .from("platform_promos")
+          .select("discount_id")
+          .eq("id", editId)
+          .single();
+
+        if (existing) {
+          await supabase.from("discounts").update(discountPayload).eq("id", existing.discount_id);
+          await supabase.from("platform_promos").update({
+            code: formData.code.toUpperCase(),
+            deployment_target: formData.deployment_target,
+            target_locations: formData.target_locations.length > 0 ? formData.target_locations : null,
+          }).eq("id", editId);
+        }
       } else {
-        const { error } = await supabase.from("promotions").insert(payload);
-        if (error) throw error;
+        // Step 1: Create the discount supertype
+        const { data: discount, error: dError } = await (supabase
+          .from("discounts")
+          .insert(discountPayload)
+          .select()
+          .single() as any);
+
+        if (dError) throw dError;
+
+        // Step 2: Create the platform promo subtype
+        const { error: pError } = await supabase
+          .from("platform_promos")
+          .insert({
+            discount_id: discount.id,
+            code: formData.code.toUpperCase() || null,
+            deployment_target: formData.deployment_target,
+            target_locations: formData.target_locations.length > 0 ? formData.target_locations : null,
+            created_by: user!.id,
+          });
+
+        if (pError) throw pError;
       }
     },
     onSuccess: () => {
@@ -111,16 +148,36 @@ const AdminPromotions = () => {
 
   const toggleActive = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await supabase.from("promotions").update({ is_active }).eq("id", id);
-      if (error) throw error;
+      // id here is the platform_promo id, we need the discount_id
+      const { data } = await supabase
+          .from("platform_promos")
+          .select("discount_id")
+          .eq("id", id)
+          .single();
+      
+      if (data) {
+        const { error } = await supabase.from("discounts").update({ is_active }).eq("id", data.discount_id);
+        if (error) throw error;
+      }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-promotions"] }),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("promotions").delete().eq("id", id);
-      if (error) throw error;
+      const { data } = await supabase
+          .from("platform_promos")
+          .select("discount_id")
+          .eq("id", id)
+          .single();
+
+      if (data) {
+        // Deleting platform_promo first (subtype)
+        await supabase.from("platform_promos").delete().eq("id", id);
+        // Then deleting discount (supertype)
+        const { error } = await supabase.from("discounts").delete().eq("id", data.discount_id);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-promotions"] });

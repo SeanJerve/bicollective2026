@@ -24,19 +24,28 @@ const SaleBanner = () => {
     queryFn: async () => {
       const now = new Date().toISOString();
 
-      const { data, error } = await supabase
-        .from("promotions")
-        .select("*")
-        .eq("scope", "platform")
-        .eq("is_active", true)
-        .lte("starts_at", now)
-        .gte("ends_at", now)
-        .order("discount_value", { ascending: false })
+      const { data, error } = await (supabase
+        .from("platform_promos")
+        .select(`
+          *,
+          discounts:discounts(*)
+        `)
+        .eq("discounts.is_active", true)
+        .lte("discounts.starts_at", now)
+        .gte("discounts.ends_at", now)
+        .order("discounts(discount_value)", { ascending: false })
         .limit(1)
-        .maybeSingle();
+        .maybeSingle() as any);
 
       if (error) throw error;
-      return data as Promotion | null;
+      if (!data) return null;
+
+      return {
+        ...data.discounts,
+        code: data.code,
+        id: data.id,
+        type: data.discounts.discount_type,
+      } as Promotion | null;
     },
     refetchInterval: 60000, // Refresh every minute
   });

@@ -3,6 +3,12 @@ import { Upload, X, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+interface ProductVariant {
+  id?: string;
+  size: string;
+  stock_quantity: number;
+}
+
 interface ProductFormProps {
   brandId: string;
   categories: { id: string; name: string }[];
@@ -17,8 +23,7 @@ interface ProductFormProps {
     imageUrl?: string;
     images?: string[];
     inStock?: boolean;
-    stockQuantity?: number;
-    sizes?: string[];
+    variants?: ProductVariant[];
     listingType?: string;
     releaseDate?: string;
     preorderDiscountPercent?: number;
@@ -49,8 +54,7 @@ const ProductForm = ({
     imageUrl: initialData?.imageUrl || "",
     images: initialData?.images || [],
     inStock: initialData?.inStock ?? true,
-    stockQuantity: initialData?.stockQuantity || 0,
-    sizes: initialData?.sizes || ["XS", "S", "M", "L", "XL"],
+    variants: initialData?.variants || [{ size: "M", stock_quantity: 10 }],
     listingType: initialData?.listingType || "regular",
     releaseDate: initialData?.releaseDate || "",
     preorderDiscountPercent: initialData?.preorderDiscountPercent || 0,
@@ -88,7 +92,6 @@ const ProductForm = ({
         .from("product-images")
         .getPublicUrl(filePath);
 
-      // Set as main image if none exists, otherwise add to gallery
       if (!formData.imageUrl) {
         setFormData((prev) => ({ ...prev, imageUrl: publicUrl }));
       } else {
@@ -131,7 +134,6 @@ const ProductForm = ({
 
   const removeImage = (url: string) => {
     if (url === formData.imageUrl) {
-      // If removing main image, promote first gallery image
       const [newMain, ...rest] = formData.images;
       setFormData((prev) => ({
         ...prev,
@@ -158,9 +160,18 @@ const ProductForm = ({
       return;
     }
 
+    if (formData.variants.length === 0) {
+      toast({
+        title: "No variants",
+        description: "Please add at least one size variant",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      const productData = {
+      const productData: any = {
         name: formData.name,
         slug: formData.slug,
         price: formData.price,
@@ -169,39 +180,60 @@ const ProductForm = ({
         category_id: formData.categoryId || null,
         brand_id: brandId,
         image_url: formData.imageUrl || null,
-        images: formData.images.length > 0 ? formData.images : null,
         in_stock: formData.inStock,
-        stock_quantity: formData.stockQuantity,
-        sizes: formData.sizes,
         is_active: true,
         listing_type: formData.listingType,
         release_date: formData.releaseDate || null,
         preorder_discount_percent: formData.preorderDiscountPercent || 0,
       };
 
-      if (initialData?.id) {
+      let productId = initialData?.id;
+
+      if (productId) {
         const { error } = await supabase
           .from("products")
           .update(productData)
-          .eq("id", initialData.id);
-
+          .eq("id", productId);
         if (error) throw error;
-        toast({ title: "Product updated" });
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("products")
-          .insert(productData);
-
+          .insert(productData)
+          .select("id")
+          .single();
         if (error) throw error;
-        toast({ title: "Product created" });
+        productId = data.id;
       }
 
+      // Sync Product Images
+      await supabase.from("product_images").delete().eq("product_id", productId);
+      const imageInserts = formData.images.map((url, idx) => ({
+        product_id: productId,
+        image_url: url,
+        sort_order: idx + 1,
+      }));
+      if (imageInserts.length > 0) {
+        await supabase.from("product_images").insert(imageInserts);
+      }
+
+      // Sync Product Variants
+      await supabase.from("product_variants").delete().eq("product_id", productId);
+      const variantInserts = formData.variants.map((v) => ({
+        product_id: productId,
+        size: v.size,
+        stock_quantity: v.stock_quantity,
+      }));
+      if (variantInserts.length > 0) {
+        await supabase.from("product_variants").insert(variantInserts);
+      }
+
+      toast({ title: initialData?.id ? "Product updated" : "Product created" });
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving product:", error);
       toast({
         title: "Error",
-        description: "Failed to save product",
+        description: error.message || "Failed to save product",
         variant: "destructive",
       });
     } finally {
@@ -402,21 +434,72 @@ const ProductForm = ({
         )}
       </div>
 
-      {/* Stock */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
-            Stock Quantity
+      {/* Variants (Size & Stock) */}
+      <div className="card-brutal p-4 bg-muted/30">
+        <div className="flex items-center justify-between mb-4">
+          <label className="font-heading text-sm uppercase tracking-wide">
+            Product Variants (Sizes)
           </label>
-          <input
-            type="number"
-            value={formData.stockQuantity}
-            onChange={(e) => setFormData((prev) => ({ ...prev, stockQuantity: Number(e.target.value) }))}
-            className="input-brutal w-full"
-            min="0"
-          />
+          <button
+            type="button"
+            onClick={() => setFormData(prev => ({ ...prev, variants: [...prev.variants, { size: "", stock_quantity: 0 }] }))}
+            className="text-xs uppercase font-heading underline hover:text-accent"
+          >
+            + Add Size
+          </button>
         </div>
-        <div className="flex items-center gap-3 pt-8">
+        
+        <div className="space-y-3">
+          {formData.variants.map((variant, idx) => (
+            <div key={idx} className="flex items-end gap-3 animate-slide-in">
+              <div className="flex-1">
+                <label className="text-[10px] uppercase font-bold text-muted-foreground mb-1 block">Size</label>
+                <input
+                  type="text"
+                  placeholder="e.g. M, 42, OS"
+                  value={variant.size}
+                  onChange={(e) => {
+                    const newVariants = [...formData.variants];
+                    newVariants[idx].size = e.target.value.toUpperCase();
+                    setFormData(prev => ({ ...prev, variants: newVariants }));
+                  }}
+                  className="input-brutal py-1.5 px-3 w-full"
+                  required
+                />
+              </div>
+              <div className="w-24">
+                <label className="text-[10px] uppercase font-bold text-muted-foreground mb-1 block">Stock</label>
+                <input
+                  type="number"
+                  value={variant.stock_quantity}
+                  onChange={(e) => {
+                    const newVariants = [...formData.variants];
+                    newVariants[idx].stock_quantity = Number(e.target.value);
+                    setFormData(prev => ({ ...prev, variants: newVariants }));
+                  }}
+                  className="input-brutal py-1.5 px-3 w-full"
+                  min="0"
+                  required
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const newVariants = formData.variants.filter((_, i) => i !== idx);
+                  setFormData(prev => ({ ...prev, variants: newVariants }));
+                }}
+                className="p-2 border-2 border-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors h-[38px]"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+          {formData.variants.length === 0 && (
+            <p className="text-xs text-muted-foreground text-center py-2">No variants added. Please add at least one.</p>
+          )}
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-border-subtle flex items-center gap-3">
           <input
             type="checkbox"
             id="inStock"
@@ -425,7 +508,7 @@ const ProductForm = ({
             className="w-5 h-5 border-2 border-foreground"
           />
           <label htmlFor="inStock" className="font-heading text-sm uppercase">
-            In Stock
+            Available For Sale
           </label>
         </div>
       </div>

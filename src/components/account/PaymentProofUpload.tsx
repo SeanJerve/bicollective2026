@@ -4,13 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface PaymentProofUploadProps {
-  vendorOrderId: string;
+  paymentId: string;
   currentProofUrl?: string | null;
   onUploadSuccess: () => void;
 }
 
 const PaymentProofUpload = ({
-  vendorOrderId,
+  paymentId,
   currentProofUrl,
   onUploadSuccess,
 }: PaymentProofUploadProps) => {
@@ -43,8 +43,8 @@ const PaymentProofUpload = ({
 
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `${vendorOrderId}-${Date.now()}.${fileExt}`;
-      const filePath = `${vendorOrderId}/${fileName}`;
+      const fileName = `${paymentId}-${Date.now()}.${fileExt}`;
+      const filePath = `verifications/${paymentId}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("payment-proofs")
@@ -52,15 +52,21 @@ const PaymentProofUpload = ({
 
       if (uploadError) throw uploadError;
 
-      const { error: updateError } = await supabase
-        .from("vendor_orders")
-        .update({
-          payment_proof_url: filePath,
-          status: "payment_uploaded",
-        })
-        .eq("id", vendorOrderId);
+      // Update/Insert verification
+      const { error: verError } = await (supabase
+        .from("payment_verifications")
+        .upsert({
+          payment_id: paymentId,
+          proof_image_url: filePath,
+        } as any) as any);
 
-      if (updateError) throw updateError;
+      if (verError) throw verError;
+
+      // Update payment status
+      await supabase
+        .from("payments")
+        .update({ status: "pending" }) // Wait for vendor/admin to verify
+        .eq("id", paymentId);
 
       setProofUrl(filePath);
 
@@ -111,7 +117,7 @@ const PaymentProofUpload = ({
       const file = e.dataTransfer.files?.[0];
       if (file) await processFile(file);
     },
-    [vendorOrderId]
+    [paymentId]
   );
 
   if (proofUrl) {

@@ -1,6 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+export interface ProductVariant {
+  id: string;
+  size: string;
+  stock_quantity: number;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -8,7 +14,8 @@ export interface Product {
   price: number;
   originalPrice?: number;
   image: string;
-  images?: string[];
+  galleryImages?: string[];       // from product_images table
+  variants?: ProductVariant[];    // from product_variants table
   brandId: string;
   brandName: string;
   brandSlug: string;
@@ -23,7 +30,6 @@ export interface Product {
   preorderDiscountPercent?: number;
   storeSalePercent?: number;
   storeSaleEndsAt?: string;
-  sizes?: string[];
   brandCommissionRate?: number;
   isBoosted?: boolean;
 }
@@ -37,6 +43,7 @@ export interface Brand {
   description?: string;
   isVerified: boolean;
   rating?: number;
+  reviewCount?: number;
   productCount?: number;
   location?: string;
   subscriptionTier?: string;
@@ -61,7 +68,9 @@ export const useProducts = () => {
           *,
           brand:brands!inner(id, name, slug, status, location, store_sale_percent, store_sale_ends_at, commission_rate, subscription_tier),
           category:categories(id, name, slug),
-          ad_boosts(id, status, starts_at, ends_at)
+          ad_boosts(id, status, starts_at, ends_at),
+          product_variants(id, size, stock_quantity),
+          product_images(image_url, sort_order)
         `) as any)
         .eq("is_active", true)
         .order("created_at", { ascending: false });
@@ -76,7 +85,8 @@ export const useProducts = () => {
         price: Number(p.price),
         originalPrice: p.original_price ? Number(p.original_price) : undefined,
         image: p.image_url || "/placeholder.svg",
-        images: p.images || [],
+        galleryImages: (p.product_images || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => img.image_url),
+        variants: p.product_variants || [],
         brandId: p.brand?.id || "",
         brandName: p.brand?.name || "",
         brandSlug: p.brand?.slug || "",
@@ -91,7 +101,6 @@ export const useProducts = () => {
         preorderDiscountPercent: p.preorder_discount_percent || undefined,
         storeSalePercent: p.brand?.store_sale_percent || undefined,
         storeSaleEndsAt: p.brand?.store_sale_ends_at || undefined,
-        sizes: p.sizes || undefined,
         brandCommissionRate: p.brand?.commission_rate ? Number(p.brand.commission_rate) : 5,
         isBoosted: (p.ad_boosts || []).some((b: any) => 
           b.status === "active" && 
@@ -114,7 +123,9 @@ export const useProduct = (slug: string) => {
           *,
           brand:brands!inner(id, name, slug, status, location, store_sale_percent, store_sale_ends_at, commission_rate, subscription_tier),
           category:categories(id, name, slug),
-          ad_boosts(id, status, starts_at, ends_at)
+          ad_boosts(id, status, starts_at, ends_at),
+          product_variants(id, size, stock_quantity),
+          product_images(image_url, sort_order)
         `) as any)
         .eq("slug", slug)
         .maybeSingle();
@@ -130,14 +141,15 @@ export const useProduct = (slug: string) => {
         price: Number(product.price),
         originalPrice: product.original_price ? Number(product.original_price) : undefined,
         image: product.image_url || "/placeholder.svg",
-        images: product.images || [],
+        galleryImages: (product.product_images || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => img.image_url),
+        variants: product.product_variants || [],
         brandId: product.brand?.id || "",
         brandName: product.brand?.name || "",
         brandSlug: product.brand?.slug || "",
         brandLocation: product.brand?.location || undefined,
         isVerifiedBrand: product.brand?.status === "verified",
         category: product.category?.name || "",
-        categorySlug: product.category?.slug || "" ,
+        categorySlug: product.category?.slug || "",
         description: product.description || "",
         inStock: product.in_stock ?? true,
         listingType: product.listing_type || "regular",
@@ -145,7 +157,6 @@ export const useProduct = (slug: string) => {
         preorderDiscountPercent: product.preorder_discount_percent || undefined,
         storeSalePercent: product.brand?.store_sale_percent || undefined,
         storeSaleEndsAt: product.brand?.store_sale_ends_at || undefined,
-        sizes: product.sizes || undefined,
         brandCommissionRate: product.brand?.commission_rate ? Number(product.brand.commission_rate) : 5,
         isBoosted: (product.ad_boosts || []).some((b: any) => 
           b.status === "active" && 
@@ -184,6 +195,15 @@ export const useBrands = () => {
         countMap[p.brand_id] = (countMap[p.brand_id] || 0) + 1;
       });
 
+      // Fetch live ratings from brand_aggregates view
+      const { data: aggregates } = await (supabase
+        .from("brand_aggregates") as any)
+        .select("brand_id, average_rating, review_count")
+        .in("brand_id", brandIds);
+
+      const aggMap: Record<string, any> = {};
+      (aggregates || []).forEach((a: any) => { aggMap[a.brand_id] = a; });
+
       return (data || []).map((b: any) => ({
         id: b.id,
         name: b.name,
@@ -192,7 +212,8 @@ export const useBrands = () => {
         banner: b.banner_url || undefined,
         description: b.description || "",
         isVerified: b.status === "verified",
-        rating: b.rating ? Number(b.rating) : undefined,
+        rating: aggMap[b.id]?.average_rating ? Number(aggMap[b.id].average_rating) : undefined,
+        reviewCount: aggMap[b.id]?.review_count ? Number(aggMap[b.id].review_count) : 0,
         productCount: countMap[b.id] || 0,
         location: b.location || undefined,
         subscriptionTier: b.subscription_tier,
@@ -223,6 +244,13 @@ export const useBrand = (slug: string) => {
         .eq("brand_id", brand.id)
         .eq("is_active", true);
 
+      // Get live rating from brand_aggregates view
+      const { data: agg } = await (supabase
+        .from("brand_aggregates") as any)
+        .select("average_rating, review_count")
+        .eq("brand_id", brand.id)
+        .maybeSingle();
+
       return {
         id: brand.id,
         name: brand.name,
@@ -231,7 +259,8 @@ export const useBrand = (slug: string) => {
         banner: brand.banner_url || undefined,
         description: brand.description || "",
         isVerified: brand.status === "verified",
-        rating: brand.rating ? Number(brand.rating) : undefined,
+        rating: agg?.average_rating ? Number(agg.average_rating) : undefined,
+        reviewCount: agg?.review_count ? Number(agg.review_count) : 0,
         productCount: count || 0,
         subscriptionTier: brand.subscription_tier,
       };
@@ -251,7 +280,9 @@ export const useProductsByBrand = (brandSlug: string) => {
           *,
           brand:brands!inner(id, name, slug, status, commission_rate, subscription_tier),
           category:categories(id, name, slug),
-          ad_boosts(id, status, starts_at, ends_at)
+          ad_boosts(id, status, starts_at, ends_at),
+          product_variants(id, size, stock_quantity),
+          product_images(image_url, sort_order)
         `) as any)
         .eq("brand.slug", brandSlug)
         .eq("is_active", true)
@@ -266,7 +297,8 @@ export const useProductsByBrand = (brandSlug: string) => {
         price: Number(p.price),
         originalPrice: p.original_price ? Number(p.original_price) : undefined,
         image: p.image_url || "/placeholder.svg",
-        images: p.images || [],
+        galleryImages: (p.product_images || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => img.image_url),
+        variants: p.product_variants || [],
         brandId: p.brand?.id || "",
         brandName: p.brand?.name || "",
         brandSlug: p.brand?.slug || "",
@@ -337,7 +369,9 @@ export const useProductsByCategory = (categorySlug: string) => {
           *,
           brand:brands!inner(id, name, slug, status, commission_rate, subscription_tier),
           category:categories!inner(id, name, slug),
-          ad_boosts(id, status, starts_at, ends_at)
+          ad_boosts(id, status, starts_at, ends_at),
+          product_variants(id, size, stock_quantity),
+          product_images(image_url, sort_order)
         `) as any)
         .eq("category.slug", categorySlug)
         .eq("is_active", true)
@@ -352,7 +386,8 @@ export const useProductsByCategory = (categorySlug: string) => {
         price: Number(p.price),
         originalPrice: p.original_price ? Number(p.original_price) : undefined,
         image: p.image_url || "/placeholder.svg",
-        images: p.images || [],
+        galleryImages: (p.product_images || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => img.image_url),
+        variants: p.product_variants || [],
         brandId: p.brand?.id || "",
         brandName: p.brand?.name || "",
         brandSlug: p.brand?.slug || "",

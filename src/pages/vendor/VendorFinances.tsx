@@ -31,9 +31,20 @@ const VendorFinances = () => {
   const { data: orderFees } = useQuery({
     queryKey: ["vendor-order-fees", brand?.id],
     queryFn: async () => {
-      const { data, error } = await ((supabase as any)
+      const { data, error } = await supabase
         .from("vendor_orders")
-        .select("order_id, created_at, subtotal, platform_commission, platform_shipping_margin, total_platform_fee, status, payment_method") as any)
+        .select(`
+          order_id, 
+          created_at, 
+          subtotal, 
+          platform_commission, 
+          platform_shipping_margin, 
+          total_platform_fee, 
+          status,
+          order:orders(
+            payments(payment_method)
+          )
+        `)
         .eq("brand_id", brand!.id)
         .order("created_at", { ascending: false })
         .limit(20);
@@ -273,7 +284,7 @@ const VendorFinances = () => {
                   </td>
                   <td className="p-4">
                     <span className="text-[10px] font-heading uppercase opacity-60">
-                      {o.payment_method?.replace("_", " ") || "COD"}
+                      {o.order?.payments?.[0]?.payment_method === 0 ? "COD" : (o.order?.payments?.[0]?.payment_method === 1 ? "GCash" : (o.order?.payments?.[0]?.payment_method === 2 ? "Bank Transfer" : "N/A"))}
                     </span>
                   </td>
                 </tr>

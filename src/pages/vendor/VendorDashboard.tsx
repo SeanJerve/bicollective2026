@@ -27,14 +27,13 @@ const VendorDashboard = () => {
     queryFn: async () => {
       const brandId = brand!.id;
 
-      const [totalProducts, activeProducts, ordersData, totalPromos, activePromos, totalReviews, lowStockProducts] = await Promise.all([
+      const [totalProducts, activeProducts, ordersData, promoStats, totalReviews, lowStockData] = await Promise.all([
         supabase.from("products").select("*", { count: "exact", head: true }).eq("brand_id", brandId),
         supabase.from("products").select("*", { count: "exact", head: true }).eq("brand_id", brandId).eq("is_active", true),
         supabase.from("vendor_orders").select("status, subtotal, shipping_fee").eq("brand_id", brandId),
-        supabase.from("promotions").select("*", { count: "exact", head: true }).eq("brand_id", brandId),
-        supabase.from("promotions").select("*", { count: "exact", head: true }).eq("brand_id", brandId).eq("is_active", true),
+        supabase.from("vendor_vouchers").select("discount_id, discounts:discounts(is_active)").eq("brand_id", brandId) as any,
         supabase.from("reviews").select("rating").eq("brand_id", brandId),
-        supabase.from("products").select("*", { count: "exact", head: true }).eq("brand_id", brandId).lt("stock_quantity", 5),
+        supabase.from("product_variants").select("stock_quantity, product:products!inner(brand_id)").eq("product.brand_id", brandId).lt("stock_quantity", 5) as any,
       ]);
 
       const orders = ordersData.data || [];
@@ -53,6 +52,10 @@ const VendorDashboard = () => {
         ? reviews.reduce((acc, r) => acc + (r.rating || 0), 0) / reviews.length
         : 0;
 
+      const promos = promoStats.data || [];
+      const totalPromos = promos.length;
+      const activePromos = promos.filter((p: any) => p.discounts?.is_active).length;
+
       return {
         totalProducts: totalProducts.count || 0,
         activeProducts: activeProducts.count || 0,
@@ -60,10 +63,10 @@ const VendorDashboard = () => {
         totalRevenue,
         averageRating,
         deliveredOrders,
-        totalPromos: totalPromos.count || 0,
-        activePromos: activePromos.count || 0,
+        totalPromos,
+        activePromos,
         totalReviews: reviews.length,
-        lowStockProducts: lowStockProducts.count || 0,
+        lowStockProducts: lowStockData.data?.length || 0,
       };
     },
     enabled: !!brand,
@@ -74,7 +77,7 @@ const VendorDashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vendor_orders")
-        .select("*, order:orders(shipping_name, created_at)")
+        .select("*, order:orders(address:addresses(*), created_at)")
         .eq("brand_id", brand!.id)
         .order("created_at", { ascending: false })
         .limit(5);
@@ -217,7 +220,7 @@ const VendorDashboard = () => {
             {(recentOrders || []).map((order: any) => (
               <div key={order.id} className="p-6 flex items-center justify-between">
                 <div>
-                  <p className="font-heading uppercase">{order.order?.shipping_name || "Customer"}</p>
+                  <p className="font-heading uppercase">{order.order?.address?.full_name || "Customer"}</p>
                   <p className="text-sm text-muted-foreground">{new Date(order.created_at).toLocaleDateString()}</p>
                 </div>
                 <div className="text-right">

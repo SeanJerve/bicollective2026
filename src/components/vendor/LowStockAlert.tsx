@@ -3,30 +3,35 @@ import { Link } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-interface LowStockProduct {
+interface LowStockVariant {
   id: string;
-  name: string;
-  slug: string;
+  size: string;
   stock_quantity: number;
+  product: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
 }
 
 const LowStockAlert = ({ brandId }: { brandId: string }) => {
-  const [products, setProducts] = useState<LowStockProduct[]>([]);
+  const [variants, setVariants] = useState<LowStockVariant[]>([]);
 
   useEffect(() => {
     if (!brandId) return;
-    supabase
-      .from("products")
-      .select("id, name, slug, stock_quantity")
-      .eq("brand_id", brandId)
-      .eq("is_active", true)
+    // Query product_variants (replaces products.stock_quantity which was dropped)
+    (supabase as any)
+      .from("product_variants")
+      .select("id, size, stock_quantity, product:products!inner(id, name, slug, brand_id)")
+      .eq("product.brand_id", brandId)
       .lt("stock_quantity", 5)
+      .gt("stock_quantity", 0)
       .order("stock_quantity", { ascending: true })
-      .limit(5)
-      .then(({ data }) => setProducts(data || []));
+      .limit(8)
+      .then(({ data }: any) => setVariants(data || []));
   }, [brandId]);
 
-  if (products.length === 0) return null;
+  if (variants.length === 0) return null;
 
   return (
     <div className="card-brutal border-destructive/50 mb-6 md:mb-8">
@@ -35,11 +40,13 @@ const LowStockAlert = ({ brandId }: { brandId: string }) => {
         <h2 className="font-heading text-base md:text-lg uppercase">Low Stock Alert</h2>
       </div>
       <div className="divide-y divide-border-subtle">
-        {products.map((p) => (
-          <div key={p.id} className="p-4 md:px-6 flex items-center justify-between">
-            <span className="text-sm truncate flex-1">{p.name}</span>
+        {variants.map((v) => (
+          <div key={v.id} className="p-4 md:px-6 flex items-center justify-between">
+            <span className="text-sm truncate flex-1">
+              {v.product?.name} — <span className="text-muted-foreground">Size {v.size}</span>
+            </span>
             <div className="flex items-center gap-3 flex-shrink-0 ml-3">
-              <span className="font-heading text-destructive">{p.stock_quantity} left</span>
+              <span className="font-heading text-destructive">{v.stock_quantity} left</span>
               <Link to="/vendor/products" className="text-xs underline text-muted-foreground hover:text-foreground">Edit</Link>
             </div>
           </div>

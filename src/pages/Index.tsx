@@ -1,5 +1,6 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, BadgeCheck, Shield } from "lucide-react";
+import { ArrowRight, BadgeCheck, Shield, Tag, Sparkles } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import ProductCard from "@/components/marketplace/ProductCard";
 import ProductCardSkeleton from "@/components/marketplace/ProductCardSkeleton";
@@ -24,6 +25,21 @@ const Index = () => {
 
   const featuredProducts = products?.slice(0, 4) || [];
   const featuredBrands = brands?.slice(0, 3) || [];
+
+  const saleProducts = useMemo(() => {
+    return products?.filter((p) => {
+      const isProductSale = p.originalPrice && p.originalPrice > p.price;
+      const isPreorderSale = p.preorderDiscountPercent && p.preorderDiscountPercent > 0;
+      const isStoreSale = p.storeSalePercent && p.storeSalePercent > 0 && p.storeSaleEndsAt && new Date(p.storeSaleEndsAt) > new Date();
+      return isProductSale || isPreorderSale || isStoreSale;
+    }).slice(0, 4) || [];
+  }, [products]);
+
+  const dailyDiscoverProducts = useMemo(() => {
+    if (!products || products.length === 0) return [];
+    const shuffled = [...products].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, 8);
+  }, [products]);
 
   return (
     <PageLayout>
@@ -148,6 +164,42 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Flash Deals / Sale Section */}
+      {saleProducts.length > 0 && (
+        <section className="py-12 md:py-16 bg-accent/10 border-b-2 border-foreground">
+          <div className="section-container">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8 md:mb-10">
+              <div>
+                <span className="text-xs md:text-sm uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-2">
+                  <Tag className="w-4 h-4" /> Limited Time Offers
+                </span>
+                <h2 className="font-heading text-3xl md:text-5xl uppercase text-destructive">Flash Deals</h2>
+              </div>
+              <Link
+                to="/products"
+                className="hidden sm:inline-flex items-center gap-2 font-heading uppercase text-sm hover:opacity-60 transition-opacity"
+              >
+                View All Deals
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="product-grid">
+              {saleProducts.map((product) => (
+                <ProductCard key={product.id} {...product} />
+              ))}
+            </div>
+            
+            <Link
+              to="/products"
+              className="sm:hidden btn-brutal-secondary w-full mt-6 md:mt-8 text-center block"
+            >
+              View All Deals
+            </Link>
+          </div>
+        </section>
+      )}
+
       {/* Featured Brands */}
       <section className="py-12 md:py-24">
         <div className="section-container">
@@ -187,6 +239,58 @@ const Index = () => {
           >
             View All Brands
           </Link>
+        </div>
+      </section>
+
+      {/* Daily Discover Section */}
+      <section className="py-12 md:py-24 border-t-2 border-foreground">
+        <div className="section-container">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8 md:mb-10">
+            <div>
+              <span className="text-xs md:text-sm uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-accent" /> Recommended For You
+              </span>
+              <h2 className="font-heading text-3xl md:text-5xl uppercase">Daily Discover</h2>
+            </div>
+          </div>
+
+          <div className="product-grid">
+            {productsLoading ? (
+              Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)
+            ) : dailyDiscoverProducts.length > 0 ? (
+              dailyDiscoverProducts.map((product) => (
+                <ProductCard key={`discover-${product.id}`} {...product} />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <p className="text-muted-foreground">Check back later for new discoveries!</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* SEO & Marketing Copy */}
+      <section className="py-12 md:py-16 border-t-2 border-foreground bg-secondary/50">
+        <div className="section-container max-w-5xl text-sm md:text-base text-muted-foreground space-y-6">
+          <div>
+            <h3 className="font-heading text-lg md:text-xl text-foreground uppercase mb-2">Buy and Sell the Best Local Fashion on Bicollective</h3>
+            <p className="leading-relaxed">
+              Bicollective is a community-driven, free, and trusted way to buy and sell authentic clothing online. We are the premier local fashion marketplace platform for the Bicol region—bringing together the best streetwear, tailored garments, and lifestyle brands from Camarines Sur, Albay, Sorsogon, and beyond. Join thousands of others on Bicollective to list products and shop for the best local deals online. Doing your online shopping is safe with our robust Buyer Protection. You get the item you ordered, or you get your money back! Create and browse verified listings for free. Join the Bicollective community and wear your local pride today!
+            </p>
+          </div>
+          <div>
+            <h3 className="font-heading text-lg md:text-xl text-foreground uppercase mb-2">Experience a Curated Shopping Journey</h3>
+            <p className="leading-relaxed">
+              Join Bicollective to find everything you need at the best prices, directly from the creators. Shopping on the region's best marketplace cannot get any easier. Support homegrown talent by browsing through our extensive categories, from exclusive graphic tees by Soul of Bicol, heavyweight hoodies by Gubat Collective, to timeless accessories by Magayon Studio.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-heading text-lg md:text-xl text-foreground uppercase mb-2">Enjoy Special Drops, Promos, and Local Discounts</h3>
+            <p className="leading-relaxed">
+              Shopping locally is not only easy and safe, but we make it rewarding. Keep an eye out for our exclusive Product Target Drops, store-wide sales, and Premium Vendor discounts. Treat yourself during payday with exclusive vouchers!
+            </p>
+          </div>
         </div>
       </section>
 

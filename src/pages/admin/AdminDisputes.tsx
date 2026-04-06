@@ -55,7 +55,7 @@ const AdminDisputes = () => {
           vendor_order:vendor_orders(
             id, subtotal, status,
             brand:brands(name),
-            order:orders(shipping_name, id)
+            order:orders(id, address:addresses(*))
           )
         `)
         .order("created_at", { ascending: false });
@@ -109,7 +109,7 @@ const AdminDisputes = () => {
   const filtered = disputes.filter((d) => {
     const matchesFilter = filter === "all" || d.status === filter;
     const matchesSearch = d.reason.toLowerCase().includes(search.toLowerCase()) ||
-      d.vendor_order?.order?.shipping_name?.toLowerCase().includes(search.toLowerCase()) ||
+      d.vendor_order?.order?.address?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
       d.vendor_order?.brand?.name?.toLowerCase().includes(search.toLowerCase());
     return matchesFilter && matchesSearch;
   });
@@ -164,7 +164,7 @@ const AdminDisputes = () => {
                     <h3 className="font-heading text-lg uppercase">{dispute.reason}</h3>
                     {dispute.description && <p className="text-sm text-muted-foreground mt-1">{dispute.description}</p>}
                     <div className="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-sm">
-                      <span><strong>Customer:</strong> {dispute.vendor_order?.order?.shipping_name || "Unknown"}</span>
+                      <span><strong>Customer:</strong> {dispute.vendor_order?.order?.address?.full_name || "Unknown"}</span>
                       <span><strong>Vendor:</strong> {dispute.vendor_order?.brand?.name || "Unknown"}</span>
                       <span><strong>Order Amount:</strong> {formatPrice(Number(dispute.vendor_order?.subtotal || 0))}</span>
                     </div>

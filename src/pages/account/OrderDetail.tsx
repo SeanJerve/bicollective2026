@@ -117,11 +117,11 @@ const OrderDetail = () => {
     }
   };
 
-  const handleBuyAgain = async (items: any[], brandId: string) => {
+  const handleBuyAgain = async (items: any[]) => {
     let added = 0;
     for (const item of items) {
-      if (item.product_id) {
-        await addToCart(item.product_id, 1, item.size || undefined);
+      if (item.variant_id) {
+        await addToCart(item.variant_id, item.quantity);
         added++;
       }
     }
@@ -147,6 +147,14 @@ const OrderDetail = () => {
         .from("orders")
         .select(`
           *,
+          address:addresses(*),
+          payments(
+            id,
+            payment_method,
+            amount,
+            status,
+            payment_verifications(proof_image_url)
+          ),
           vendor_orders(
             id,
             brand_id,
@@ -154,10 +162,8 @@ const OrderDetail = () => {
             subtotal,
             shipping_fee,
             tracking_number,
-            payment_proof_url,
-            payment_method,
             brand:brands(id, name, slug, owner_id, status),
-            order_items(id, product_name, product_price, quantity, size, product_id)
+            order_items(id, product_name, product_price, quantity, size, product_id, variant_id)
           )
         `)
         .eq("id", orderId!)
@@ -278,18 +284,22 @@ const OrderDetail = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">Recipient</p>
-                <p className="font-medium">{order.shipping_name}</p>
+                <p className="font-medium">{order.address?.full_name}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Phone</p>
                 <p className="font-medium flex items-center gap-1">
                   <Phone className="w-4 h-4" />
-                  {order.shipping_phone}
+                  {order.address?.phone}
                 </p>
               </div>
               <div className="md:col-span-2">
                 <p className="text-muted-foreground">Address</p>
-                <p className="font-medium">{order.shipping_address}</p>
+                <p className="font-medium">
+                  {order.address ? 
+                    `${order.address.street}, ${order.address.barangay}, ${order.address.city}, ${order.address.province} ${order.address.zip_code}` : 
+                    "No address found"}
+                </p>
               </div>
               {order.notes && (
                 <div className="md:col-span-2">
@@ -399,23 +409,35 @@ const OrderDetail = () => {
 
               {/* Totals moved down below chat */}
 
-              {/* Payment proof display */}
-              {vo.payment_proof_url && (
-                <PaymentProofImage path={vo.payment_proof_url} />
-              )}
-
-              {/* Payment Proof Upload for non-COD pending orders */}
-              {vo.status === "pending_payment" && vo.payment_method !== "cod" && !vo.payment_proof_url && (
-                <div className="border-t border-border-subtle pt-4 mt-4">
-                  <PaymentProofUpload
-                    vendorOrderId={vo.id}
-                    currentProofUrl={vo.payment_proof_url}
-                    onUploadSuccess={() => {
-                      queryClient.invalidateQueries({ queryKey: ["order-detail", orderId] });
-                    }}
-                  />
+          {/* Final Totals & Payments Section */}
+          <div className="card-brutal p-4 md:p-6 bg-secondary">
+            <h3 className="font-heading text-lg uppercase mb-4">Payment Summary</h3>
+            
+            {order.payments?.map((payment: any) => (
+              <div key={payment.id} className="mb-4 pb-4 border-b border-foreground/10 last:border-0 last:pb-0 last:mb-0">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-heading uppercase">
+                    {payment.payment_method === 0 ? "Cash on Delivery" : (payment.payment_method === 1 ? "GCash" : "Bank Transfer")}
+                  </span>
+                  <span className={`px-2 py-0.5 text-[10px] font-bold border border-foreground ${
+                    payment.status === "verified" ? "bg-success" : "bg-warning"
+                  }`}>
+                    {payment.status.toUpperCase()}
+                  </span>
                 </div>
-              )}
+                {payment.payment_verifications?.[0]?.proof_image_url && (
+                  <PaymentProofImage path={payment.payment_verifications[0].proof_image_url} />
+                )}
+              </div>
+            ))}
+
+            <div className="flex justify-between items-center mt-4 pt-4 border-t-2 border-foreground">
+              <span className="font-heading uppercase">Order Total</span>
+              <span className="font-heading text-xl md:text-2xl">
+                {formatPrice(Number(order.total_amount))}
+              </span>
+            </div>
+          </div>
 
               {/* Chat */}
               <div className="border-t border-border-subtle pt-4 mt-4 flex justify-end">
@@ -536,7 +558,7 @@ const OrderDetail = () => {
               {vo.status === "delivered" && (
                 <div className="border-t border-border-subtle pt-4 mt-4">
                   <button
-                    onClick={() => handleBuyAgain(vo.order_items || [], vo.brand?.id)}
+                    onClick={() => handleBuyAgain(vo.order_items || [])}
                     className="btn-brutal-secondary w-full flex items-center justify-center gap-2"
                   >
                     <RotateCcw className="w-4 h-4" />
@@ -548,15 +570,6 @@ const OrderDetail = () => {
           ))}
 
           {/* Total */}
-          <div className="card-brutal p-4 md:p-6 bg-secondary">
-            <div className="flex justify-between items-center">
-              <span className="font-heading uppercase">Order Total</span>
-              <span className="font-heading text-xl md:text-2xl">
-                {formatPrice(Number(order.total_amount))}
-              </span>
-            </div>
-          </div>
-
           <div className="mt-8 text-center">
             <Link to="/account/orders" className="btn-brutal-secondary">
               Back to Orders

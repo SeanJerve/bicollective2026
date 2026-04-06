@@ -31,47 +31,69 @@ const PromoCodeInput = ({ onApply, appliedCode, orderTotal }: PromoCodeInputProp
     try {
       const now = new Date().toISOString();
 
-      // Check promotions table for the code
-      const { data: promo, error: promoError } = await supabase
-        .from("promotions")
-        .select("*")
+      // Check platform_promos first
+      let { data: platformPromo } = await ((supabase
+        .from("platform_promos") as any)
+        .select(`
+          *,
+          discounts:discounts(*)
+        `)
         .eq("code", code.toUpperCase().trim())
-        .eq("is_active", true)
-        .lte("starts_at", now)
-        .gte("ends_at", now)
-        .maybeSingle();
+        .maybeSingle());
 
-      if (promoError) throw promoError;
+      let promoData: any = platformPromo;
 
-      if (!promo) {
+      // If not found in platform, check vendor_vouchers
+      if (!promoData) {
+        const { data: vendorVoucher } = await ((supabase
+          .from("vendor_vouchers") as any)
+          .select(`
+            *,
+            discounts:discounts(*)
+          `)
+          .eq("code", code.toUpperCase().trim())
+          .maybeSingle());
+        
+        promoData = vendorVoucher;
+      }
+
+      if (!promoData || !promoData.discounts) {
         setError("Invalid or expired promo code");
         return;
       }
 
+      const discount = promoData.discounts;
+
+      // Check isActive
+      if (!discount.is_active || now < discount.starts_at || now > discount.ends_at) {
+        setError("This promo code is currently inactive or expired");
+        return;
+      }
+
       // Check usage limits
-      if (promo.max_uses && promo.current_uses >= promo.max_uses) {
+      if (discount.max_uses && discount.current_uses >= discount.max_uses) {
         setError("This promo code has reached its usage limit");
         return;
       }
 
       // Check minimum order amount
-      if (promo.min_order_amount && orderTotal < Number(promo.min_order_amount)) {
-        setError(`Minimum order of ₱${Number(promo.min_order_amount).toLocaleString()} required`);
+      if (discount.min_order_amount && orderTotal < Number(discount.min_order_amount)) {
+        setError(`Minimum order of ₱${Number(discount.min_order_amount).toLocaleString()} required`);
         return;
       }
 
       onApply({
-        id: promo.id,
-        code: promo.code,
-        type: promo.type,
-        discount_value: Number(promo.discount_value),
-        max_discount_amount: promo.max_discount_amount ? Number(promo.max_discount_amount) : null,
-        scope: promo.scope,
+        id: discount.id,
+        code: code.toUpperCase().trim(),
+        type: discount.discount_type,
+        discount_value: Number(discount.discount_value),
+        max_discount_amount: discount.max_discount_amount ? Number(discount.max_discount_amount) : null,
+        scope: (promoData as any).scope || "vendor",
       });
 
       toast({
         title: "Promo applied!",
-        description: `${promo.name} has been applied to your order`,
+        description: `${discount.name} has been applied to your order`,
       });
     } catch (err: any) {
       console.error("Promo code error:", err);

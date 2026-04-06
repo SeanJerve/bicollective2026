@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 
 interface BuyNowItem {
+  variant_id: string; // Added variant_id
   product_id: string;
   quantity: number;
   size: string;
@@ -113,71 +114,96 @@ const Checkout = () => {
 
   // Build checkout items
   const checkoutItems = useMemo(() => {
+    let rawItems: any[] = [];
+    
     if (isBuyNow && buyNowItem) {
-      return [{
+      rawItems = [{
         id: "buy-now",
+        variant_id: buyNowItem.variant_id,
         product_id: buyNowItem.product_id,
         quantity: buyNowItem.quantity,
         size: buyNowItem.size,
-        product: {
-          ...buyNowItem.product,
-          slug: "",
-        },
-      }] as any[];
+        variant: {
+          product: {
+            ...buyNowItem.product,
+            slug: "",
+          }
+        }
+      }];
+    } else {
+      // If selectedCartItemIds provided, filter cart items
+      rawItems = selectedCartItemIds && selectedCartItemIds.length > 0
+        ? items.filter((item) => selectedCartItemIds.includes(item.id))
+        : items;
     }
-    // If selectedCartItemIds provided, filter cart items
-    if (selectedCartItemIds && selectedCartItemIds.length > 0) {
-      return items.filter((item) => selectedCartItemIds.includes(item.id));
-    }
-    return items;
+
+    // Ensure all items have a variant.product structure for consistent access
+    return rawItems.map(item => ({
+      ...item,
+      variant: item.variant || { product: item.product }
+    }));
   }, [isBuyNow, buyNowItem, items, selectedCartItemIds]);
 
   const productSubtotal = useMemo(() => {
-    return checkoutItems.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
+    return checkoutItems.reduce((sum, item) => {
+      const price = Number(item.variant?.product?.price || 0);
+      return sum + price * item.quantity;
+    }, 0);
   }, [checkoutItems]);
 
   // Group items by brand
   const groupedItems: GroupedItems = useMemo(() => {
     return checkoutItems.reduce((acc: GroupedItems, item: any) => {
-      const brandId = item.product.brand_id;
+      const product = item.variant?.product;
+      const brandId = product?.brand_id;
+      if (!brandId) return acc;
+
       if (!acc[brandId]) {
-        acc[brandId] = { brand: item.product.brand, items: [], subtotal: 0 };
+        acc[brandId] = { brand: product.brand, items: [], subtotal: 0 };
       }
       acc[brandId].items.push(item);
-      acc[brandId].subtotal += Number(item.product.price) * item.quantity;
+      acc[brandId].subtotal += Number(product.price || 0) * item.quantity;
       return acc;
     }, {} as GroupedItems);
   }, [checkoutItems]);
 
-  // Fetch active auto-apply promos
+  // Fetch active auto-apply promos (via Discounts Supertype)
   const { data: autoPromos } = useQuery({
-    queryKey: ["auto-apply-promos"],
+    queryKey: ["auto-apply-promos-new"],
     queryFn: async () => {
       const now = new Date().toISOString();
-      const { data } = await supabase
-        .from("promotions")
-        .select("*")
+      // Join discounts [supertype] with platform_promos [subtype]
+      const { data, error } = await supabase
+        .from("discounts")
+        .select(`*, platform_promos!inner(*)`)
         .eq("is_active", true)
         .lte("starts_at", now)
         .gte("ends_at", now)
-        .in("deployment_target", ["auto_apply"])
-        .in("scope", ["platform", "location"]);
+        .eq("platform_promos.deployment_target", "auto_apply");
+      
+      if (error) console.error("Error fetching auto-promos:", error);
       return data || [];
     },
   });
 
-  // Fetch user vouchers
+  // Fetch user vouchers (claimed discounts)
   const { data: userVouchers } = useQuery({
-    queryKey: ["checkout-vouchers", user?.id],
+    queryKey: ["checkout-vouchers-claimed", user?.id],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("vouchers")
-        .select("*")
+      // Query junction table user_discount_claims joined with discounts supertype
+      const { data, error } = await (supabase
+        .from("user_discount_claims") as any)
+        .select(`*, discounts!inner(*)`)
         .eq("user_id", user!.id)
         .eq("status", "active")
-        .gte("expires_at", new Date().toISOString())
-        .order("discount_value", { ascending: false });
-      return data || [];
+        .gte("discounts.ends_at", new Date().toISOString());
+      
+      if (error) console.error("Error fetching claimed vouchers:", error);
+      // Flatten the result to match expected discount structure
+      return (data || []).map((claim: any) => ({
+        ...claim.discounts,
+        claim_id: claim.id
+      }));
     },
     enabled: !!user,
   });
@@ -185,24 +211,23 @@ const Checkout = () => {
   // Promo discount
   const promoDiscount = useMemo(() => {
     let discount = 0;
-    if (appliedPromo && appliedPromo.type !== "free_shipping") {
-      if (appliedPromo.type === "percentage_discount") {
+    if (appliedPromo && appliedPromo.discount_type !== "free_shipping") {
+      if (appliedPromo.discount_type === "percentage") {
         let d = (productSubtotal * appliedPromo.discount_value) / 100;
         if (appliedPromo.max_discount_amount) d = Math.min(d, appliedPromo.max_discount_amount);
         discount += d;
-      } else if (appliedPromo.type === "fixed_discount") {
+      } else if (appliedPromo.discount_type === "fixed") {
         discount += appliedPromo.discount_value;
       }
     }
     autoPromos?.forEach((promo) => {
-      if (promo.type === "free_shipping") return;
-      if (promo.scope === "location" && promo.target_locations && !promo.target_locations.includes(buyerLocation)) return;
+      if (promo.discount_type === "free_shipping") return;
       if (promo.min_order_amount && productSubtotal < Number(promo.min_order_amount)) return;
-      if (promo.type === "percentage_discount") {
+      if (promo.discount_type === "percentage") {
         let d = (productSubtotal * Number(promo.discount_value)) / 100;
         if (promo.max_discount_amount) d = Math.min(d, Number(promo.max_discount_amount));
         discount += d;
-      } else if (promo.type === "fixed_discount") {
+      } else if (promo.discount_type === "fixed") {
         discount += Number(promo.discount_value);
       }
     });
@@ -230,7 +255,7 @@ const Checkout = () => {
   // Voucher deductions
   const pesoVoucherDeduction = useMemo(() => {
     return selectedVouchers.reduce((sum, v) => {
-      if (v.type === "percentage_discount") {
+      if (v.discount_type === "percentage") {
         let d = (discountedSubtotal * Number(v.discount_value)) / 100;
         if (v.max_discount_amount) d = Math.min(d, Number(v.max_discount_amount));
         return sum + d;
@@ -248,8 +273,8 @@ const Checkout = () => {
   const finalShipping = Math.max(0, totalShippingOriginal - shippingVoucherDeduction);
 
   const promoFreeShipping = useMemo(() => {
-    if (appliedPromo?.type === "free_shipping") return Math.min(50, totalShippingOriginal);
-    const autoFreeShip = autoPromos?.find((p) => p.type === "free_shipping" && p.is_active);
+    if (appliedPromo?.discount_type === "free_shipping") return Math.min(50, totalShippingOriginal);
+    const autoFreeShip = autoPromos?.find((p) => p.discount_type === "free_shipping");
     if (autoFreeShip) return Math.min(Number(autoFreeShip.discount_value) || 50, totalShippingOriginal);
     return 0;
   }, [appliedPromo, autoPromos, totalShippingOriginal]);
@@ -260,8 +285,8 @@ const Checkout = () => {
     return Math.max(0, discountedSubtotal + effectiveShipping - pesoVoucherDeduction);
   }, [discountedSubtotal, effectiveShipping, pesoVoucherDeduction]);
 
-  const pesoVouchers = userVouchers?.filter((v) => v.type !== "free_shipping") || [];
-  const shippingVouchers = userVouchers?.filter((v) => v.type === "free_shipping") || [];
+  const pesoVouchers = userVouchers?.filter((v) => v.discount_type !== "free_shipping") || [];
+  const shippingVouchers = userVouchers?.filter((v) => v.discount_type === "free_shipping") || [];
 
   const togglePesoVoucher = (voucher: any) => {
     const exists = selectedVouchers.find((v) => v.id === voucher.id);
@@ -298,7 +323,7 @@ const Checkout = () => {
     try {
       // Stock validation — prevent race conditions
       const stockCheckItems = checkoutItems.map((item: any) => ({
-        product_id: item.product_id,
+        variant_id: item.variant_id, // Updated to use variant_id
         quantity: item.quantity,
       }));
 
@@ -342,7 +367,7 @@ const Checkout = () => {
           total_discount: promoDiscount + pesoVoucherDeduction + shippingVoucherDeduction + promoFreeShipping,
           shipping_name: selectedAddress.full_name,
           shipping_phone: selectedAddress.phone,
-          shipping_address: shippingAddressStr,
+          shipping_address_id: selectedAddress.id, // Linked to addresses table
           notes: notes || null,
         })
         .select()
@@ -361,8 +386,31 @@ const Checkout = () => {
 
         const initialStatus = paymentMethod === "cod" ? "confirmed" : (paymentProofUrl ? "payment_uploaded" : "pending_payment");
         
+        // --- NEW RELATIONAL PAYMENT LOGIC ---
+        const { data: payment, error: paymentError } = await supabase
+          .from("payments")
+          .insert({
+            order_id: order.id,
+            payment_method: paymentMethod === "cod" ? 0 : (paymentMethod === "gcash" ? 1 : 2),
+            amount: grandTotal, 
+            status: paymentMethod === "cod" ? "pending" : "pending_verification",
+          })
+          .select()
+          .single();
+
+        if (paymentError) throw paymentError;
+
+        if (paymentMethod !== "cod" && paymentProofUrl) {
+          await (supabase.from("payment_verifications").insert({
+            payment_id: payment.id,
+            proof_image_url: paymentProofUrl,
+          } as any) as any);
+        }
+        // ------------------------------------
+        
         // Calculate Platform Fees
-        const commissionRate = group.items[0]?.product?.brand?.commission_rate || 5;
+        const product = group.items[0]?.variant?.product;
+        const commissionRate = product?.brand?.commission_rate || 5;
         const platformCommission = Math.round((group.subtotal * commissionRate) / 100);
         const shippingMargin = 20; // Fixed 20 pesos margin
         const totalPlatformFee = platformCommission + shippingMargin;
@@ -377,14 +425,11 @@ const Checkout = () => {
             shipping_fee_original: brandShipping,
             free_shipping_applied: shippingVoucherDeduction > 0 || promoFreeShipping > 0,
             discount_amount: Math.round(promoDiscount * group.subtotal / productSubtotal),
-            voucher_id: selectedVouchers.length > 0 ? selectedVouchers[0].id : null,
-            promo_code_applied: appliedPromo?.code || null,
             status: initialStatus,
-            payment_method: paymentMethod,
-            payment_proof_url: paymentProofUrl,
             platform_commission: platformCommission,
             platform_shipping_margin: shippingMargin,
             total_platform_fee: totalPlatformFee,
+            // discount_id: logic to be updated in Phase 4
           })
           .select()
           .single();
@@ -400,29 +445,38 @@ const Checkout = () => {
           if (debtError) console.error("Error updating brand debt:", debtError);
         }
 
-        const orderItems = group.items.map((item) => ({
-          vendor_order_id: vendorOrder.id,
-          product_id: item.product_id,
-          product_name: item.product.name,
-          product_price: Number(item.product.price),
-          quantity: item.quantity,
-          size: item.size,
-        }));
+        const orderItems = group.items.map((item) => {
+          const product = item.variant?.product;
+          return {
+            vendor_order_id: vendorOrder.id,
+            product_id: item.product_id,
+            variant_id: item.variant_id,
+            product_name: product?.name || "Unknown Product",
+            product_price: Number(product?.price || 0),
+            quantity: item.quantity,
+            size: item.size,
+          };
+        });
 
         const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
         if (itemsError) throw itemsError;
       }
 
-      // Mark vouchers as used
+      // Mark vouchers as used (Update user_discount_claims status)
       const allUsedVouchers = [...selectedVouchers, ...(shippingVoucher ? [shippingVoucher] : [])];
       for (const v of allUsedVouchers) {
-        await supabase.rpc("use_voucher", { _voucher_id: v.id, _order_id: order.id });
+        if (v.claim_id) {
+          await supabase
+            .from("user_discount_claims")
+            .update({ status: "used", used_at: new Date().toISOString() })
+            .eq("id", v.claim_id);
+        }
       }
 
       if (appliedPromo?.id) {
         try {
           await supabase
-            .from("promotions")
+            .from("discounts")
             .update({ current_uses: (appliedPromo.current_uses || 0) + 1 })
             .eq("id", appliedPromo.id);
         } catch {}
@@ -697,19 +751,28 @@ const Checkout = () => {
                   <div key={brandId} className="pb-6 mb-6 border-b border-border-subtle last:border-0 last:pb-0 last:mb-0">
                     <h3 className="font-heading uppercase mb-4">{group.brand?.name || "Unknown Brand"}</h3>
                     <div className="space-y-3">
-                      {group.items.map((item) => (
-                        <div key={item.id} className="flex gap-4">
-                          <div className="w-14 h-18 bg-muted flex-shrink-0">
-                            {(item.product as any).image_url && <img src={(item.product as any).image_url} alt={item.product.name} className="w-full h-full object-cover" />}
+                      {group.items.map((item: any) => {
+                        const product = item.variant?.product;
+                        return (
+                          <div key={item.id} className="flex gap-4">
+                            <div className="w-14 h-18 bg-muted flex-shrink-0 border border-border-subtle overflow-hidden">
+                              {product?.image_url && (
+                                <img 
+                                  src={product.image_url} 
+                                  alt={product.name} 
+                                  className="w-full h-full object-cover" 
+                                />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{product?.name || "Unknown Product"}</p>
+                              {item.size && <p className="text-xs text-muted-foreground">Size: {item.size}</p>}
+                              <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                            </div>
+                            <div className="text-sm font-mono">{formatPrice(Number(product?.price || 0) * item.quantity)}</div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm truncate">{item.product.name}</p>
-                            {item.size && <p className="text-xs text-muted-foreground">Size: {item.size}</p>}
-                            <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
-                          </div>
-                          <div className="text-sm">{formatPrice(Number(item.product.price) * item.quantity)}</div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     <div className="flex justify-between mt-3 pt-3 border-t border-border-subtle text-sm">
                       <span className="text-muted-foreground">Subtotal</span>
@@ -764,23 +827,23 @@ const Checkout = () => {
                               const isSelected = selectedVouchers.some((sv) => sv.id === v.id);
                               const meetsMin = !v.min_order_amount || productSubtotal >= Number(v.min_order_amount);
                               return (
-                                <button
-                                  key={v.id}
-                                  onClick={() => meetsMin && togglePesoVoucher(v)}
-                                  disabled={!meetsMin}
-                                  className={`w-full p-3 text-left border-t border-border-subtle transition-colors ${isSelected ? "bg-success/10" : "hover:bg-secondary/50"} ${!meetsMin ? "opacity-40" : ""}`}
-                                >
-                                  <div className="flex justify-between items-center">
-                                    <div>
-                                      <span className="font-heading text-sm">
-                                        {v.type === "percentage_discount" ? `${v.discount_value}% OFF` : formatPrice(Number(v.discount_value))}
-                                      </span>
-                                      <p className="text-xs text-muted-foreground">{v.name}</p>
-                                      {!meetsMin && <p className="text-xs text-destructive">Min: {formatPrice(Number(v.min_order_amount))}</p>}
+                                  <button
+                                    key={v.id}
+                                    onClick={() => meetsMin && togglePesoVoucher(v)}
+                                    disabled={!meetsMin}
+                                    className={`w-full p-3 text-left border-t border-border-subtle transition-colors ${isSelected ? "bg-success/10" : "hover:bg-secondary/50"} ${!meetsMin ? "opacity-40" : ""}`}
+                                  >
+                                    <div className="flex justify-between items-center">
+                                      <div>
+                                        <span className="font-heading text-sm">
+                                          {v.discount_type === "percentage" ? `${v.discount_value}% OFF` : formatPrice(Number(v.discount_value))}
+                                        </span>
+                                        <p className="text-xs text-muted-foreground">{v.name}</p>
+                                        {!meetsMin && <p className="text-xs text-destructive">Min: {formatPrice(Number(v.min_order_amount))}</p>}
+                                      </div>
+                                      {isSelected && <span className="text-success text-xs font-heading">✓ APPLIED</span>}
                                     </div>
-                                    {isSelected && <span className="text-success text-xs font-heading">✓ APPLIED</span>}
-                                  </div>
-                                </button>
+                                  </button>
                               );
                             })}
                           </div>

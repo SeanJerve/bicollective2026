@@ -8,7 +8,7 @@ interface PageSEOProps {
 
 const usePageSEO = ({ title, description, canonical }: PageSEOProps) => {
   useEffect(() => {
-    const fullTitle = title ? `${title} | Bicollective` : "Bicollective — Local Bicolano Fashion Marketplace";
+    const fullTitle = title ? `${title} | Bicollective` : "Bicollective";
     document.title = fullTitle;
 
     const metaDesc = document.querySelector('meta[name="description"]');

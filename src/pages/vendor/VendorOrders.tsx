@@ -99,11 +99,16 @@ const VendorOrders = () => {
           order:orders (
             id,
             customer_id,
-            shipping_name,
-            shipping_phone,
-            shipping_address,
             notes,
-            created_at
+            created_at,
+            address:addresses(*),
+            payments(
+              id,
+              payment_method,
+              amount,
+              status,
+              payment_verifications(*)
+            )
           ),
           items:order_items (
             id,
@@ -383,16 +388,16 @@ const VendorOrders = () => {
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="font-heading uppercase text-sm md:text-base">
-                        {order.order?.shipping_name}
+                        {order.order?.address?.full_name || "Customer"}
                       </p>
                       {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                     </div>
                     <p className="text-xs md:text-sm text-muted-foreground mt-1">
                       {new Date(order.created_at).toLocaleDateString()}
                     </p>
-                    {order.payment_method && (
+                    {order.order?.payments?.[0] && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        Payment: {order.payment_method === "cod" ? "COD" : order.payment_method === "gcash" ? "GCash" : "Bank Transfer"}
+                        Payment: {order.order.payments[0].payment_method === 0 ? "COD" : (order.order.payments[0].payment_method === 1 ? "GCash" : "Bank Transfer")}
                       </p>
                     )}
                   </div>
@@ -430,25 +435,30 @@ const VendorOrders = () => {
                 </div>
 
                 {/* Shipping Info */}
-                {order.order?.shipping_address && (
+                {order.order?.address && (
                   <div className="mb-4 md:mb-6 p-3 md:p-4 bg-secondary">
                     <h4 className="font-heading text-xs md:text-sm uppercase mb-2">Shipping</h4>
-                    <p className="text-xs md:text-sm">{order.order?.shipping_address}</p>
+                    <p className="text-xs md:text-sm">
+                      {order.order.address.street}, {order.order.address.barangay}, {order.order.address.city}, {order.order.address.province} {order.order.address.zip_code}
+                    </p>
                     <p className="text-xs md:text-sm text-muted-foreground">
-                      {order.order?.shipping_phone}
+                      {order.order?.address?.phone}
                     </p>
                   </div>
                 )}
 
                 {/* Payment Proof */}
-                {order.payment_proof_url && (
-                  <VendorPaymentProofImage path={order.payment_proof_url} paymentMethod={order.payment_method} />
+                {((order as any).order?.payments?.[0]?.payment_verifications?.[0] as any)?.proof_image_url && (
+                  <VendorPaymentProofImage 
+                    path={((order as any).order.payments[0].payment_verifications[0] as any).proof_image_url} 
+                    paymentMethod={order.order.payments[0].payment_method === 1 ? "gcash" : "bank_transfer"} 
+                  />
                 )}
 
                 {/* Actions — Full Pipeline */}
                 <div className="flex flex-wrap gap-2">
                   {/* GCash/Bank: Accept OR Refuse when proof uploaded */}
-                  {order.status === "payment_uploaded" && order.payment_method !== "cod" && (
+                  {order.status === "payment_uploaded" && order.order?.payments?.[0]?.payment_method !== 0 && (
                     <div className="w-full space-y-2">
                       {refusingOrderId === order.id ? (
                         <div className="p-3 border-2 border-destructive bg-destructive/10 animate-fade-in">
@@ -603,7 +613,7 @@ const VendorOrders = () => {
                   <OrderChat
                     vendorOrderId={order.id}
                     otherUserId={order.order?.customer_id || ""}
-                    otherUserName={order.order?.shipping_name || "Customer"}
+                    otherUserName={order.order?.address?.full_name || "Customer"}
                   />
                 </div>
               </div>

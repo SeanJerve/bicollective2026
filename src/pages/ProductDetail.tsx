@@ -5,7 +5,7 @@ import PageLayout from "@/components/layout/PageLayout";
 import ProductCard from "@/components/marketplace/ProductCard";
 import ProductCardSkeleton from "@/components/marketplace/ProductCardSkeleton";
 import ImageGallery from "@/components/product/ImageGallery";
-import { useProduct, useProductsByBrand } from "@/hooks/useProducts";
+import { useProduct, useProductsByBrand, type ProductVariant } from "@/hooks/useProducts";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
@@ -17,7 +17,7 @@ const ProductDetail = () => {
   const { data: product, isLoading: productLoading } = useProduct(slug || "");
   const { data: relatedProducts, isLoading: relatedLoading } = useProductsByBrand(product?.brandSlug || "");
   const [quantity, setQuantity] = useState(1);
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const { user, isAdmin, isVendor } = useAuth();
   const { addToCart } = useCart();
   const { toast } = useToast();
@@ -140,7 +140,8 @@ const ProductDetail = () => {
     }
   };
 
-  const sizes = product?.sizes?.length ? product.sizes : ["XS", "S", "M", "L", "XL", "XXL"];
+  // Derive sizes from product.variants (replaces old product.sizes array)
+  const variants = product?.variants || [];
 
   const formatPrice = (amount: number) => {
     return new Intl.NumberFormat("en-PH", {
@@ -211,7 +212,7 @@ const ProductDetail = () => {
             <div>
               <ImageGallery
                 mainImage={product.image}
-                images={product.images}
+                images={product.galleryImages || []}
                 alt={product.name}
               />
             </div>
@@ -301,26 +302,38 @@ const ProductDetail = () => {
                 </p>
               )}
 
-              {/* Size Selection */}
+              {/* Size / Variant Selection */}
               <div className="mb-6 md:mb-8">
                 <div className="flex items-center justify-between mb-2 md:mb-3">
                   <span className="font-heading uppercase text-xs md:text-sm">Select Size</span>
+                  {selectedVariant && (
+                    <span className="text-xs text-muted-foreground">
+                      {selectedVariant.stock_quantity} left in stock
+                    </span>
+                  )}
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {sizes.map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
-                      className={`w-10 h-10 md:w-12 md:h-12 border-2 font-heading text-xs md:text-sm transition-colors ${
-                        selectedSize === size
-                          ? "border-foreground bg-foreground text-background"
-                          : "border-border-subtle hover:border-foreground"
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
+                {variants.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {variants.map((variant) => (
+                      <button
+                        key={variant.id}
+                        onClick={() => setSelectedVariant(variant)}
+                        disabled={variant.stock_quantity === 0}
+                        className={`w-10 h-10 md:w-12 md:h-12 border-2 font-heading text-xs md:text-sm transition-colors ${
+                          selectedVariant?.id === variant.id
+                            ? "border-foreground bg-foreground text-background"
+                            : variant.stock_quantity === 0
+                            ? "border-border-subtle text-muted-foreground line-through cursor-not-allowed"
+                            : "border-border-subtle hover:border-foreground"
+                        }`}
+                      >
+                        {variant.size}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No sizes available</p>
+                )}
               </div>
 
               {/* Quantity */}
@@ -357,10 +370,10 @@ const ProductDetail = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {/* Buy Now */}
+                  {/* Buy Now — bypasses cart, goes straight to checkout */}
                   <button
                     onClick={() => {
-                      if (!selectedSize) {
+                      if (!selectedVariant) {
                         toast({
                           title: "Please select a size",
                           description: "Choose a size before buying",
@@ -371,15 +384,15 @@ const ProductDetail = () => {
                       navigate("/checkout", {
                         state: {
                           buyNowItem: {
-                            product_id: product.id,
+                            variant_id: selectedVariant.id,
                             quantity,
-                            size: selectedSize,
                             product: {
                               id: product.id,
                               name: product.name,
                               price: product.price,
                               image_url: product.image,
                               brand_id: product.brandId,
+                              size: selectedVariant.size,
                               brand: {
                                 id: product.brandId,
                                 name: product.brandName,
@@ -401,7 +414,7 @@ const ProductDetail = () => {
                   {/* Add to Cart */}
                   <button
                     onClick={() => {
-                      if (!selectedSize) {
+                      if (!selectedVariant) {
                         toast({
                           title: "Please select a size",
                           description: "Choose a size before adding to cart",
@@ -409,7 +422,7 @@ const ProductDetail = () => {
                         });
                         return;
                       }
-                      addToCart(product.id, quantity, selectedSize);
+                      addToCart(selectedVariant.id, quantity);
                     }}
                     className="btn-brutal-secondary w-full flex items-center justify-center gap-2 text-sm md:text-base"
                     disabled={!product.inStock || product.listingType === "teaser"}

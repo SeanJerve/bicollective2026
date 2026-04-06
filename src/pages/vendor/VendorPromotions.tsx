@@ -50,11 +50,30 @@ const VendorPromotions = () => {
   });
 
   const { data: promotions, isLoading } = useQuery({
-    queryKey: ["vendor-promotions", brand?.id],
+    queryKey: ["vendor-promotions-new", brand?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("promotions").select("*").eq("brand_id", brand!.id).order("created_at", { ascending: false });
+      const { data, error } = await (supabase
+        .from("vendor_vouchers") as any)
+        .select(`
+          *,
+          discounts!inner(*)
+        `)
+        .eq("brand_id", brand!.id);
+
       if (error) throw error;
-      return data;
+      
+      // Flatten for UI and sort by discount creation date
+      return (data || [])
+        .map((v: any) => ({
+          ...v.discounts,
+          id: v.discounts.id,
+          vendor_voucher_id: v.id,
+          brand_id: v.brand_id,
+          code: v.code
+        }))
+        .sort((a: any, b: any) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
     },
     enabled: !!brand,
   });
@@ -71,12 +90,10 @@ const VendorPromotions = () => {
 
   const saveMutation = useMutation({
     mutationFn: async (formData: VendorPromoForm) => {
-      const payload = {
+      const discountPayload = {
         name: formData.name,
         description: formData.description || null,
-        code: formData.code.toUpperCase() || null,
-        type: formData.type,
-        scope: "seller" as const,
+        discount_type: formData.type === "percentage_discount" ? "percentage" : (formData.type === "fixed_discount" ? "fixed" : "free_shipping"),
         discount_value: formData.discount_value,
         min_order_amount: formData.min_order_amount,
         max_discount_amount: formData.max_discount_amount,
@@ -84,19 +101,38 @@ const VendorPromotions = () => {
         max_uses_per_user: formData.max_uses_per_user,
         starts_at: new Date(formData.starts_at).toISOString(),
         ends_at: new Date(formData.ends_at).toISOString(),
-        brand_id: brand!.id,
-        created_by: user!.id,
+        is_active: true,
       };
+
       if (editId) {
-        const { error } = await supabase.from("promotions").update(payload).eq("id", editId);
-        if (error) throw error;
+        // Update supertype
+        await supabase.from("discounts").update(discountPayload).eq("id", editId);
+        // Note: we don't update the code in vendor_vouchers here unless we want to allow code changes
+        await supabase.from("vendor_vouchers").update({ code: formData.code.toUpperCase() }).eq("discount_id", editId);
       } else {
-        const { error } = await supabase.from("promotions").insert(payload);
-        if (error) throw error;
+        // Step 1: Create the discount supertype
+        const { data: discount, error: dError } = await supabase
+          .from("discounts")
+          .insert(discountPayload)
+          .select()
+          .single();
+
+        if (dError) throw dError;
+
+        // Step 2: Link it to the vendor brand and add the code
+        const { error: vError } = await supabase
+          .from("vendor_vouchers")
+          .insert({
+            discount_id: discount.id,
+            brand_id: brand!.id,
+            code: formData.code.toUpperCase() || null,
+          });
+
+        if (vError) throw vError;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vendor-promotions"] });
+      queryClient.invalidateQueries({ queryKey: ["vendor-promotions-new", brand?.id] });
       toast({ title: editId ? "Promotion updated" : "Promotion created" });
       setShowForm(false); setEditId(null); setForm(defaultForm);
     },
@@ -105,19 +141,19 @@ const VendorPromotions = () => {
 
   const toggleActive = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await supabase.from("promotions").update({ is_active }).eq("id", id);
+      const { error } = await supabase.from("discounts").update({ is_active }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["vendor-promotions"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["vendor-promotions-new", brand?.id] }),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("promotions").delete().eq("id", id);
+      const { error } = await supabase.from("discounts").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vendor-promotions"] });
+      queryClient.invalidateQueries({ queryKey: ["vendor-promotions-new"] });
       toast({ title: "Promotion deleted" });
     },
   });
@@ -125,7 +161,8 @@ const VendorPromotions = () => {
   const handleEdit = (promo: any) => {
     setForm({
       name: promo.name, description: promo.description || "",
-      code: promo.code || "", type: promo.type,
+      code: promo.code || "", 
+      type: promo.discount_type === "percentage" ? "percentage_discount" : (promo.discount_type === "fixed" ? "fixed_discount" : "free_shipping"),
       discount_value: Number(promo.discount_value),
       min_order_amount: Number(promo.min_order_amount || 0),
       max_discount_amount: promo.max_discount_amount ? Number(promo.max_discount_amount) : null,
@@ -141,9 +178,12 @@ const VendorPromotions = () => {
 
   const getTypeLabel = (type: string) => {
     switch (type) {
+      case "percentage": return "% OFF";
+      case "fixed": return "₱ OFF";
+      case "free_shipping": return "FREE SHIP";
+      // Handle legacy types if any
       case "percentage_discount": return "% OFF";
       case "fixed_discount": return "₱ OFF";
-      case "free_shipping": return "FREE SHIP";
       default: return type;
     }
   };
@@ -243,7 +283,7 @@ const VendorPromotions = () => {
                 <div className="p-4 flex items-center justify-between cursor-pointer" onClick={() => setExpandedId(expanded ? null : promo.id)}>
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 flex items-center justify-center ${isActive ? "bg-success/20" : "bg-muted"}`}>
-                      {promo.type === "percentage_discount" ? <Percent className="w-4 h-4" /> : promo.type === "free_shipping" ? <Truck className="w-4 h-4" /> : <DollarSign className="w-4 h-4" />}
+                      {promo.discount_type === "percentage" ? <Percent className="w-4 h-4" /> : promo.discount_type === "free_shipping" ? <Truck className="w-4 h-4" /> : <DollarSign className="w-4 h-4" />}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -253,7 +293,7 @@ const VendorPromotions = () => {
                         </span>
                       </div>
                       <span className="text-xs text-muted-foreground">
-                        {getTypeLabel(promo.type)}: {promo.type === "percentage_discount" ? `${promo.discount_value}%` : formatPrice(Number(promo.discount_value))} · {promo.current_uses || 0} uses
+                        {getTypeLabel(promo.discount_type)}: {promo.discount_type === "percentage" ? `${promo.discount_value}%` : formatPrice(Number(promo.discount_value))} · {promo.current_uses || 0} uses
                       </span>
                     </div>
                   </div>

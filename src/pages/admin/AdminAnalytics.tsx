@@ -61,24 +61,25 @@ const AdminAnalytics = () => {
           .eq("is_active", true);
 
         // Get vouchers stats
-        const { count: totalVouchers } = await supabase
-          .from("vouchers")
+        const { count: totalVouchers } = await (supabase
+          .from("user_discount_claims") as any)
           .select("*", { count: "exact", head: true });
 
-        const { count: usedVouchers } = await supabase
-          .from("vouchers")
+        const { count: usedVouchers } = await (supabase
+          .from("user_discount_claims") as any)
           .select("*", { count: "exact", head: true })
           .eq("status", "used");
 
         // Get promotions stats
-        const { count: totalPromotions } = await supabase
-          .from("promotions")
+        const { count: totalPromotions } = await (supabase
+          .from("platform_promos") as any)
           .select("*", { count: "exact", head: true });
 
-        const { count: activePromotions } = await supabase
-          .from("promotions")
-          .select("*", { count: "exact", head: true })
-          .eq("is_active", true);
+        const { data: promoData } = await ((supabase
+          .from("platform_promos") as any)
+          .select("discounts(is_active)"));
+        
+        const activePromotions = (promoData || []).filter((p: any) => p.discounts?.is_active).length;
 
         // Get top products
         const { data: orderItems } = await supabase

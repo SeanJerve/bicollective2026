@@ -39,14 +39,20 @@ const VendorProducts = () => {
         const [productsRes, categoriesRes] = await Promise.all([
           supabase
             .from("products")
-            .select(`*, category:categories (name)`)
+            .select(`*, category:categories (name), product_variants(id, size, stock_quantity), product_images(image_url, sort_order)`)
             .eq("brand_id", brandData.id)
             .is("deleted_at", null)
             .order("created_at", { ascending: false }),
           supabase.from("categories").select("id, name").order("name"),
         ]);
 
-        setProducts(productsRes.data || []);
+        // Calculate total stock for each product
+        const productsWithStock = (productsRes.data || []).map((p: any) => {
+          const totalStock = p.product_variants?.reduce((sum: number, v: any) => sum + (v.stock_quantity || 0), 0) || 0;
+          return { ...p, totalStock };
+        });
+
+        setProducts(productsWithStock);
         setCategories(categoriesRes.data || []);
       } catch (error) {
         console.error("Error fetching products:", error);
@@ -63,12 +69,17 @@ const VendorProducts = () => {
 
     const { data } = await supabase
       .from("products")
-      .select(`*, category:categories (name)`)
+      .select(`*, category:categories (name), product_variants(id, size, stock_quantity), product_images(image_url, sort_order)`)
       .eq("brand_id", brand.id)
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
-    setProducts(data || []);
+    const productsWithStock = (data || []).map((p: any) => {
+      const totalStock = p.product_variants?.reduce((sum: number, v: any) => sum + (v.stock_quantity || 0), 0) || 0;
+      return { ...p, totalStock };
+    });
+
+    setProducts(productsWithStock);
   };
 
   const toggleActive = async (productId: string, currentActive: boolean) => {
@@ -147,10 +158,9 @@ const VendorProducts = () => {
       description: product.description,
       categoryId: product.category_id,
       imageUrl: product.image_url,
-      images: product.images || [],
+      images: (product.product_images || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => img.image_url),
       inStock: product.in_stock,
-      stockQuantity: product.stock_quantity,
-      sizes: product.sizes,
+      variants: product.product_variants || [],
     });
     setShowForm(true);
   };
@@ -251,6 +261,11 @@ const VendorProducts = () => {
                       {formatPrice(Number(product.price))}
                     </p>
                     <div className="flex items-center gap-2 mt-2">
+                      <span className="text-xs font-heading">
+                        {product.totalStock} in stock
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
                       <span
                         className={`px-2 py-0.5 text-xs uppercase ${
                           product.is_active
@@ -330,10 +345,10 @@ const VendorProducts = () => {
                       </td>
                       <td className="p-4">{formatPrice(Number(product.price))}</td>
                       <td className="p-4">
-                        {product.in_stock ? (
-                          <span className="text-success">In Stock</span>
+                        {product.totalStock > 0 ? (
+                          <span className="text-success font-heading">{product.totalStock} in stock</span>
                         ) : (
-                          <span className="text-destructive">Out of Stock</span>
+                          <span className="text-destructive font-heading">Out of Stock</span>
                         )}
                       </td>
                       <td className="p-4">

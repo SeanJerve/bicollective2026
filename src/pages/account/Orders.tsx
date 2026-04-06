@@ -89,8 +89,8 @@ const Orders = () => {
       let added = 0;
       for (const vo of vendorOrders) {
         for (const item of vo.order_items || []) {
-          if (item.product_id) {
-            await addToCart(item.product_id, 1, item.size || undefined);
+          if (item.variant_id) {
+            await addToCart(item.variant_id, 1);
             added++;
           }
         }
@@ -114,6 +114,7 @@ const Orders = () => {
         .from("orders")
         .select(`
           *,
+          shipping_address:addresses(*),
           vendor_orders!inner(
             id,
             status,
@@ -234,6 +235,9 @@ const Orders = () => {
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
                             {format(new Date(order.created_at), "PPP")}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            Ship to: {order.shipping_address?.full_name}
                           </p>
                           <div className="flex flex-wrap gap-2 mt-2">
                             {order.vendor_orders?.map((vo: any) => (
