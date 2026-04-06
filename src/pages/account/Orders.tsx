@@ -121,7 +121,7 @@ const Orders = () => {
             subtotal,
             tracking_number,
             brand:brands(name, logo_url),
-            order_items(product_id, product_name, product_price, size, quantity)
+            order_items(product_id, variant_id, product_name, product_price, size, quantity)
           )
         `)
         .eq("customer_id", user!.id);

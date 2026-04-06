@@ -133,8 +133,8 @@ ALTER TABLE public.carts ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage their own cart" ON public.carts;
 CREATE POLICY "Users can manage their own cart"
   ON public.carts FOR ALL
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
+  USING (customer_id = auth.uid())
+  WITH CHECK (customer_id = auth.uid());
 
 -- 8. Secure Cart Items RLS (Linked via Cart Ownership)
 ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;
@@ -143,10 +143,10 @@ DROP POLICY IF EXISTS "Users can manage their own cart items" ON public.cart_ite
 CREATE POLICY "Users can manage their own cart items"
   ON public.cart_items FOR ALL
   USING (
-    cart_id IN (SELECT id FROM public.carts WHERE user_id = auth.uid())
+    cart_id IN (SELECT id FROM public.carts WHERE customer_id = auth.uid())
   )
   WITH CHECK (
-    cart_id IN (SELECT id FROM public.carts WHERE user_id = auth.uid())
+    cart_id IN (SELECT id FROM public.carts WHERE customer_id = auth.uid())
   );
 
 -- 9. Explicit Grant Permissions for Authenticated Users
