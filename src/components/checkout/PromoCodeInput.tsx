@@ -7,7 +7,7 @@ interface PromoCodeInputProps {
   onApply: (promo: {
     id: string;
     code: string;
-    type: string;
+    discount_type: string;
     discount_value: number;
     max_discount_amount: number | null;
     scope: string;
@@ -85,7 +85,7 @@ const PromoCodeInput = ({ onApply, appliedCode, orderTotal }: PromoCodeInputProp
       onApply({
         id: discount.id,
         code: code.toUpperCase().trim(),
-        type: discount.discount_type,
+        discount_type: discount.discount_type,
         discount_value: Number(discount.discount_value),
         max_discount_amount: discount.max_discount_amount ? Number(discount.max_discount_amount) : null,
         scope: (promoData as any).scope || "vendor",

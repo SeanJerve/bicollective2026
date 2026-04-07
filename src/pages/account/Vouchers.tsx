@@ -116,17 +116,17 @@ const Vouchers = () => {
       // Get main progress
       const { data: progress, error: pError } = await supabase
         .from("loyalty_progress")
-        .select("*")
+        .select("id, user_id, total_delivered_orders, milestone_5_deliveries_claimed, milestone_10_sellers_claimed, created_at, updated_at")
         .eq("user_id", user!.id)
         .maybeSingle();
 
       if (pError) throw pError;
 
       // Get unique sellers count from junction table
-      const { count, error: cError } = await supabase
+      const { count, error: cError } = await (supabase as any)
         .from("user_purchased_sellers")
         .select("*", { count: "exact", head: true })
-        .eq("loyalty_id", progress?.id || "");
+        .eq("loyalty_id", (progress as any)?.id || "");
 
       if (cError) throw cError;
 

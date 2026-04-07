@@ -160,7 +160,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       } else {
         const { error } = await supabase.from("cart_items").insert({
           cart_id: cId,
-          user_id: user.id,
           variant_id: variantId,
           quantity,
         });

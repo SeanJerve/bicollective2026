@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Package, ChevronRight, XCircle, Loader2, RotateCcw } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -39,10 +39,11 @@ const Orders = () => {
   const { user } = useAuth();
   const { addToCart } = useCart();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
   const [buyingAgain, setBuyingAgain] = useState<string | null>(null);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState(searchParams.get("filter") || "all");
   const [limit, setLimit] = useState(5);
 
   const filters = [
@@ -63,10 +64,9 @@ const Orders = () => {
     try {
       for (const vo of vendorOrders) {
         if (cancellableStatuses.includes(vo.status)) {
-          const { error } = await supabase
-            .from("vendor_orders")
-            .update({ status: "cancelled" })
-            .eq("id", vo.id);
+          const { error } = await (supabase.rpc as any)("cancel_vendor_order_customer", {
+            vo_id: vo.id
+          });
           if (error) throw error;
         }
       }

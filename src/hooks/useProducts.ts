@@ -78,36 +78,41 @@ export const useProducts = () => {
       if (error) throw error;
       const products = (data as any[]) || [];
 
-      return products.map((p) => ({
-        id: p.id,
-        name: p.name,
-        slug: p.slug,
-        price: Number(p.price),
-        originalPrice: p.original_price ? Number(p.original_price) : undefined,
-        image: p.image_url || "/placeholder.svg",
-        galleryImages: (p.product_images || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => img.image_url),
-        variants: p.product_variants || [],
-        brandId: p.brand?.id || "",
-        brandName: p.brand?.name || "",
-        brandSlug: p.brand?.slug || "",
-        brandLocation: p.brand?.location || undefined,
-        isVerifiedBrand: p.brand?.status === "verified",
-        category: p.category?.name || "",
-        categorySlug: p.category?.slug || "",
-        description: p.description || "",
-        inStock: p.in_stock ?? true,
-        listingType: p.listing_type || "regular",
-        releaseDate: p.release_date || undefined,
-        preorderDiscountPercent: p.preorder_discount_percent || undefined,
-        storeSalePercent: p.brand?.store_sale_percent || undefined,
-        storeSaleEndsAt: p.brand?.store_sale_ends_at || undefined,
-        brandCommissionRate: p.brand?.commission_rate ? Number(p.brand.commission_rate) : 5,
-        isBoosted: (p.ad_boosts || []).some((b: any) => 
-          b.status === "active" && 
-          (!b.starts_at || new Date(b.starts_at) <= new Date()) && 
-          (!b.ends_at || new Date(b.ends_at) >= new Date())
-        ),
-      })).sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));
+      return products.map((p) => {
+        const variants = p.product_variants || [];
+        const hasStock = variants.some((v: any) => v.stock_quantity > 0);
+        
+        return {
+          id: p.id,
+          name: p.name,
+          slug: p.slug,
+          price: Number(p.price),
+          originalPrice: p.original_price ? Number(p.original_price) : undefined,
+          image: p.image_url || "/placeholder.svg",
+          galleryImages: (p.product_images || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => img.image_url),
+          variants: variants,
+          brandId: p.brand?.id || "",
+          brandName: p.brand?.name || "",
+          brandSlug: p.brand?.slug || "",
+          brandLocation: p.brand?.location || undefined,
+          isVerifiedBrand: p.brand?.status === "verified",
+          category: p.category?.name || "",
+          categorySlug: p.category?.slug || "",
+          description: p.description || "",
+          inStock: hasStock, // Calculated from variants
+          listingType: p.listing_type || "regular",
+          releaseDate: p.release_date || undefined,
+          preorderDiscountPercent: p.preorder_discount_percent || undefined,
+          storeSalePercent: p.brand?.store_sale_percent || undefined,
+          storeSaleEndsAt: p.brand?.store_sale_ends_at || undefined,
+          brandCommissionRate: p.brand?.commission_rate ? Number(p.brand.commission_rate) : 5,
+          isBoosted: (p.ad_boosts || []).some((b: any) => 
+            b.status === "active" && 
+            (!b.starts_at || new Date(b.starts_at) <= new Date()) && 
+            (!b.ends_at || new Date(b.ends_at) >= new Date())
+          ),
+        };
+      }).sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));
     },
   });
 };
@@ -134,6 +139,9 @@ export const useProduct = (slug: string) => {
       if (!data) return null;
       const product = data as any;
 
+      const variants = product.product_variants || [];
+      const hasStock = variants.some((v: any) => v.stock_quantity > 0);
+
       return {
         id: product.id,
         name: product.name,
@@ -142,7 +150,7 @@ export const useProduct = (slug: string) => {
         originalPrice: product.original_price ? Number(product.original_price) : undefined,
         image: product.image_url || "/placeholder.svg",
         galleryImages: (product.product_images || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => img.image_url),
-        variants: product.product_variants || [],
+        variants: variants,
         brandId: product.brand?.id || "",
         brandName: product.brand?.name || "",
         brandSlug: product.brand?.slug || "",
@@ -151,7 +159,7 @@ export const useProduct = (slug: string) => {
         category: product.category?.name || "",
         categorySlug: product.category?.slug || "",
         description: product.description || "",
-        inStock: product.in_stock ?? true,
+        inStock: hasStock, // Calculated from variants
         listingType: product.listing_type || "regular",
         releaseDate: product.release_date || undefined,
         preorderDiscountPercent: product.preorder_discount_percent || undefined,
@@ -290,33 +298,38 @@ export const useProductsByBrand = (brandSlug: string) => {
 
       if (error) throw error;
 
-      return (data || []).map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        slug: p.slug,
-        price: Number(p.price),
-        originalPrice: p.original_price ? Number(p.original_price) : undefined,
-        image: p.image_url || "/placeholder.svg",
-        galleryImages: (p.product_images || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => img.image_url),
-        variants: p.product_variants || [],
-        brandId: p.brand?.id || "",
-        brandName: p.brand?.name || "",
-        brandSlug: p.brand?.slug || "",
-        isVerifiedBrand: p.brand?.status === "verified",
-        category: p.category?.name || "",
-        categorySlug: p.category?.slug || "",
-        description: p.description || "",
-        inStock: p.in_stock ?? true,
-        listingType: p.listing_type || "regular",
-        releaseDate: p.release_date || undefined,
-        preorderDiscountPercent: p.preorder_discount_percent || undefined,
-        brandCommissionRate: p.brand?.commission_rate ? Number(p.brand.commission_rate) : 5,
-        isBoosted: (p.ad_boosts || []).some((b: any) => 
-          b.status === "active" && 
-          (!b.starts_at || new Date(b.starts_at) <= new Date()) && 
-          (!b.ends_at || new Date(b.ends_at) >= new Date())
-        ),
-      })).sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));
+      return (data || []).map((p: any) => {
+        const variants = p.product_variants || [];
+        const hasStock = variants.some((v: any) => v.stock_quantity > 0);
+
+        return {
+          id: p.id,
+          name: p.name,
+          slug: p.slug,
+          price: Number(p.price),
+          originalPrice: p.original_price ? Number(p.original_price) : undefined,
+          image: p.image_url || "/placeholder.svg",
+          galleryImages: (p.product_images || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => img.image_url),
+          variants: variants,
+          brandId: p.brand?.id || "",
+          brandName: p.brand?.name || "",
+          brandSlug: p.brand?.slug || "",
+          isVerifiedBrand: p.brand?.status === "verified",
+          category: p.category?.name || "",
+          categorySlug: p.category?.slug || "",
+          description: p.description || "",
+          inStock: hasStock, // Calculated from variants
+          listingType: p.listing_type || "regular",
+          releaseDate: p.release_date || undefined,
+          preorderDiscountPercent: p.preorder_discount_percent || undefined,
+          brandCommissionRate: p.brand?.commission_rate ? Number(p.brand.commission_rate) : 5,
+          isBoosted: (p.ad_boosts || []).some((b: any) => 
+            b.status === "active" && 
+            (!b.starts_at || new Date(b.starts_at) <= new Date()) && 
+            (!b.ends_at || new Date(b.ends_at) >= new Date())
+          ),
+        };
+      }).sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));
     },
     enabled: !!brandSlug,
   });
@@ -379,33 +392,38 @@ export const useProductsByCategory = (categorySlug: string) => {
 
       if (error) throw error;
 
-      return (data || []).map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        slug: p.slug,
-        price: Number(p.price),
-        originalPrice: p.original_price ? Number(p.original_price) : undefined,
-        image: p.image_url || "/placeholder.svg",
-        galleryImages: (p.product_images || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => img.image_url),
-        variants: p.product_variants || [],
-        brandId: p.brand?.id || "",
-        brandName: p.brand?.name || "",
-        brandSlug: p.brand?.slug || "",
-        isVerifiedBrand: p.brand?.status === "verified",
-        category: p.category?.name || "",
-        categorySlug: p.category?.slug || "",
-        description: p.description || "",
-        inStock: p.in_stock ?? true,
-        listingType: p.listing_type || "regular",
-        releaseDate: p.release_date || undefined,
-        preorderDiscountPercent: p.preorder_discount_percent || undefined,
-        brandCommissionRate: p.brand?.commission_rate ? Number(p.brand.commission_rate) : 5,
-        isBoosted: (p.ad_boosts || []).some((b: any) => 
-          b.status === "active" && 
-          (!b.starts_at || new Date(b.starts_at) <= new Date()) && 
-          (!b.ends_at || new Date(b.ends_at) >= new Date())
-        ),
-      })).sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));
+      return (data || []).map((p: any) => {
+        const variants = p.product_variants || [];
+        const hasStock = variants.some((v: any) => v.stock_quantity > 0);
+
+        return {
+          id: p.id,
+          name: p.name,
+          slug: p.slug,
+          price: Number(p.price),
+          originalPrice: p.original_price ? Number(p.original_price) : undefined,
+          image: p.image_url || "/placeholder.svg",
+          galleryImages: (p.product_images || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => img.image_url),
+          variants: variants,
+          brandId: p.brand?.id || "",
+          brandName: p.brand?.name || "",
+          brandSlug: p.brand?.slug || "",
+          isVerifiedBrand: p.brand?.status === "verified",
+          category: p.category?.name || "",
+          categorySlug: p.category?.slug || "",
+          description: p.description || "",
+          inStock: hasStock, // Calculated from variants
+          listingType: p.listing_type || "regular",
+          releaseDate: p.release_date || undefined,
+          preorderDiscountPercent: p.preorder_discount_percent || undefined,
+          brandCommissionRate: p.brand?.commission_rate ? Number(p.brand.commission_rate) : 5,
+          isBoosted: (p.ad_boosts || []).some((b: any) => 
+            b.status === "active" && 
+            (!b.starts_at || new Date(b.starts_at) <= new Date()) && 
+            (!b.ends_at || new Date(b.ends_at) >= new Date())
+          ),
+        };
+      }).sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));
     },
     enabled: !!categorySlug,
   });

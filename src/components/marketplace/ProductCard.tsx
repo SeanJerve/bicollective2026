@@ -21,7 +21,7 @@ interface ProductCardProps {
   preorderDiscountPercent?: number;
   storeSalePercent?: number;
   storeSaleEndsAt?: string;
-  sizes?: string[];
+  variants?: { id: string; size: string; stock_quantity: number }[];
   isBoosted?: boolean;
 }
 
@@ -41,7 +41,7 @@ const ProductCard = ({
   preorderDiscountPercent,
   storeSalePercent,
   storeSaleEndsAt,
-  sizes,
+  variants,
   isBoosted = false,
 }: ProductCardProps) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -169,7 +169,7 @@ const ProductCard = ({
         <QuickAddDrawer
           open={drawerOpen}
           onOpenChange={setDrawerOpen}
-          product={{ id, name, price, image, sizes, inStock }}
+          product={{ id, name, price, image, variants, inStock }}
         />
       )}
     </>

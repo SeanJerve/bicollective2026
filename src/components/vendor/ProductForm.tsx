@@ -216,15 +216,27 @@ const ProductForm = ({
         await supabase.from("product_images").insert(imageInserts);
       }
 
-      // Sync Product Variants
-      await supabase.from("product_variants").delete().eq("product_id", productId);
-      const variantInserts = formData.variants.map((v) => ({
+      // Sync Product Variants (Safer Upsert Path)
+      const existingVariants = await supabase.from("product_variants").select("id, size").eq("product_id", productId);
+      const existingIds = existingVariants.data?.map(v => v.id) || [];
+      const currentIds = formData.variants.map(v => v.id).filter(Boolean);
+      
+      // Delete removed variants
+      const toDelete = existingIds.filter(id => !currentIds.includes(id));
+      if (toDelete.length > 0) {
+        await supabase.from("product_variants").delete().in("id", toDelete);
+      }
+
+      // Upsert current variants
+      const variantUpserts = formData.variants.map((v) => ({
+        ...(v.id ? { id: v.id } : {}),
         product_id: productId,
         size: v.size,
         stock_quantity: v.stock_quantity,
       }));
-      if (variantInserts.length > 0) {
-        await supabase.from("product_variants").insert(variantInserts);
+      if (variantUpserts.length > 0) {
+        const { error: variantError } = await (supabase.from("product_variants").upsert(variantUpserts as any) as any);
+        if (variantError) throw variantError;
       }
 
       toast({ title: initialData?.id ? "Product updated" : "Product created" });

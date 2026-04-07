@@ -25,12 +25,12 @@ const Cart = () => {
   // Group items by brand
   const groupedItems = useMemo(() => {
     return items.reduce((acc, item) => {
-      const brandId = item.product.brand_id;
+      const brandId = item.variant.product.brand_id;
       if (!acc[brandId]) {
-        acc[brandId] = { brand: item.product.brand, items: [], subtotal: 0 };
+        acc[brandId] = { brand: item.variant.product.brand, items: [], subtotal: 0 };
       }
       acc[brandId].items.push(item);
-      acc[brandId].subtotal += Number(item.product.price) * item.quantity;
+      acc[brandId].subtotal += Number(item.variant.product.price) * item.quantity;
       return acc;
     }, {} as Record<string, { brand: { id: string; name: string; slug: string }; items: typeof items; subtotal: number }>);
   }, [items]);
@@ -73,7 +73,7 @@ const Cart = () => {
 
   const selectedItems = items.filter((i) => selectedIds.has(i.id));
   const selectedTotal = selectedItems.reduce(
-    (sum, item) => sum + Number(item.product.price) * item.quantity,
+    (sum, item) => sum + Number(item.variant.product.price) * item.quantity,
     0
   );
 
@@ -183,16 +183,16 @@ const Cart = () => {
                             />
                           </div>
                           <div className="w-24 h-32 bg-muted flex-shrink-0 border border-border-subtle">
-                            {item.product.image_url && (
-                              <img src={item.product.image_url} alt={item.product.name} className="w-full h-full object-cover" />
+                            {item.variant.product.image_url && (
+                              <img src={item.variant.product.image_url} alt={item.variant.product.name} className="w-full h-full object-cover" />
                             )}
                           </div>
                           <div className="flex-1">
-                            <Link to={`/products/${item.product.slug}`} className="font-heading uppercase hover:opacity-60">
-                              {item.product.name}
+                            <Link to={`/products/${item.variant.product.slug}`} className="font-heading uppercase hover:opacity-60">
+                              {item.variant.product.name}
                             </Link>
-                            {item.size && <p className="text-sm text-muted-foreground mt-1">Size: {item.size}</p>}
-                            <p className="font-heading text-lg mt-2">{formatPrice(Number(item.product.price))}</p>
+                            {item.variant.size && <p className="text-sm text-muted-foreground mt-1">Size: {item.variant.size}</p>}
+                            <p className="font-heading text-lg mt-2">{formatPrice(Number(item.variant.product.price))}</p>
                             <div className="flex items-center gap-4 mt-4">
                               <div className="inline-flex items-center border-2 border-foreground">
                                 <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-8 h-8 flex items-center justify-center hover:bg-secondary">
@@ -209,7 +209,7 @@ const Cart = () => {
                             </div>
                           </div>
                           <div className="text-right">
-                            <span className="font-heading">{formatPrice(Number(item.product.price) * item.quantity)}</span>
+                            <span className="font-heading">{formatPrice(Number(item.variant.product.price) * item.quantity)}</span>
                           </div>
                         </div>
                       ))}

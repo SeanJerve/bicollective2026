@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { Package, Truck, MapPin, Phone, Clock, Star, XCircle, Loader2, CheckCircle2, RotateCcw } from "lucide-react";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import PageLayout from "@/components/layout/PageLayout";
@@ -66,6 +66,7 @@ const PaymentProofImage = ({ path }: { path: string }) => {
 };
 const OrderDetail = () => {
   const { orderId } = useParams<{ orderId: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { addToCart } = useCart();
   const queryClient = useQueryClient();
@@ -81,10 +82,9 @@ const OrderDetail = () => {
   const handleCancelVendorOrder = async (vendorOrderId: string) => {
     setCancellingOrder(vendorOrderId);
     try {
-      const { error } = await supabase
-        .from("vendor_orders")
-        .update({ status: "cancelled" })
-        .eq("id", vendorOrderId);
+      const { error } = await (supabase.rpc as any)("cancel_vendor_order_customer", {
+        vo_id: vendorOrderId
+      });
       if (error) throw error;
       toast({ title: "Order cancelled", description: "Your order has been cancelled successfully." });
       queryClient.invalidateQueries({ queryKey: ["order-detail", orderId] });
@@ -100,18 +100,28 @@ const OrderDetail = () => {
   const handleConfirmDelivery = async (vendorOrderId: string) => {
     setConfirmingOrder(vendorOrderId);
     try {
-      const { error } = await supabase
-        .from("vendor_orders")
-        .update({ status: "delivered", delivered_at: new Date().toISOString() })
-        .eq("id", vendorOrderId);
+      // Step 1: Call the "Harmony" Pipeline (RPC)
+      // This verifies both Order status and Payment status atomically.
+      const { error } = await (supabase as any).rpc("confirm_delivery", {
+        target_order_id: vendorOrderId
+      });
+      
       if (error) throw error;
+      
       toast({ title: "Order received", description: "Thank you for confirming your delivery!" });
       queryClient.invalidateQueries({ queryKey: ["order-detail", orderId] });
       queryClient.invalidateQueries({ queryKey: ["customer-orders"] });
       setShowConfirmId(null);
-    } catch (err) {
+      
+      // Redirect to the "Completed" orders tab
+      setTimeout(() => {
+        navigate("/account/orders?filter=delivered");
+      }, 1500);
+    } catch (err: any) {
       console.error("Confirm error:", err);
-      toast({ title: "Error", description: "Failed to confirm delivery. Please try again.", variant: "destructive" });
+      // Show actual error message for diagnostics
+      const errMsg = err.message || "Failed to confirm delivery. Please try again.";
+      toast({ title: "Error", description: errMsg, variant: "destructive" });
     } finally {
       setConfirmingOrder(null);
     }
@@ -145,27 +155,7 @@ const OrderDetail = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select(`
-          *,
-          address:addresses(*),
-          payments(
-            id,
-            payment_method,
-            amount,
-            status,
-            payment_verifications(proof_image_url)
-          ),
-          vendor_orders(
-            id,
-            brand_id,
-            status,
-            subtotal,
-            shipping_fee,
-            tracking_number,
-            brand:brands(id, name, slug, owner_id, status),
-            order_items(id, product_name, product_price, quantity, size, product_id, variant_id)
-          )
-        `)
+        .select("*")
         .eq("id", orderId!)
         .eq("customer_id", user!.id)
         .maybeSingle();
@@ -176,13 +166,87 @@ const OrderDetail = () => {
     enabled: !!orderId && !!user,
   });
 
+  // Fetch payments separately
+  const { data: payments = [] } = useQuery({
+    queryKey: ["order-payments", orderId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payments")
+        .select("*, payment_verifications(*)")
+        .eq("order_id", orderId!);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!orderId,
+  });
+
+  // Fetch vendor_orders separately
+  const { data: vendorOrders = [] } = useQuery({
+    queryKey: ["order-vendor-orders", orderId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vendor_orders")
+        .select("*, brand:brands(id, name, slug, owner_id, status)")
+        .eq("order_id", orderId!);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!orderId,
+  });
+
+  // Fetch order_items separately for all vendor_orders
+  const vendorOrderIds = useMemo(() => vendorOrders.map(vo => vo.id), [vendorOrders]);
+  const { data: orderItems = [] } = useQuery({
+    queryKey: ["order-items-batch", vendorOrderIds],
+    queryFn: async () => {
+      if (vendorOrderIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("*")
+        .in("vendor_order_id", vendorOrderIds);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: vendorOrderIds.length > 0,
+  });
+
+  // Secondary query for address
+  const { data: fetchedAddress } = useQuery({
+    queryKey: ["order-address-lookup", order?.shipping_address_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("addresses")
+        .select("*")
+        .eq("id", order!.shipping_address_id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!order?.shipping_address_id,
+  });
+
+  const address = fetchedAddress;
+
+  // Manual assembly of the combined order object for UI compatibility
+  const enrichedOrder = useMemo(() => {
+    if (!order) return null;
+    return {
+      ...order,
+      payments,
+      vendor_orders: vendorOrders.map(vo => ({
+        ...vo,
+        order_items: orderItems.filter(item => item.vendor_order_id === vo.id)
+      }))
+    };
+  }, [order, payments, vendorOrders, orderItems]);
+
   // Auto-confirm logic: if order is "shipped" or "for_delivery" and > 3 days have passed, auto-confirm to delivered
   useEffect(() => {
-    if (order?.vendor_orders) {
+    if (enrichedOrder?.vendor_orders) {
       const threeDaysAgo = new Date();
       threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
-      order.vendor_orders.forEach(async (vo: any) => {
+      enrichedOrder.vendor_orders.forEach(async (vo: any) => {
         if ((vo.status === "shipped" || vo.status === "for_delivery") && new Date(vo.updated_at) < threeDaysAgo) {
           await supabase
             .from("vendor_orders")
@@ -193,15 +257,15 @@ const OrderDetail = () => {
         }
       });
     }
-  }, [order, orderId, queryClient]);
+  }, [enrichedOrder, orderId, queryClient]);
 
   const { data: existingReviews } = useQuery({
     queryKey: ["order-reviews", orderId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("reviews")
         .select("vendor_order_id")
-        .eq("user_id", user!.id);
+        .eq("user_id", user!.id) as any);
 
       if (error) throw error;
       return data?.map((r) => r.vendor_order_id) || [];
@@ -236,7 +300,7 @@ const OrderDetail = () => {
     );
   }
 
-  if (!order) {
+  if (!enrichedOrder) {
     return (
       <PageLayout>
         <div className="section-container py-12 text-center">
@@ -264,12 +328,20 @@ const OrderDetail = () => {
             <span className="mx-2 text-muted-foreground">/</span>
             <span>Order Details</span>
           </nav>
-          <h1 className="font-heading text-3xl md:text-5xl uppercase">
-            Order #{order.id.slice(0, 8)}
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Placed on {format(new Date(order.created_at), "PPP 'at' p")}
-          </p>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h1 className="font-heading text-3xl md:text-4xl uppercase tracking-tighter">Order Detail</h1>
+              <p className="text-muted-foreground mt-1">ID: {enrichedOrder.id.slice(0, 8)} • {new Date(enrichedOrder.created_at).toLocaleDateString()}</p>
+            </div>
+            <div className="flex gap-2 w-full md:w-auto">
+              <Link 
+                to="/account/orders" 
+                className="btn-brutal-secondary flex-1 md:flex-none text-center text-sm px-4 py-2"
+              >
+                Back to Orders
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -284,34 +356,40 @@ const OrderDetail = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">Recipient</p>
-                <p className="font-medium">{order.address?.full_name}</p>
+                <p className="font-medium">{address?.full_name || enrichedOrder.shipping_name}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Phone</p>
                 <p className="font-medium flex items-center gap-1">
                   <Phone className="w-4 h-4" />
-                  {order.address?.phone}
+                  {address?.phone || enrichedOrder.shipping_phone}
                 </p>
               </div>
               <div className="md:col-span-2">
-                <p className="text-muted-foreground">Address</p>
-                <p className="font-medium">
-                  {order.address ? 
-                    `${order.address.street}, ${order.address.barangay}, ${order.address.city}, ${order.address.province} ${order.address.zip_code}` : 
-                    "No address found"}
-                </p>
+                <p className="text-muted-foreground font-heading uppercase text-xs">Address</p>
+                <div className="font-medium mt-1">
+                  {address ? (
+                    <p className="text-sm">
+                      {address.street}, {address.barangay}, {address.city}, {address.province} {address.zip_code}
+                    </p>
+                  ) : enrichedOrder.shipping_address ? (
+                    <p className="text-sm">{enrichedOrder.shipping_address}</p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">Address details not found.</p>
+                  )}
+                </div>
               </div>
-              {order.notes && (
+              {enrichedOrder.notes && (
                 <div className="md:col-span-2">
                   <p className="text-muted-foreground">Notes</p>
-                  <p>{order.notes}</p>
+                  <p>{enrichedOrder.notes}</p>
                 </div>
               )}
             </div>
           </div>
 
           {/* Vendor Orders */}
-          {order.vendor_orders?.map((vo: any) => (
+          {enrichedOrder.vendor_orders?.map((vo: any) => (
             <div key={vo.id} className="card-brutal p-4 md:p-6 mb-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                 <div className="flex items-center gap-2">
@@ -413,16 +491,20 @@ const OrderDetail = () => {
           <div className="card-brutal p-4 md:p-6 bg-secondary">
             <h3 className="font-heading text-lg uppercase mb-4">Payment Summary</h3>
             
-            {order.payments?.map((payment: any) => (
+            {enrichedOrder.payments?.map((payment: any) => (
               <div key={payment.id} className="mb-4 pb-4 border-b border-foreground/10 last:border-0 last:pb-0 last:mb-0">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-heading uppercase">
                     {payment.payment_method === 0 ? "Cash on Delivery" : (payment.payment_method === 1 ? "GCash" : "Bank Transfer")}
                   </span>
                   <span className={`px-2 py-0.5 text-[10px] font-bold border border-foreground ${
-                    payment.status === "verified" ? "bg-success" : "bg-warning"
+                    (payment.status === "verified" || ["shipped", "for_delivery", "delivered", "confirmed"].includes(vo.status)) 
+                      ? "bg-success" 
+                      : "bg-warning"
                   }`}>
-                    {payment.status.toUpperCase()}
+                    {(payment.status === "verified" || ["shipped", "for_delivery", "delivered", "confirmed"].includes(vo.status)) 
+                      ? "VERIFIED / PAID" 
+                      : payment.status.toUpperCase()}
                   </span>
                 </div>
                 {payment.payment_verifications?.[0]?.proof_image_url && (
@@ -431,13 +513,30 @@ const OrderDetail = () => {
               </div>
             ))}
 
-            <div className="flex justify-between items-center mt-4 pt-4 border-t-2 border-foreground">
-              <span className="font-heading uppercase">Order Total</span>
-              <span className="font-heading text-xl md:text-2xl">
-                {formatPrice(Number(order.total_amount))}
-              </span>
+              <div className="space-y-2 mb-6">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground uppercase text-[10px] font-bold">Items Subtotal</span>
+                  <span className="font-heading">{formatPrice(Number(order.total_amount) + Number(order.total_discount) - Number(order.total_shipping))}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground uppercase text-[10px] font-bold">Shipping Fee</span>
+                  <span className="font-heading">{formatPrice(Number(order.total_shipping))}</span>
+                </div>
+                {Number(order.total_discount) > 0 && (
+                  <div className="flex justify-between text-sm text-success">
+                    <span className="uppercase text-[10px] font-bold">Total Discounts</span>
+                    <span className="font-heading">-{formatPrice(Number(order.total_discount))}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t-2 border-foreground">
+                <span className="font-heading uppercase">Grand Order Total</span>
+                <span className="font-heading text-xl md:text-2xl">
+                  {formatPrice(Number(order.total_amount))}
+                </span>
+              </div>
             </div>
-          </div>
 
               {/* Chat */}
               <div className="border-t border-border-subtle pt-4 mt-4 flex justify-end">
@@ -448,23 +547,6 @@ const OrderDetail = () => {
                 />
               </div>
 
-              {/* Totals Section */}
-              <div className="mt-6 pt-4 border-t-2 border-foreground bg-secondary/20 -mx-4 md:-mx-6 px-4 md:px-6">
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-muted-foreground uppercase text-[10px] font-bold">Subtotal</span>
-                  <span className="font-heading">{formatPrice(Number(vo.subtotal))}</span>
-                </div>
-                <div className="flex justify-between text-sm mb-4">
-                  <span className="text-muted-foreground uppercase text-[10px] font-bold">Shipping</span>
-                  <span>{formatPrice(Number(vo.shipping_fee))}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-y border-foreground/10 mb-6">
-                  <span className="font-heading text-sm uppercase">Item Total</span>
-                  <span className="font-heading text-xl">
-                    {formatPrice(Number(vo.subtotal) + Number(vo.shipping_fee))}
-                  </span>
-                </div>
-              </div>
 
               {/* Cancel button for cancellable orders */}
               {cancellableStatuses.includes(vo.status) && (

@@ -11,26 +11,27 @@ interface QuickAddDrawerProps {
     name: string;
     price: number;
     image: string;
-    sizes?: string[];
+    variants?: { id: string; size: string; stock_quantity: number }[];
     inStock?: boolean;
   };
 }
 
 const QuickAddDrawer = ({ open, onOpenChange, product }: QuickAddDrawerProps) => {
   const [quantity, setQuantity] = useState(1);
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<{ id: string; size: string; stock_quantity: number } | null>(null);
   const { addToCart } = useCart();
 
-  const sizes = product.sizes?.length ? product.sizes : ["XS", "S", "M", "L", "XL"];
+  const variants = product.variants || [];
 
   const formatPrice = (amount: number) =>
     new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(amount);
 
   const handleAddToCart = async () => {
-    await addToCart(product.id, quantity, selectedSize || undefined);
+    if (!selectedVariant) return;
+    await addToCart(selectedVariant.id, quantity);
     onOpenChange(false);
     setQuantity(1);
-    setSelectedSize(null);
+    setSelectedVariant(null);
   };
 
   return (
@@ -62,23 +63,25 @@ const QuickAddDrawer = ({ open, onOpenChange, product }: QuickAddDrawerProps) =>
             </div>
           </div>
 
-          {/* Size Selector */}
           <div className="mb-4">
             <span className="font-heading uppercase text-[11px] tracking-wide text-muted-foreground mb-2 block">
               Size
             </span>
             <div className="flex flex-wrap gap-1.5">
-              {sizes.map((size) => (
+              {variants.map((v) => (
                 <button
-                  key={size}
-                  onClick={() => setSelectedSize(size)}
+                  key={v.id}
+                  onClick={() => setSelectedVariant(v)}
+                  disabled={v.stock_quantity === 0}
                   className={`h-8 min-w-[2rem] px-2 border-2 font-heading text-[11px] transition-colors ${
-                    selectedSize === size
+                    selectedVariant?.id === v.id
                       ? "border-foreground bg-foreground text-background"
+                      : v.stock_quantity === 0
+                      ? "border-border-subtle text-muted-foreground line-through cursor-not-allowed"
                       : "border-border-subtle hover:border-foreground"
                   }`}
                 >
-                  {size}
+                  {v.size}
                 </button>
               ))}
             </div>
@@ -109,14 +112,13 @@ const QuickAddDrawer = ({ open, onOpenChange, product }: QuickAddDrawerProps) =>
             </div>
           </div>
 
-          {/* Add to Cart Button */}
           <button
             onClick={handleAddToCart}
-            disabled={!product.inStock}
+            disabled={!product.inStock || !selectedVariant}
             className="btn-brutal w-full flex items-center justify-center gap-2 text-xs py-2.5"
           >
             <ShoppingBag className="w-4 h-4" />
-            Add to Cart
+            {!product.inStock ? "Out of Stock" : !selectedVariant ? "Select Size" : "Add to Cart"}
           </button>
         </div>
       </DrawerContent>

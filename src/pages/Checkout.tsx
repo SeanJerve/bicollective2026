@@ -200,10 +200,16 @@ const Checkout = () => {
       
       if (error) console.error("Error fetching claimed vouchers:", error);
       // Flatten the result to match expected discount structure
-      return (data || []).map((claim: any) => ({
-        ...claim.discounts,
-        claim_id: claim.id
-      }));
+      return (data || []).map((claim: any) => {
+        // Precise 3NF mapping: ensuring we get the data from the nested 'discounts' object
+        const d = claim.discounts;
+        return {
+          ...d,
+          id: d?.id,
+          discount_value: Number(d?.discount_value) || 0,
+          claim_id: claim.id
+        };
+      });
     },
     enabled: !!user,
   });
@@ -222,16 +228,16 @@ const Checkout = () => {
     }
     autoPromos?.forEach((promo) => {
       if (promo.discount_type === "free_shipping") return;
-      if (promo.min_order_amount && productSubtotal < Number(promo.min_order_amount)) return;
+      if (promo.min_order_amount && productSubtotal < (Number(promo.min_order_amount) || 0)) return;
       if (promo.discount_type === "percentage") {
-        let d = (productSubtotal * Number(promo.discount_value)) / 100;
-        if (promo.max_discount_amount) d = Math.min(d, Number(promo.max_discount_amount));
+        let d = (productSubtotal * (Number(promo.discount_value) || 0)) / 100;
+        if (promo.max_discount_amount) d = Math.min(d, Number(promo.max_discount_amount) || 0);
         discount += d;
       } else if (promo.discount_type === "fixed") {
-        discount += Number(promo.discount_value);
+        discount += (Number(promo.discount_value) || 0);
       }
     });
-    return Math.min(discount, productSubtotal);
+    return Math.min(discount || 0, productSubtotal);
   }, [appliedPromo, autoPromos, productSubtotal, buyerLocation]);
 
   const discountedSubtotal = Math.max(0, productSubtotal - promoDiscount);
@@ -254,14 +260,17 @@ const Checkout = () => {
 
   // Voucher deductions
   const pesoVoucherDeduction = useMemo(() => {
-    return selectedVouchers.reduce((sum, v) => {
+    const total = selectedVouchers.reduce((sum, v) => {
+      const val = Number(v.discount_value) || 0;
       if (v.discount_type === "percentage") {
-        let d = (discountedSubtotal * Number(v.discount_value)) / 100;
+        let d = (discountedSubtotal * val) / 100;
         if (v.max_discount_amount) d = Math.min(d, Number(v.max_discount_amount));
         return sum + d;
       }
-      return sum + Number(v.discount_value);
+      return sum + val;
     }, 0);
+    console.log("Peso Voucher Calculation:", { total, discountedSubtotal, deduction: Math.min(total, discountedSubtotal) });
+    return Math.min(total, discountedSubtotal);
   }, [selectedVouchers, discountedSubtotal]);
 
   const shippingVoucherDeduction = useMemo(() => {
@@ -282,7 +291,12 @@ const Checkout = () => {
   const effectiveShipping = Math.max(0, finalShipping - promoFreeShipping);
 
   const grandTotal = useMemo(() => {
-    return Math.max(0, discountedSubtotal + effectiveShipping - pesoVoucherDeduction);
+    const base = Number(discountedSubtotal) || 0;
+    const ship = Number(effectiveShipping) || 0;
+    const vouch = Number(pesoVoucherDeduction) || 0;
+    const total = Math.max(0, base + ship - vouch);
+    console.log("Grand Total Calculation:", { base, ship, vouch, total });
+    return total;
   }, [discountedSubtotal, effectiveShipping, pesoVoucherDeduction]);
 
   const pesoVouchers = userVouchers?.filter((v) => v.discount_type !== "free_shipping") || [];
@@ -362,18 +376,43 @@ const Checkout = () => {
         .from("orders")
         .insert({
           customer_id: user.id,
-          total_amount: grandTotal,
-          total_shipping: effectiveShipping,
-          total_discount: promoDiscount + pesoVoucherDeduction + shippingVoucherDeduction + promoFreeShipping,
+          total_amount: grandTotal || 0,
+          total_shipping: effectiveShipping || 0,
+          total_discount: (promoDiscount || 0) + (pesoVoucherDeduction || 0) + (shippingVoucherDeduction || 0) + (promoFreeShipping || 0),
+          discount_id: appliedPromo?.id || null, // Track the discount source
           shipping_name: selectedAddress.full_name,
           shipping_phone: selectedAddress.phone,
-          shipping_address_id: selectedAddress.id, // Linked to addresses table
+          shipping_address_id: selectedAddress.id, // Linked for management
+          shipping_address: shippingAddressStr,   // Snapshot for history (Restored via SQL)
           notes: notes || null,
         })
         .select()
         .single();
 
       if (orderError) throw orderError;
+
+      // --- NEW RELATIONAL PAYMENT LOGIC (OUTSIDE BRAND LOOP) ---
+      const { data: payment, error: paymentError } = await supabase
+        .from("payments")
+        .insert({
+          order_id: order.id,
+          payment_method: paymentMethod === "cod" ? 0 : (paymentMethod === "gcash" ? 1 : 2),
+          amount: grandTotal, 
+          status: paymentMethod === "cod" ? "pending" : "pending_verification",
+        })
+        .select()
+        .single();
+
+      if (paymentError) throw paymentError;
+
+      if (paymentMethod !== "cod" && paymentProofUrl) {
+        const { error: proofError } = await supabase.from("payment_verifications").insert({
+          payment_id: payment.id,
+          proof_image_url: paymentProofUrl,
+        } as any);
+        if (proofError) throw proofError;
+      }
+      // ---------------------------------------------------------
 
       for (const [brandId, group] of Object.entries(groupedItems)) {
         const brandShipping = shippingByBrand[brandId]?.original || 0;
@@ -386,34 +425,14 @@ const Checkout = () => {
 
         const initialStatus = paymentMethod === "cod" ? "confirmed" : (paymentProofUrl ? "payment_uploaded" : "pending_payment");
         
-        // --- NEW RELATIONAL PAYMENT LOGIC ---
-        const { data: payment, error: paymentError } = await supabase
-          .from("payments")
-          .insert({
-            order_id: order.id,
-            payment_method: paymentMethod === "cod" ? 0 : (paymentMethod === "gcash" ? 1 : 2),
-            amount: grandTotal, 
-            status: paymentMethod === "cod" ? "pending" : "pending_verification",
-          })
-          .select()
-          .single();
-
-        if (paymentError) throw paymentError;
-
-        if (paymentMethod !== "cod" && paymentProofUrl) {
-          await (supabase.from("payment_verifications").insert({
-            payment_id: payment.id,
-            proof_image_url: paymentProofUrl,
-          } as any) as any);
-        }
-        // ------------------------------------
-        
         // Calculate Platform Fees
         const product = group.items[0]?.variant?.product;
         const commissionRate = product?.brand?.commission_rate || 5;
         const platformCommission = Math.round((group.subtotal * commissionRate) / 100);
         const shippingMargin = 20; // Fixed 20 pesos margin
         const totalPlatformFee = platformCommission + shippingMargin;
+
+        const totalDeductionsForBrand = Math.round((promoDiscount + pesoVoucherDeduction) * group.subtotal / productSubtotal);
 
         const { data: vendorOrder, error: vendorOrderError } = await supabase
           .from("vendor_orders")
@@ -424,12 +443,12 @@ const Checkout = () => {
             shipping_fee: brandShippingFinal,
             shipping_fee_original: brandShipping,
             free_shipping_applied: shippingVoucherDeduction > 0 || promoFreeShipping > 0,
-            discount_amount: Math.round(promoDiscount * group.subtotal / productSubtotal),
+            discount_amount: totalDeductionsForBrand,
             status: initialStatus,
             platform_commission: platformCommission,
             platform_shipping_margin: shippingMargin,
             total_platform_fee: totalPlatformFee,
-            // discount_id: logic to be updated in Phase 4
+            discount_id: appliedPromo?.id || null,
           })
           .select()
           .single();
@@ -445,7 +464,7 @@ const Checkout = () => {
           if (debtError) console.error("Error updating brand debt:", debtError);
         }
 
-        const orderItems = group.items.map((item) => {
+        const orderItems = group.items.map((item: any) => {
           const product = item.variant?.product;
           return {
             vendor_order_id: vendorOrder.id,
@@ -454,12 +473,19 @@ const Checkout = () => {
             product_name: product?.name || "Unknown Product",
             product_price: Number(product?.price || 0),
             quantity: item.quantity,
-            size: item.size,
+            size: item.size || item.variant?.size || "",
           };
         });
 
         const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
         if (itemsError) throw itemsError;
+
+        // --- NEW RELATIONAL STOCK DECREMENT ---
+        const { error: decrementError } = await (supabase.rpc as any)("decrement_stock_on_order", {
+          items: orderItems.map((i: any) => ({ variant_id: i.variant_id, quantity: i.quantity }))
+        });
+        if (decrementError) console.error("Error decrementing stock:", decrementError);
+        // --------------------------------------
       }
 
       // Mark vouchers as used (Update user_discount_claims status)
