@@ -10,13 +10,14 @@ interface PageLayoutProps {
   hideFooter?: boolean;
   hideSaleBanner?: boolean;
   header?: ReactNode;
+  minimalHeader?: boolean;
 }
 
-const PageLayout = ({ children, hideHeader, hideFooter, hideSaleBanner, header }: PageLayoutProps) => {
+const PageLayout = ({ children, hideHeader, hideFooter, hideSaleBanner, header, minimalHeader }: PageLayoutProps) => {
   return (
     <div className="min-h-screen flex flex-col">
       {!hideSaleBanner && <SaleBanner />}
-      {!hideHeader && (header || <Header />)}
+      {!hideHeader && (header || <Header minimal={minimalHeader} />)}
       <main className="flex-1">{children}</main>
       {!hideFooter && <Footer />}
       <LuckyPromoPopup />

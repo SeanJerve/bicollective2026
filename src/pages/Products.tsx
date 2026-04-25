@@ -42,11 +42,16 @@ const Products = () => {
   const [selectedLocation, setSelectedLocation] = useState<string | null>(
     locationParam || null
   );
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [selectedRating, setSelectedRating] = useState<number | null>(null);
+  const [minPrice, setMinPrice] = useState<string>("");
+  const [maxPrice, setMaxPrice] = useState<string>("");
   const [sortBy, setSortBy] = useState("newest");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [showAllLocations, setShowAllLocations] = useState(false);
+  const [showAllBrands, setShowAllBrands] = useState(false);
 
   const { data: products, isLoading: productsLoading } = useProducts();
   const { data: brands } = useBrands();
@@ -58,6 +63,13 @@ const Products = () => {
 
   const filteredProducts = (products || []).filter((product) => {
     if (selectedCategory && product.categorySlug !== selectedCategory) return false;
+    if (selectedRating) {
+      const brandData = brands?.find((b) => b.slug === product.brandSlug);
+      if (!brandData?.rating || brandData.rating < selectedRating) return false;
+    }
+    if (selectedBrand && product.brandSlug !== selectedBrand) return false;
+    if (minPrice && product.price < Number(minPrice)) return false;
+    if (maxPrice && product.price > Number(maxPrice)) return false;
     if (selectedLocation) {
       const brandData = brands?.find((b) => b.slug === product.brandSlug);
       if (!brandData?.location?.toLowerCase().includes(selectedLocation.toLowerCase())) {
@@ -93,9 +105,17 @@ const Products = () => {
   const clearFilters = () => {
     setSelectedCategory(null);
     setSelectedLocation(null);
+    setSelectedBrand(null);
+    setSelectedRating(null);
+    setMinPrice("");
+    setMaxPrice("");
   };
 
-  const hasActiveFilters = selectedCategory || selectedLocation || searchQuery;
+  const hasActiveFilters = selectedCategory || selectedLocation || selectedBrand || selectedRating || minPrice || maxPrice || searchQuery;
+
+  const displayedBrands = showAllBrands
+    ? brands
+    : brands?.slice(0, INITIAL_SHOW_COUNT);
 
   const displayedCategories = showAllCategories
     ? categories
@@ -144,7 +164,7 @@ const Products = () => {
               Filters
               {hasActiveFilters && (
                 <span className="w-5 h-5 bg-foreground text-background text-xs flex items-center justify-center">
-                  {(selectedCategory ? 1 : 0) + (selectedLocation ? 1 : 0)}
+                  {(selectedCategory ? 1 : 0) + (selectedLocation ? 1 : 0) + (selectedBrand ? 1 : 0) + (selectedRating ? 1 : 0) + ((minPrice || maxPrice) ? 1 : 0)}
                 </span>
               )}
             </button>
@@ -225,7 +245,98 @@ const Products = () => {
                   )}
                 </div>
 
-                {hasActiveFilters && (
+                {/* Brands */}
+                <div>
+                  <h3 className="font-heading uppercase text-sm tracking-wide mb-4">Brands</h3>
+                  <ul className="space-y-2">
+                    <li>
+                      <button
+                        onClick={() => setSelectedBrand(null)}
+                        className={`text-sm ${!selectedBrand ? "font-medium border-b-2 border-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                      >
+                        All Brands
+                      </button>
+                    </li>
+                    {displayedBrands?.map((brand) => (
+                      <li key={brand.id}>
+                        <button
+                          onClick={() => setSelectedBrand(brand.slug)}
+                          className={`text-sm ${
+                            selectedBrand === brand.slug
+                              ? "font-medium border-b-2 border-foreground"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {brand.name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {(brands?.length || 0) > INITIAL_SHOW_COUNT && (
+                    <button
+                      onClick={() => setShowAllBrands(!showAllBrands)}
+                      className="text-xs text-muted-foreground hover:text-foreground mt-2 bg-transparent border-none p-0 cursor-pointer"
+                    >
+                      {showAllBrands ? "View less" : `View more (${(brands?.length || 0) - INITIAL_SHOW_COUNT})`}
+                    </button>
+                  )}
+                </div>
+
+                {/* Price Range */}
+                <div>
+                  <h3 className="font-heading uppercase text-sm tracking-wide mb-4">Price Range</h3>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      placeholder="Min"
+                      value={minPrice}
+                      onChange={(e) => setMinPrice(e.target.value)}
+                      className="input-brutal w-full py-1 px-2 text-sm bg-background border-2 border-foreground"
+                      min="0"
+                    />
+                    <span className="text-muted-foreground">-</span>
+                    <input
+                      type="number"
+                      placeholder="Max"
+                      value={maxPrice}
+                      onChange={(e) => setMaxPrice(e.target.value)}
+                      className="input-brutal w-full py-1 px-2 text-sm bg-background border-2 border-foreground"
+                      min="0"
+                    />
+                  </div>
+                  </div>
+
+                  {/* Rating */}
+                  <div>
+                    <h3 className="font-heading uppercase text-sm tracking-wide mb-4">Rating</h3>
+                    <ul className="space-y-2">
+                      <li>
+                        <button
+                          onClick={() => setSelectedRating(null)}
+                          className={`text-sm flex items-center gap-2 ${!selectedRating ? "font-medium border-b-2 border-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                        >
+                          All Ratings
+                        </button>
+                      </li>
+                      {[5, 4, 3, 2, 1].map((rating) => (
+                        <li key={rating}>
+                          <button
+                            onClick={() => setSelectedRating(rating)}
+                            className={`text-sm flex items-center gap-2 ${selectedRating === rating ? "font-medium border-b-2 border-foreground text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                          >
+                            <div className="flex text-yellow-400">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <span key={i}>{i < rating ? "★" : "☆"}</span>
+                              ))}
+                            </div>
+                            <span>& Up</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {hasActiveFilters && (
                   <button
                     onClick={clearFilters}
                     className="text-sm text-muted-foreground hover:text-foreground underline"
@@ -319,6 +430,95 @@ const Products = () => {
                         </button>
                       )}
                     </div>
+
+                    {/* Brands */}
+                    <div>
+                      <h3 className="font-heading uppercase text-sm tracking-wide mb-4">Brands</h3>
+                      <ul className="space-y-3">
+                        <li>
+                          <button
+                            onClick={() => setSelectedBrand(null)}
+                            className={`text-sm ${!selectedBrand ? "font-medium" : "text-muted-foreground"}`}
+                          >
+                            All Brands
+                          </button>
+                        </li>
+                        {displayedBrands?.map((brand) => (
+                          <li key={brand.id}>
+                            <button
+                              onClick={() => setSelectedBrand(brand.slug)}
+                              className={`text-sm ${
+                                selectedBrand === brand.slug ? "font-medium" : "text-muted-foreground"
+                              }`}
+                            >
+                              {brand.name}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                      {(brands?.length || 0) > INITIAL_SHOW_COUNT && (
+                        <button
+                          onClick={() => setShowAllBrands(!showAllBrands)}
+                          className="text-xs text-muted-foreground hover:text-foreground mt-2 bg-transparent border-none p-0 cursor-pointer"
+                        >
+                          {showAllBrands ? "View less" : `View more (${(brands?.length || 0) - INITIAL_SHOW_COUNT})`}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Price Range */}
+                    <div>
+                      <h3 className="font-heading uppercase text-sm tracking-wide mb-4">Price Range</h3>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          placeholder="Min (₱)"
+                          value={minPrice}
+                          onChange={(e) => setMinPrice(e.target.value)}
+                          className="input-brutal w-full py-2 px-3 text-sm bg-background border-2 border-foreground"
+                          min="0"
+                        />
+                        <span className="text-muted-foreground">-</span>
+                        <input
+                          type="number"
+                          placeholder="Max (₱)"
+                          value={maxPrice}
+                          onChange={(e) => setMaxPrice(e.target.value)}
+                          className="input-brutal w-full py-2 px-3 text-sm bg-background border-2 border-foreground"
+                          min="0"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Rating */}
+                    <div>
+                      <h3 className="font-heading uppercase text-sm tracking-wide mb-4">Rating</h3>
+                      <ul className="space-y-3">
+                        <li>
+                          <button
+                            onClick={() => setSelectedRating(null)}
+                            className={`text-sm flex items-center gap-2 ${!selectedRating ? "font-medium" : "text-muted-foreground"}`}
+                          >
+                            All Ratings
+                          </button>
+                        </li>
+                        {[5, 4, 3, 2, 1].map((rating) => (
+                          <li key={rating}>
+                            <button
+                              onClick={() => setSelectedRating(rating)}
+                              className={`text-sm flex items-center gap-2 ${selectedRating === rating ? "font-medium text-foreground" : "text-muted-foreground"}`}
+                            >
+                              <div className="flex text-yellow-400">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                  <span key={i}>{i < rating ? "★" : "☆"}</span>
+                                ))}
+                              </div>
+                              <span>& Up</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
 
                   <div className="mt-8 pt-8 border-t border-border-subtle space-y-4">
@@ -348,11 +548,35 @@ const Products = () => {
                       </button>
                     </span>
                   )}
+                  {selectedRating && (
+                    <span className="inline-flex items-center gap-1 px-2 md:px-3 py-1 bg-secondary text-xs md:text-sm border border-border-subtle">
+                      {selectedRating}+ Stars
+                      <button onClick={() => setSelectedRating(null)}>
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
                   {selectedLocation && (
                     <span className="inline-flex items-center gap-1 px-2 md:px-3 py-1 bg-secondary text-xs md:text-sm border border-border-subtle">
                       <MapPin className="w-3 h-3" />
                       {selectedLocation}
                       <button onClick={() => setSelectedLocation(null)}>
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {selectedBrand && (
+                    <span className="inline-flex items-center gap-1 px-2 md:px-3 py-1 bg-secondary text-xs md:text-sm border border-border-subtle">
+                      {brands?.find((b) => b.slug === selectedBrand)?.name}
+                      <button onClick={() => setSelectedBrand(null)}>
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {(minPrice || maxPrice) && (
+                    <span className="inline-flex items-center gap-1 px-2 md:px-3 py-1 bg-secondary text-xs md:text-sm border border-border-subtle">
+                      ₱{minPrice || "0"} - ₱{maxPrice || "Any"}
+                      <button onClick={() => { setMinPrice(""); setMaxPrice(""); }}>
                         <X className="w-3 h-3" />
                       </button>
                     </span>

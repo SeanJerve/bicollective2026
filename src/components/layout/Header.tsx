@@ -8,7 +8,11 @@ import { useNotifications } from "@/hooks/useNotifications";
 import NotificationBadge from "@/components/ui/notification-badge";
 import SearchAutocomplete from "./SearchAutocomplete";
 
-const Header = () => {
+interface HeaderProps {
+  minimal?: boolean;
+}
+
+const Header = ({ minimal = false }: HeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -76,29 +80,32 @@ const Header = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                to={link.href}
-                className={`font-heading text-sm uppercase tracking-wide transition-opacity hover:opacity-60 ${
-                  isActive(link.href) ? "border-b-2 border-foreground pb-1" : ""
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
+          {!minimal && (
+            <nav className="hidden md:flex items-center gap-8">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  className={`font-heading text-sm uppercase tracking-wide transition-opacity hover:opacity-60 ${
+                    isActive(link.href) ? "border-b-2 border-foreground pb-1" : ""
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          )}
 
           {/* Desktop Actions */}
-          <div className="hidden md:flex items-center gap-4">
-            <button
-              onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="p-2 hover:bg-secondary transition-colors border-2 border-transparent hover:border-foreground"
-              aria-label="Search"
-            >
-              <Search className="w-5 h-5" />
-            </button>
+          {!minimal && (
+            <div className="hidden md:flex items-center gap-4">
+              <button
+                onClick={() => setIsSearchOpen(!isSearchOpen)}
+                className="p-2 hover:bg-secondary transition-colors border-2 border-transparent hover:border-foreground"
+                aria-label="Search"
+              >
+                <Search className="w-5 h-5" />
+              </button>
 
             {/* Notification Center */}
             {user && <NotificationCenter />}
@@ -245,40 +252,43 @@ const Header = () => {
                 )}
               </Link>
             )}
-          </div>
+            </div>
+          )}
 
           {/* Mobile Actions */}
-          <div className="flex md:hidden items-center gap-2">
-            <button
-              onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="p-2"
-              aria-label="Search"
-            >
-              <Search className="w-5 h-5" />
-            </button>
-            {!isAdmin && (
-              <Link to="/cart" className="p-2 relative" aria-label="Cart">
-                <ShoppingBag className="w-5 h-5" />
-                {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-foreground text-background text-[10px] font-bold flex items-center justify-center">
-                    {itemCount > 99 ? "99+" : itemCount}
-                  </span>
-                )}
-              </Link>
-            )}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 relative"
-              aria-label="Menu"
-            >
-              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              {user && (
-                <NotificationBadge
-                  count={(isAdmin ? totalAdmin : isVendor ? totalVendor + totalCustomer : totalCustomer) + counts.unreadMessages}
-                />
+          {!minimal && (
+            <div className="flex md:hidden items-center gap-2">
+              <button
+                onClick={() => setIsSearchOpen(!isSearchOpen)}
+                className="p-2"
+                aria-label="Search"
+              >
+                <Search className="w-5 h-5" />
+              </button>
+              {!isAdmin && (
+                <Link to="/cart" className="p-2 relative" aria-label="Cart">
+                  <ShoppingBag className="w-5 h-5" />
+                  {itemCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-foreground text-background text-[10px] font-bold flex items-center justify-center">
+                      {itemCount > 99 ? "99+" : itemCount}
+                    </span>
+                  )}
+                </Link>
               )}
-            </button>
-          </div>
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="p-2 relative"
+                aria-label="Menu"
+              >
+                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                {user && (
+                  <NotificationBadge
+                    count={(isAdmin ? totalAdmin : isVendor ? totalVendor + totalCustomer : totalCustomer) + counts.unreadMessages}
+                  />
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
       {/* Search Bar */}

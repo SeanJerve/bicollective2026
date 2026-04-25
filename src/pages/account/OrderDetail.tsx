@@ -155,7 +155,7 @@ const OrderDetail = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("*")
+        .select("*, discount:discounts(*)")
         .eq("id", orderId!)
         .eq("customer_id", user!.id)
         .maybeSingle();
@@ -186,7 +186,7 @@ const OrderDetail = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vendor_orders")
-        .select("*, brand:brands(id, name, slug, owner_id, status)")
+        .select("*, brand:brands(id, name, slug, owner_id, status), discount:discounts(*)")
         .eq("order_id", orderId!);
       if (error) throw error;
       return data || [];
@@ -485,58 +485,83 @@ const OrderDetail = () => {
                 ))}
               </div>
 
-              {/* Totals moved down below chat */}
+              {/* Tracking History Log */}
+              <div className="mt-6 pt-4 border-t border-border-subtle">
+                <h4 className="font-heading text-sm uppercase mb-4">Tracking History</h4>
+                <div className="relative border-l-2 border-border-subtle ml-2 space-y-4 pb-2">
+                  {vo.delivered_at && (
+                    <div className="relative pl-6">
+                      <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-success border-2 border-background shadow-brutal-xs" />
+                      <p className="text-sm font-bold">Delivered</p>
+                      <p className="text-[10px] text-muted-foreground">{new Date(vo.delivered_at).toLocaleString()}</p>
+                    </div>
+                  )}
+                  {vo.for_delivery_at && (
+                    <div className="relative pl-6">
+                      <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-primary border-2 border-background shadow-brutal-xs" />
+                      <p className="text-sm font-bold">Out for Delivery</p>
+                      <p className="text-[10px] text-muted-foreground">{new Date(vo.for_delivery_at).toLocaleString()}</p>
+                    </div>
+                  )}
+                  {vo.handed_to_courier_at && (
+                    <div className="relative pl-6">
+                      <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-info border-2 border-background shadow-brutal-xs" />
+                      <p className="text-sm font-bold">Handed to Courier</p>
+                      <p className="text-[10px] text-muted-foreground">{new Date(vo.handed_to_courier_at).toLocaleString()}</p>
+                    </div>
+                  )}
+                  {vo.shipped_at && (
+                    <div className="relative pl-6">
+                      <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-info border-2 border-background shadow-brutal-xs" />
+                      <p className="text-sm font-bold">Shipped</p>
+                      <p className="text-[10px] text-muted-foreground">{new Date(vo.shipped_at).toLocaleString()}</p>
+                    </div>
+                  )}
+                  {vo.confirmed_at && (
+                    <div className="relative pl-6">
+                      <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-secondary border-2 border-foreground shadow-brutal-xs" />
+                      <p className="text-sm font-bold">Order Confirmed</p>
+                      <p className="text-[10px] text-muted-foreground">{new Date(vo.confirmed_at).toLocaleString()}</p>
+                    </div>
+                  )}
+                  <div className="relative pl-6">
+                    <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-secondary border-2 border-foreground shadow-brutal-xs" />
+                    <p className="text-sm font-bold">Order Placed</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(vo.created_at).toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
 
           {/* Final Totals & Payments Section */}
-          <div className="card-brutal p-4 md:p-6 bg-secondary">
-            <h3 className="font-heading text-lg uppercase mb-4">Payment Summary</h3>
-            
-            {enrichedOrder.payments?.map((payment: any) => (
-              <div key={payment.id} className="mb-4 pb-4 border-b border-foreground/10 last:border-0 last:pb-0 last:mb-0">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-heading uppercase">
-                    {payment.payment_method === 0 ? "Cash on Delivery" : (payment.payment_method === 1 ? "GCash" : "Bank Transfer")}
-                  </span>
-                  <span className={`px-2 py-0.5 text-[10px] font-bold border border-foreground ${
-                    (payment.status === "verified" || ["shipped", "for_delivery", "delivered", "confirmed"].includes(vo.status)) 
-                      ? "bg-success" 
-                      : "bg-warning"
-                  }`}>
-                    {(payment.status === "verified" || ["shipped", "for_delivery", "delivered", "confirmed"].includes(vo.status)) 
-                      ? "VERIFIED / PAID" 
-                      : payment.status.toUpperCase()}
-                  </span>
-                </div>
-                {payment.payment_verifications?.[0]?.proof_image_url && (
-                  <PaymentProofImage path={payment.payment_verifications[0].proof_image_url} />
-                )}
-              </div>
-            ))}
-
-              <div className="space-y-2 mb-6">
+              {/* Sub-order Summary */}
+              <div className="mt-6 pt-4 border-t-2 border-border-subtle space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground uppercase text-[10px] font-bold">Items Subtotal</span>
-                  <span className="font-heading">{formatPrice(Number(order.total_amount) + Number(order.total_discount) - Number(order.total_shipping))}</span>
+                  <span className="font-heading">{formatPrice(Number(vo.subtotal))}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground uppercase text-[10px] font-bold">Shipping Fee</span>
-                  <span className="font-heading">{formatPrice(Number(order.total_shipping))}</span>
+                  <span className="font-heading">{formatPrice(Number(vo.shipping_fee_original || vo.shipping_fee))}</span>
                 </div>
-                {Number(order.total_discount) > 0 && (
+                {vo.free_shipping_applied && (
                   <div className="flex justify-between text-sm text-success">
-                    <span className="uppercase text-[10px] font-bold">Total Discounts</span>
-                    <span className="font-heading">-{formatPrice(Number(order.total_discount))}</span>
+                    <span className="uppercase text-[10px] font-bold">Free Shipping Applied</span>
+                    <span className="font-heading">-{formatPrice(Number(vo.shipping_fee_original || vo.shipping_fee) - Number(vo.shipping_fee))}</span>
                   </div>
                 )}
+                {Number(vo.discount_amount) > 0 && (
+                  <div className="flex justify-between text-sm text-success">
+                    <span className="uppercase text-[10px] font-bold">Voucher Discount {vo.discount?.name ? `(${vo.discount.name})` : ""}</span>
+                    <span className="font-heading">-{formatPrice(Number(vo.discount_amount))}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center pt-2">
+                  <span className="font-heading uppercase text-xs">Sub-Order Total</span>
+                  <span className="font-heading">
+                    {formatPrice(Number(vo.subtotal) + Number(vo.shipping_fee) - Number(vo.discount_amount))}
+                  </span>
+                </div>
               </div>
-
-              <div className="flex justify-between items-center pt-4 border-t-2 border-foreground">
-                <span className="font-heading uppercase">Grand Order Total</span>
-                <span className="font-heading text-xl md:text-2xl">
-                  {formatPrice(Number(order.total_amount))}
-                </span>
-              </div>
-            </div>
 
               {/* Chat */}
               <div className="border-t border-border-subtle pt-4 mt-4 flex justify-end">
@@ -651,7 +676,77 @@ const OrderDetail = () => {
             </div>
           ))}
 
-          {/* Total */}
+          {/* Final Grand Totals & Payments Section */}
+          <div className="card-brutal p-4 md:p-6 bg-secondary mb-6">
+            <h3 className="font-heading text-lg uppercase mb-4">Payment & Discount Summary</h3>
+            
+            {enrichedOrder.payments?.map((payment: any) => (
+              <div key={payment.id} className="mb-4 pb-4 border-b border-foreground/10 last:border-0 last:pb-0 last:mb-0">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-heading uppercase">
+                    {payment.payment_method === 0 ? "Cash on Delivery" : (payment.payment_method === 1 ? "GCash" : "Bank Transfer")}
+                  </span>
+                  <span className={`px-2 py-0.5 text-[10px] font-bold border border-foreground ${
+                    (payment.status === "verified" || enrichedOrder.vendor_orders?.some((vo: any) => ["shipped", "for_delivery", "delivered", "confirmed"].includes(vo.status))) 
+                      ? "bg-success" 
+                      : "bg-warning"
+                  }`}>
+                    {(payment.status === "verified" || enrichedOrder.vendor_orders?.some((vo: any) => ["shipped", "for_delivery", "delivered", "confirmed"].includes(vo.status))) 
+                      ? "VERIFIED / PAID" 
+                      : payment.status.toUpperCase()}
+                  </span>
+                </div>
+                {payment.payment_verifications?.[0]?.proof_image_url && (
+                  <PaymentProofImage path={payment.payment_verifications[0].proof_image_url} />
+                )}
+              </div>
+            ))}
+
+              <div className="space-y-2 mb-6">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground uppercase text-[10px] font-bold">Global Items Subtotal</span>
+                  <span className="font-heading">{formatPrice(Number(order.total_amount) + Number(order.total_discount) - Number(order.total_shipping))}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground uppercase text-[10px] font-bold">Global Shipping Fee</span>
+                  <span className="font-heading">{formatPrice(Number(order.total_shipping) + enrichedOrder.vendor_orders.reduce((acc: number, vo: any) => acc + (vo.free_shipping_applied ? (Number(vo.shipping_fee_original) || 0) - Number(vo.shipping_fee) : 0), 0))}</span>
+                </div>
+                
+                {/* Specific Discount Labels */}
+                {enrichedOrder.discount && (
+                   <div className="flex justify-between text-sm text-success">
+                     <span className="uppercase text-[10px] font-bold">Platform Promo ({enrichedOrder.discount.name})</span>
+                     <span className="font-heading">-{formatPrice(Number(enrichedOrder.discount.discount_value))}</span>
+                   </div>
+                )}
+                {enrichedOrder.vendor_orders?.map((vo: any) => {
+                  return (
+                    <div key={`discount-${vo.id}`}>
+                      {vo.free_shipping_applied && (
+                        <div className="flex justify-between text-sm text-success mt-1">
+                          <span className="uppercase text-[10px] font-bold">Free Shipping ({vo.brand?.name})</span>
+                          <span className="font-heading">-{formatPrice(Number(vo.shipping_fee_original || vo.shipping_fee) - Number(vo.shipping_fee))}</span>
+                        </div>
+                      )}
+                      {Number(vo.discount_amount) > 0 && (
+                        <div className="flex justify-between text-sm text-success mt-1">
+                          <span className="uppercase text-[10px] font-bold">Voucher ({vo.brand?.name}{vo.discount?.name ? ` - ${vo.discount.name}` : ""})</span>
+                          <span className="font-heading">-{formatPrice(Number(vo.discount_amount))}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t-2 border-foreground">
+                <span className="font-heading uppercase">Grand Order Total</span>
+                <span className="font-heading text-xl md:text-2xl">
+                  {formatPrice(Number(order.total_amount))}
+                </span>
+              </div>
+          </div>
+
           <div className="mt-8 text-center">
             <Link to="/account/orders" className="btn-brutal-secondary">
               Back to Orders

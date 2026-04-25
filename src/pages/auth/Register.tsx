@@ -83,7 +83,7 @@ const Register = () => {
   };
 
   return (
-    <PageLayout header={<AuthHeader />} hideSaleBanner>
+    <PageLayout header={<AuthHeader />} hideSaleBanner minimalHeader>
       <div className="flex-1 relative flex items-center justify-center min-h-[calc(100vh-80px)] overflow-hidden">
         {/* Background Image Container - Ready for future image */}
         <div 

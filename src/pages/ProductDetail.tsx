@@ -368,6 +368,10 @@ const ProductDetail = () => {
                 <div className="p-4 border-2 border-border-subtle bg-secondary text-center">
                   <p className="text-xs font-heading uppercase text-muted-foreground">You cannot purchase your own products</p>
                 </div>
+              ) : !product.inStock ? (
+                <div className="py-4 border-y-2 border-destructive bg-destructive/10 text-center">
+                  <p className="text-sm font-heading uppercase text-destructive tracking-widest font-bold">Out of Stock</p>
+                </div>
               ) : (
                 <div className="space-y-3">
                   {/* Buy Now — bypasses cart, goes straight to checkout */}
@@ -404,11 +408,11 @@ const ProductDetail = () => {
                         },
                       });
                     }}
-                    className="btn-brutal w-full flex items-center justify-center gap-2 text-sm md:text-base"
-                    disabled={!product.inStock || product.listingType === "teaser"}
+                    className="btn-brutal w-full flex items-center justify-center gap-2 text-sm md:text-base transition-all"
+                    disabled={product.listingType === "teaser"}
                   >
                     <Zap className="w-4 h-4 md:w-5 md:h-5" />
-                    {product.listingType === "teaser" ? "Coming Soon" : product.listingType === "preorder" ? "Pre-order Now" : product.inStock ? "Buy Now" : "Out of Stock"}
+                    {product.listingType === "teaser" ? "Coming Soon" : product.listingType === "preorder" ? "Pre-order Now" : "Buy Now"}
                   </button>
 
                   {/* Add to Cart */}
@@ -424,8 +428,8 @@ const ProductDetail = () => {
                       }
                       addToCart(selectedVariant.id, quantity);
                     }}
-                    className="btn-brutal-secondary w-full flex items-center justify-center gap-2 text-sm md:text-base"
-                    disabled={!product.inStock || product.listingType === "teaser"}
+                    className="btn-brutal-secondary w-full flex items-center justify-center gap-2 text-sm md:text-base transition-all"
+                    disabled={product.listingType === "teaser"}
                   >
                     <ShoppingBag className="w-4 h-4 md:w-5 md:h-5" />
                     {product.listingType === "teaser" ? "Add to Wishlist" : "Add to Cart"}

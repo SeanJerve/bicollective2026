@@ -534,7 +534,7 @@ const Checkout = () => {
 
   if (orderComplete && orderId) {
     return (
-      <PageLayout>
+      <PageLayout minimalHeader>
         <section className="py-20">
           <div className="section-container max-w-lg text-center">
             <CheckCircle className="w-20 h-20 mx-auto mb-6 text-success" />
@@ -560,7 +560,7 @@ const Checkout = () => {
 
   if (addressesLoading) {
     return (
-      <PageLayout>
+      <PageLayout minimalHeader>
         <div className="section-container py-20 text-center">
           <div className="skeleton-brutal h-8 w-48 mx-auto mb-4" />
           <div className="skeleton-brutal h-4 w-64 mx-auto" />
@@ -570,7 +570,7 @@ const Checkout = () => {
   }
 
   return (
-    <PageLayout>
+    <PageLayout minimalHeader>
       <section className="py-12 border-b-2 border-foreground">
         <div className="section-container">
           <button

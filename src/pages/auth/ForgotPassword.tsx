@@ -3,7 +3,8 @@
  import { Mail, ArrowLeft, CheckCircle } from "lucide-react";
  import PageLayout from "@/components/layout/PageLayout";
  import { supabase } from "@/integrations/supabase/client";
- import { useToast } from "@/hooks/use-toast";
+ import AuthHeader from "@/components/layout/AuthHeader";
+import { useToast } from "@/hooks/use-toast";
  
  const ForgotPassword = () => {
    const [email, setEmail] = useState("");
@@ -40,7 +41,7 @@
  
    if (sent) {
      return (
-       <PageLayout>
+       <PageLayout header={<AuthHeader />} hideSaleBanner>
          <section className="py-12 md:py-24">
            <div className="section-container max-w-md text-center">
              <CheckCircle className="w-16 h-16 mx-auto mb-6 text-success" />
@@ -62,7 +63,7 @@
    }
  
    return (
-     <PageLayout>
+     <PageLayout header={<AuthHeader />} hideSaleBanner>
        <section className="py-12 md:py-24">
          <div className="section-container max-w-md">
            <div className="text-center mb-6 md:mb-8">
