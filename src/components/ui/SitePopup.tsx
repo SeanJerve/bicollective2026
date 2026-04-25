@@ -29,7 +29,7 @@ const SitePopup = () => {
   useEffect(() => {
     // If we have a popup and haven't shown it this session
     if (popup) {
-      const hasSeenPopup = sessionStorage.getItem(`site_popup_${popup.id}`);
+      const hasSeenPopup = localStorage.getItem(`site_popup_${popup.id}`);
       if (!hasSeenPopup) {
         // Add a small delay so it doesn't jarringly appear before paint structure
         const timer = setTimeout(() => {
@@ -43,7 +43,7 @@ const SitePopup = () => {
   const handleClose = () => {
     setIsOpen(false);
     if (popup) {
-      sessionStorage.setItem(`site_popup_${popup.id}`, "true");
+      localStorage.setItem(`site_popup_${popup.id}`, "true");
     }
   };
 

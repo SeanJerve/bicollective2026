@@ -198,7 +198,7 @@ const Products = () => {
                   {(categories?.length || 0) > INITIAL_SHOW_COUNT && (
                     <button
                       onClick={() => setShowAllCategories(!showAllCategories)}
-                      className="text-xs text-muted-foreground hover:text-foreground mt-2 bg-transparent border-none p-0 cursor-pointer"
+                        className="text-xs text-muted-foreground hover:text-foreground mt-2 py-2 w-full text-left bg-transparent border-none cursor-pointer"
                     >
                       {showAllCategories ? "View less" : `View more (${(categories?.length || 0) - INITIAL_SHOW_COUNT})`}
                     </button>
@@ -238,7 +238,7 @@ const Products = () => {
                   {allLocations.length > INITIAL_SHOW_COUNT && (
                     <button
                       onClick={() => setShowAllLocations(!showAllLocations)}
-                      className="text-xs text-muted-foreground hover:text-foreground mt-2 bg-transparent border-none p-0 cursor-pointer"
+                        className="text-xs text-muted-foreground hover:text-foreground mt-2 py-2 w-full text-left bg-transparent border-none cursor-pointer"
                     >
                       {showAllLocations ? "View less" : `View more (${allLocations.length - INITIAL_SHOW_COUNT})`}
                     </button>
@@ -275,7 +275,7 @@ const Products = () => {
                   {(brands?.length || 0) > INITIAL_SHOW_COUNT && (
                     <button
                       onClick={() => setShowAllBrands(!showAllBrands)}
-                      className="text-xs text-muted-foreground hover:text-foreground mt-2 bg-transparent border-none p-0 cursor-pointer"
+                        className="text-xs text-muted-foreground hover:text-foreground mt-2 py-2 w-full text-left bg-transparent border-none cursor-pointer"
                     >
                       {showAllBrands ? "View less" : `View more (${(brands?.length || 0) - INITIAL_SHOW_COUNT})`}
                     </button>
@@ -324,9 +324,9 @@ const Products = () => {
                             onClick={() => setSelectedRating(rating)}
                             className={`text-sm flex items-center gap-2 ${selectedRating === rating ? "font-medium border-b-2 border-foreground text-foreground" : "text-muted-foreground hover:text-foreground"}`}
                           >
-                            <div className="flex text-yellow-400">
+                            <div className="flex text-foreground">
                               {Array.from({ length: 5 }).map((_, i) => (
-                                <span key={i}>{i < rating ? "★" : "☆"}</span>
+                                <span key={i} className="text-sm leading-none">{i < rating ? "★" : "☆"}</span>
                               ))}
                             </div>
                             <span>& Up</span>
@@ -386,7 +386,7 @@ const Products = () => {
                       {(categories?.length || 0) > INITIAL_SHOW_COUNT && (
                         <button
                           onClick={() => setShowAllCategories(!showAllCategories)}
-                          className="text-xs text-muted-foreground hover:text-foreground mt-2 bg-transparent border-none p-0 cursor-pointer"
+                            className="text-xs text-muted-foreground hover:text-foreground mt-2 py-2 w-full text-left bg-transparent border-none cursor-pointer"
                         >
                           {showAllCategories ? "View less" : `View more (${(categories?.length || 0) - INITIAL_SHOW_COUNT})`}
                         </button>
@@ -424,7 +424,7 @@ const Products = () => {
                       {allLocations.length > INITIAL_SHOW_COUNT && (
                         <button
                           onClick={() => setShowAllLocations(!showAllLocations)}
-                          className="text-xs text-muted-foreground hover:text-foreground mt-2 bg-transparent border-none p-0 cursor-pointer"
+                            className="text-xs text-muted-foreground hover:text-foreground mt-2 py-2 w-full text-left bg-transparent border-none cursor-pointer"
                         >
                           {showAllLocations ? "View less" : `View more (${allLocations.length - INITIAL_SHOW_COUNT})`}
                         </button>
@@ -508,9 +508,9 @@ const Products = () => {
                               onClick={() => setSelectedRating(rating)}
                               className={`text-sm flex items-center gap-2 ${selectedRating === rating ? "font-medium text-foreground" : "text-muted-foreground"}`}
                             >
-                              <div className="flex text-yellow-400">
+                              <div className="flex text-foreground">
                                 {Array.from({ length: 5 }).map((_, i) => (
-                                  <span key={i}>{i < rating ? "★" : "☆"}</span>
+                                  <span key={i} className="text-sm leading-none">{i < rating ? "★" : "☆"}</span>
                                 ))}
                               </div>
                               <span>& Up</span>
@@ -684,11 +684,16 @@ const Products = () => {
                   </div>
                 )
               ) : (
-                <div className="text-center py-16 md:py-20">
-                  <h3 className="font-heading text-xl md:text-2xl uppercase mb-2">No Products Found</h3>
-                  <p className="text-muted-foreground mb-6 text-sm md:text-base">Try adjusting your filters</p>
-                  <button onClick={clearFilters} className="btn-brutal-secondary">
-                    Clear Filters
+                <div className="flex flex-col items-center justify-center py-16 md:py-24 text-center border-4 border-foreground bg-secondary space-y-6">
+                  <div className="w-16 h-16 border-4 border-foreground flex items-center justify-center bg-background shadow-brutal transform -rotate-12">
+                    <X className="w-8 h-8 text-foreground" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl md:text-2xl font-heading uppercase font-bold tracking-widest mb-2">0 Results Found</h2>
+                    <p className="text-muted-foreground font-body text-sm md:text-base">Your filters yielded exactly zero matches.</p>
+                  </div>
+                  <button onClick={clearFilters} className="btn-brutal bg-destructive text-destructive-foreground hover:bg-destructive/90 !border-destructive-foreground">
+                    Purge Filters
                   </button>
                 </div>
               )}

@@ -201,7 +201,7 @@ const Login = () => {
 
               <div className="mt-6 text-center">
                 <p className="text-[10px] md:text-xs text-muted-foreground leading-relaxed">
-                  By signing up, you agree to bicollectives{" "}
+                  By signing up, you agree to Bicollective's{" "}
                   <Link to="/terms" className="text-foreground font-medium hover:underline">Terms of Service</Link> &{" "}
                   <Link to="/privacy" className="text-foreground font-medium hover:underline">Privacy Policy</Link>
                 </p>

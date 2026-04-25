@@ -303,7 +303,7 @@ const ProductDetail = () => {
               )}
 
               {/* Size / Variant Selection */}
-              <div className="mb-6 md:mb-8">
+              <div className={`mb-6 md:mb-8 ${!product.inStock ? "opacity-50 pointer-events-none select-none grayscale" : ""}`}>
                 <div className="flex items-center justify-between mb-2 md:mb-3">
                   <span className="font-heading uppercase text-xs md:text-sm">Select Size</span>
                   {selectedVariant && (
@@ -337,7 +337,7 @@ const ProductDetail = () => {
               </div>
 
               {/* Quantity */}
-              <div className="mb-6 md:mb-8">
+              <div className={`mb-6 md:mb-8 ${!product.inStock ? "opacity-50 pointer-events-none select-none grayscale" : ""}`}>
                 <span className="font-heading uppercase text-xs md:text-sm mb-2 md:mb-3 block">Quantity</span>
                 <div className="inline-flex items-center border-2 border-foreground">
                   <button
