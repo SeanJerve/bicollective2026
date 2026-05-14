@@ -1,3 +1,4 @@
+-- Trigger to create a persistent notification in the history for Direct Messages
 DROP TRIGGER IF EXISTS tr_new_direct_message_notification ON public.direct_messages;
 
 CREATE TRIGGER tr_new_direct_message_notification

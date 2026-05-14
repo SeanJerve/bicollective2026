@@ -236,6 +236,42 @@ export type Database = {
         }
         Relationships: []
       }
+      direct_messages: {
+        Row: {
+          id: string
+          sender_id: string
+          receiver_id: string
+          content: string
+          product_id: string | null
+          product_name: string | null
+          product_image: string | null
+          read_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          sender_id: string
+          receiver_id: string
+          content: string
+          product_id?: string | null
+          product_name?: string | null
+          product_image?: string | null
+          read_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          sender_id?: string
+          receiver_id?: string
+          content?: string
+          product_id?: string | null
+          product_name?: string | null
+          product_image?: string | null
+          read_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       disputes: {
         Row: {
           created_at: string | null
@@ -569,6 +605,13 @@ export type Database = {
             columns: ["shipping_address_id"]
             isOneToOne: false
             referencedRelation: "addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_discount_id_fkey"
+            columns: ["discount_id"]
+            isOneToOne: false
+            referencedRelation: "discounts"
             referencedColumns: ["id"]
           }
         ]
@@ -1037,6 +1080,42 @@ export type Database = {
             columns: ["discount_id"]
             isOneToOne: false
             referencedRelation: "discounts"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      wishlists: {
+        Row: {
+          id: string
+          user_id: string
+          product_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          product_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          product_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wishlists_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wishlists_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           }
         ]

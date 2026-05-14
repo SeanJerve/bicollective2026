@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { BadgeCheck, Minus, Plus, ShoppingBag, Star, ChevronRight, Heart, Zap, Clock } from "lucide-react";
+import { BadgeCheck, Minus, Plus, ShoppingBag, Star, ChevronRight, Heart, Zap, Clock, MessageSquare } from "lucide-react";
 import { useState, useEffect } from "react";
 import PageLayout from "@/components/layout/PageLayout";
 import ProductCard from "@/components/marketplace/ProductCard";
@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import usePageSEO from "@/hooks/usePageSEO";
+import DirectMessageDialog from "@/components/chat/DirectMessageDialog";
 
 const ProductDetail = () => {
   const { slug } = useParams();
@@ -36,6 +37,21 @@ const ProductDetail = () => {
         if (data) setVendorBrandId(data.id);
       });
   }, [isVendor, user]);
+
+  // Chat with seller state
+  const [chatOpen, setChatOpen] = useState(false);
+  const [brandOwnerId, setBrandOwnerId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!product?.brandId) return;
+    supabase
+      .from("brands")
+      .select("owner_id")
+      .eq("id", product.brandId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setBrandOwnerId(data.owner_id);
+      });
+  }, [product?.brandId]);
 
   usePageSEO({
     title: product?.name || "Product",
@@ -437,6 +453,28 @@ const ProductDetail = () => {
                 </div>
               )}
 
+              {/* Message Seller */}
+              {!isAdmin && !(isVendor && vendorBrandId === product.brandId) && (
+                <button
+                  onClick={() => {
+                    if (!user) {
+                      toast({
+                        title: "Login Required",
+                        description: "Please log in to message this seller.",
+                        variant: "destructive",
+                      });
+                      navigate("/auth");
+                      return;
+                    }
+                    setChatOpen(true);
+                  }}
+                  className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 border-2 border-foreground text-sm font-heading uppercase tracking-wide hover:bg-secondary transition-colors"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Message Seller
+                </button>
+              )}
+
               {/* Trust Badges */}
               <div className="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-border-subtle">
                 <div className="grid grid-cols-2 gap-3 md:gap-4 text-xs md:text-sm">
@@ -539,6 +577,23 @@ const ProductDetail = () => {
             </div>
           </div>
         </section>
+      )}
+
+      {/* Direct Message Dialog */}
+      {brandOwnerId && product && (
+        <DirectMessageDialog
+          open={chatOpen}
+          onClose={() => setChatOpen(false)}
+          brandOwnerId={brandOwnerId}
+          brandName={product.brandName}
+          product={{
+            id: product.id,
+            name: product.name,
+            image: product.image,
+            price: product.price,
+            slug: product.slug,
+          }}
+        />
       )}
     </PageLayout>
   );

@@ -100,7 +100,14 @@ export const useNotifications = () => {
         .select("*", { count: "exact", head: true })
         .eq("receiver_id", user.id)
         .is("read_at", null);
-      newCounts.unreadMessages = unreadMessages || 0;
+
+      const { count: unreadDirectMessages } = await supabase
+        .from("direct_messages")
+        .select("*", { count: "exact", head: true })
+        .eq("receiver_id", user.id)
+        .is("read_at", null);
+
+      newCounts.unreadMessages = (unreadMessages || 0) + (unreadDirectMessages || 0);
 
       setCounts(newCounts);
     } catch (error) {
@@ -170,24 +177,31 @@ export const useNotifications = () => {
     }
 
     // Listen to new messages for unread badge — all authenticated users
+    const handleMessageChange = (payload: any) => {
+      // Simple check if we are involved
+      const isParticipant = 
+        payload.new?.receiver_id === user.id || 
+        payload.new?.sender_id === user.id || 
+        payload.old?.receiver_id === user.id || 
+        payload.old?.sender_id === user.id;
+        
+      if (isParticipant) {
+        fetchCounts(); // Call directly for messages
+      }
+    };
+
     const messagesChannel = supabase
       .channel("messages-notifications")
       .on("postgres_changes", {
         event: "*",
         schema: "public",
         table: "messages",
-      }, (payload: any) => {
-        // Simple check if we are involved
-        const isParticipant = 
-          payload.new?.receiver_id === user.id || 
-          payload.new?.sender_id === user.id || 
-          payload.old?.receiver_id === user.id || 
-          payload.old?.sender_id === user.id;
-          
-        if (isParticipant) {
-          fetchCounts(); // Call directly for messages
-        }
-      })
+      }, handleMessageChange)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "direct_messages",
+      }, handleMessageChange)
       .subscribe();
     channels.push(messagesChannel);
 
@@ -213,6 +227,8 @@ export const useNotifications = () => {
       // Specialized dismissal logic for each key
       if (key === "unreadMessages") {
         await supabase.from("messages").update({ read_at: new Date().toISOString() }).eq("receiver_id", user.id).is("read_at", null);
+        await supabase.from("direct_messages").update({ read_at: new Date().toISOString() }).eq("receiver_id", user.id).is("read_at", null);
+        await (supabase as any).from("notifications").update({ read_at: new Date().toISOString() }).eq("user_id", user.id).eq("type", "message").is("read_at", null);
       } else {
         // Map keys to notification types/links for database-level "read" status
         let query: any = (supabase as any).from("notifications").update({ read_at: new Date().toISOString() }).eq("user_id", user.id).is("read_at", null);

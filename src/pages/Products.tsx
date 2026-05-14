@@ -171,7 +171,7 @@ const Products = () => {
 
             {/* Desktop Sidebar */}
             <aside className="hidden lg:block w-64 flex-shrink-0">
-              <div className="sticky top-24 space-y-8">
+              <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pr-2 space-y-8 scrollbar-thin">
                 {/* Categories */}
                 <div>
                   <h3 className="font-heading uppercase text-sm tracking-wide mb-4">Categories</h3>

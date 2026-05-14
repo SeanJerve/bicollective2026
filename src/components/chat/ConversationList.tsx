@@ -144,6 +144,74 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
 
     // Sort by latest message
     convs.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+
+    // Also fetch direct messages
+    const { data: dms } = await supabase
+      .from("direct_messages")
+      .select("id, sender_id, receiver_id, content, created_at, read_at, product_name, product_image")
+      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+      .order("created_at", { ascending: false });
+
+    if (dms && dms.length > 0) {
+      // Group DMs by other user
+      const dmGrouped = new Map<string, typeof dms>();
+      for (const dm of dms) {
+        const otherId = dm.sender_id === user.id ? dm.receiver_id : dm.sender_id;
+        const existing = dmGrouped.get(otherId) || [];
+        existing.push(dm);
+        dmGrouped.set(otherId, existing);
+      }
+
+      // Get profiles for DM users
+      const dmOtherIds = Array.from(dmGrouped.keys());
+      const { data: dmProfiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", dmOtherIds);
+      const dmProfileMap = new Map(dmProfiles?.map((p) => [p.user_id, p.full_name || "User"]) || []);
+
+      // Get brand names for vendor users (for customer view)
+      const { data: dmBrands } = await supabase
+        .from("brands")
+        .select("owner_id, name")
+        .in("owner_id", dmOtherIds);
+      const dmBrandMap = new Map(dmBrands?.map((b) => [b.owner_id, b.name]) || []);
+
+      for (const [otherId, msgs] of dmGrouped.entries()) {
+        const convKey = `${user.id}:${otherId}`;
+        if (deleted.has(convKey)) continue;
+
+        // Skip if this user already has an order-based conversation
+        const existingConv = convs.find((c) => c.otherUserId === otherId);
+        if (existingConv) continue;
+
+        const lastMsg = msgs[0];
+        const unreadCount = msgs.filter((m) => m.receiver_id === user.id && !m.read_at).length;
+        const otherUserName = role === "customer"
+          ? (dmBrandMap.get(otherId) || dmProfileMap.get(otherId) || "Seller")
+          : (dmProfileMap.get(otherId) || "Customer");
+
+        // Find product context from messages
+        const productMsg = msgs.find((m) => m.product_name);
+        const productLabel = productMsg?.product_name ? ` · ${productMsg.product_name}` : "";
+
+        convs.push({
+          vendorOrderId: `dm-${otherId}`,
+          otherUserId: otherId,
+          otherUserName,
+          lastMessage: lastMsg.content,
+          lastMessageAt: lastMsg.created_at,
+          unreadCount,
+          orderId: "",
+          brandName: dmBrandMap.get(otherId) || otherUserName,
+          hasAttachment: false,
+        });
+      }
+
+      // Re-sort after merging
+      convs.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+    }
+
     setConversations(convs);
     setLoading(false);
   }, [user, role]);
@@ -159,6 +227,13 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
         event: "INSERT",
         schema: "public",
         table: "messages",
+      }, () => {
+        fetchConversations();
+      })
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "direct_messages",
       }, () => {
         fetchConversations();
       })
@@ -271,7 +346,7 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
                       )}
                     </div>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wide mt-0.5">
-                      Order #{conv.orderId.slice(0, 8)}
+                      {conv.vendorOrderId.startsWith("dm-") ? "Direct Message" : `Order #${conv.orderId.slice(0, 8)}`}
                     </p>
                     <p className={`text-xs mt-1 truncate flex items-center gap-1 ${conv.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
                       {conv.hasAttachment && <Paperclip className="w-3 h-3 shrink-0" />}
