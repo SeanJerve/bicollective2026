@@ -36,11 +36,8 @@ const AdminFinances = () => {
     try {
       // 1. Update brand fields based on transaction type
       if (trans.transaction_type === "debt_payment") {
-        const { error: debtErr } = await (supabase.rpc as any)("increment_brand_debt", {
-          brand_id_param: trans.brand_id,
-          amount_param: -trans.amount
-        });
-        if (debtErr) throw debtErr;
+        // Debt recalculation is now handled automatically by the tr_recalc_debt_txn trigger 
+        // when we mark this transaction as 'approved' below.
       } else if (trans.transaction_type === "subscription_purchase") {
         const expiresAt = new Date();
         expiresAt.setMonth(expiresAt.getMonth() + 1);

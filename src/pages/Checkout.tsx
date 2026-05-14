@@ -455,14 +455,8 @@ const Checkout = () => {
 
         if (vendorOrderError) throw vendorOrderError;
 
-        // Update Platform Debt if COD
-        if (paymentMethod === "cod") {
-          const { error: debtError } = await (supabase.rpc as any)("increment_brand_debt", {
-            brand_id_param: brandId,
-            amount_param: totalPlatformFee
-          });
-          if (debtError) console.error("Error updating brand debt:", debtError);
-        }
+        // Platform Debt is now automatically calculated via database triggers
+        // when the vendor marks the order as 'delivered' (for COD).
 
         const orderItems = group.items.map((item: any) => {
           const product = item.variant?.product;
