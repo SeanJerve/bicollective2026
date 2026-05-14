@@ -1,6 +1,23 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Check, Building2, Rocket, Loader2, Store, TrendingUp, ShieldCheck, Megaphone, Zap, Users, Package, Star, Globe, BadgeCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Building2,
+  Rocket,
+  Loader2,
+  Store,
+  TrendingUp,
+  ShieldCheck,
+  Megaphone,
+  Zap,
+  Users,
+  Package,
+  Star,
+  Globe,
+  BadgeCheck,
+} from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import DocumentUpload from "@/components/vendor/DocumentUpload";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,7 +73,7 @@ const VendorRegister = () => {
   useEffect(() => {
     const checkExistingApplication = async () => {
       if (authLoading) return;
-      
+
       if (!user) {
         setCheckingApplication(false);
         return;
@@ -119,7 +136,12 @@ const VendorRegister = () => {
       return;
     }
 
-    if (!formData.businessType || !formData.businessName || !formData.location || !formData.contactPhone) {
+    if (
+      !formData.businessType ||
+      !formData.businessName ||
+      !formData.location ||
+      !formData.contactPhone
+    ) {
       toast({
         title: "Missing information",
         description: "Please fill in all required fields",
@@ -220,13 +242,15 @@ const VendorRegister = () => {
                 Bicol's #1 Local Fashion Marketplace
               </span>
               <h1 className="font-heading text-4xl md:text-6xl lg:text-7xl uppercase leading-tight mb-6">
-                Sell More.<br />
-                <span className="opacity-60">Grow Faster.</span><br />
+                Sell More.
+                <br />
+                <span className="opacity-60">Grow Faster.</span>
+                <br />
                 Reach Bicol.
               </h1>
               <p className="text-lg md:text-xl text-background/80 max-w-2xl mx-auto mb-10 leading-relaxed">
-                Join thousands of Bicolano sellers already growing their brand on Bicollective. 
-                Zero listing fees. Your own storefront. Real customers who want to buy local.
+                Join thousands of Bicolano sellers already growing their brand on Bicollective. Zero
+                listing fees. Your own storefront. Real customers who want to buy local.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
@@ -259,8 +283,12 @@ const VendorRegister = () => {
                 { value: "6", label: "Bicol Provinces Reached" },
               ].map((stat) => (
                 <div key={stat.label}>
-                  <div className="font-heading text-3xl md:text-4xl uppercase mb-1">{stat.value}</div>
-                  <div className="text-sm text-muted-foreground uppercase tracking-wide">{stat.label}</div>
+                  <div className="font-heading text-3xl md:text-4xl uppercase mb-1">
+                    {stat.value}
+                  </div>
+                  <div className="text-sm text-muted-foreground uppercase tracking-wide">
+                    {stat.label}
+                  </div>
                 </div>
               ))}
             </div>
@@ -271,8 +299,12 @@ const VendorRegister = () => {
         <section className="py-16 md:py-24">
           <div className="section-container">
             <div className="text-center mb-12">
-              <span className="text-xs uppercase tracking-widest text-muted-foreground block mb-2">Why Choose Us</span>
-              <h2 className="font-heading text-3xl md:text-5xl uppercase">Built for Bicolano Sellers</h2>
+              <span className="text-xs uppercase tracking-widest text-muted-foreground block mb-2">
+                Why Choose Us
+              </span>
+              <h2 className="font-heading text-3xl md:text-5xl uppercase">
+                Built for Bicolano Sellers
+              </h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[
@@ -323,19 +355,45 @@ const VendorRegister = () => {
         <section className="py-16 md:py-24 bg-secondary border-y-2 border-foreground">
           <div className="section-container">
             <div className="text-center mb-12">
-              <span className="text-xs uppercase tracking-widest text-muted-foreground block mb-2">Simple Process</span>
-              <h2 className="font-heading text-3xl md:text-5xl uppercase">Start Selling in 4 Steps</h2>
+              <span className="text-xs uppercase tracking-widest text-muted-foreground block mb-2">
+                Simple Process
+              </span>
+              <h2 className="font-heading text-3xl md:text-5xl uppercase">
+                Start Selling in 4 Steps
+              </h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {[
-                { step: "01", icon: <Users className="w-5 h-5" />, title: "Create Account", desc: "Sign up for free in under 2 minutes. No credit card needed." },
-                { step: "02", icon: <Store className="w-5 h-5" />, title: "Apply as Seller", desc: "Fill out your brand info and upload your documents for verification." },
-                { step: "03", icon: <BadgeCheck className="w-5 h-5" />, title: "Get Approved", desc: "Our team reviews your application within 1–3 business days." },
-                { step: "04", icon: <Zap className="w-5 h-5" />, title: "Start Selling", desc: "List products, launch promotions, and grow your Bicolano brand!" },
+                {
+                  step: "01",
+                  icon: <Users className="w-5 h-5" />,
+                  title: "Create Account",
+                  desc: "Sign up for free in under 2 minutes. No credit card needed.",
+                },
+                {
+                  step: "02",
+                  icon: <Store className="w-5 h-5" />,
+                  title: "Apply as Seller",
+                  desc: "Fill out your brand info and upload your documents for verification.",
+                },
+                {
+                  step: "03",
+                  icon: <BadgeCheck className="w-5 h-5" />,
+                  title: "Get Approved",
+                  desc: "Our team reviews your application within 1–3 business days.",
+                },
+                {
+                  step: "04",
+                  icon: <Zap className="w-5 h-5" />,
+                  title: "Start Selling",
+                  desc: "List products, launch promotions, and grow your Bicolano brand!",
+                },
               ].map((item, idx) => (
                 <div key={item.step} className="relative">
                   <div className="card-brutal p-6">
-                    <div className="font-heading text-4xl text-muted-foreground mb-4">{item.step}</div>
+                    <div className="font-heading text-4xl text-muted-foreground mb-4">
+                      {item.step}
+                    </div>
                     <div className="w-10 h-10 bg-foreground text-background flex items-center justify-center mb-3">
                       {item.icon}
                     </div>
@@ -364,13 +422,19 @@ const VendorRegister = () => {
                   ))}
                 </div>
                 <p className="text-lg mb-6 leading-relaxed">
-                  "Simula nang mag-list kami sa Bicollective, doble na ang aming benta. Ang gaan ng dashboard at suportado kami ng team. Highly recommended para sa mga Bicolano sellers!"
+                  "Simula nang mag-list kami sa Bicollective, doble na ang aming benta. Ang gaan ng
+                  dashboard at suportado kami ng team. Highly recommended para sa mga Bicolano
+                  sellers!"
                 </p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-foreground text-background flex items-center justify-center font-heading">M</div>
+                  <div className="w-10 h-10 bg-foreground text-background flex items-center justify-center font-heading">
+                    M
+                  </div>
                   <div>
                     <div className="font-heading uppercase text-sm">Maria Santos</div>
-                    <div className="text-xs text-muted-foreground">Owner, Bicol Weaves — Naga City</div>
+                    <div className="text-xs text-muted-foreground">
+                      Owner, Bicol Weaves — Naga City
+                    </div>
                   </div>
                 </div>
               </div>
@@ -381,13 +445,19 @@ const VendorRegister = () => {
                   ))}
                 </div>
                 <p className="text-lg mb-6 leading-relaxed">
-                  "Dati, sa sarili ko lang nagbebenta. Ngayon, naabot ko na ang mga customers sa buong Bicol. Ang lakas ng reach ng Bicollective lalo na para sa mga lokal na brands natin."
+                  "Dati, sa sarili ko lang nagbebenta. Ngayon, naabot ko na ang mga customers sa
+                  buong Bicol. Ang lakas ng reach ng Bicollective lalo na para sa mga lokal na
+                  brands natin."
                 </p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-foreground text-background flex items-center justify-center font-heading">J</div>
+                  <div className="w-10 h-10 bg-foreground text-background flex items-center justify-center font-heading">
+                    J
+                  </div>
                   <div>
                     <div className="font-heading uppercase text-sm">Juan dela Cruz</div>
-                    <div className="text-xs text-muted-foreground">Founder, Mayon Threads — Legazpi City</div>
+                    <div className="text-xs text-muted-foreground">
+                      Founder, Mayon Threads — Legazpi City
+                    </div>
                   </div>
                 </div>
               </div>
@@ -402,7 +472,8 @@ const VendorRegister = () => {
               Ready to Grow Your Brand?
             </h2>
             <p className="text-background/80 text-lg max-w-xl mx-auto mb-10">
-              Join Bicollective for free today. No monthly fees, no hidden charges — just more customers and more sales.
+              Join Bicollective for free today. No monthly fees, no hidden charges — just more
+              customers and more sales.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
@@ -455,9 +526,7 @@ const VendorRegister = () => {
             <ArrowLeft className="w-4 h-4" />
             Back to Home
           </Link>
-          <h1 className="font-heading text-3xl md:text-5xl uppercase">
-            Become a Seller
-          </h1>
+          <h1 className="font-heading text-3xl md:text-5xl uppercase">Become a Seller</h1>
           <p className="text-muted-foreground mt-2 text-sm md:text-base">
             Join Bicollective — Bicol's local fashion marketplace
           </p>
@@ -475,8 +544,8 @@ const VendorRegister = () => {
                     step > s
                       ? "bg-foreground text-background border-foreground"
                       : step === s
-                      ? "border-foreground"
-                      : "border-border-subtle text-muted-foreground"
+                        ? "border-foreground"
+                        : "border-border-subtle text-muted-foreground"
                   }`}
                 >
                   {step > s ? <Check className="w-4 h-4" /> : s}
@@ -527,7 +596,8 @@ const VendorRegister = () => {
                     <div>
                       <h3 className="font-heading uppercase mb-1">Established Business</h3>
                       <p className="text-sm text-muted-foreground">
-                        I have a registered business with permits and licenses. I'm ready to provide business documents.
+                        I have a registered business with permits and licenses. I'm ready to provide
+                        business documents.
                       </p>
                     </div>
                   </div>
@@ -550,7 +620,8 @@ const VendorRegister = () => {
                     <div>
                       <h3 className="font-heading uppercase mb-1">Aspiring Seller</h3>
                       <p className="text-sm text-muted-foreground">
-                        I'm just starting out or selling informally. I want to grow my business on Bicollective.
+                        I'm just starting out or selling informally. I want to grow my business on
+                        Bicollective.
                       </p>
                     </div>
                   </div>
@@ -563,9 +634,7 @@ const VendorRegister = () => {
           {step === 2 && (
             <div className="space-y-6">
               <div>
-                <h2 className="font-heading text-2xl uppercase mb-2">
-                  Business Information
-                </h2>
+                <h2 className="font-heading text-2xl uppercase mb-2">Business Information</h2>
                 <p className="text-muted-foreground text-sm">
                   Tell us about your brand or business.
                 </p>
@@ -620,9 +689,7 @@ const VendorRegister = () => {
                 </div>
 
                 <div>
-                  <label className="block font-heading text-sm uppercase mb-2">
-                    Description
-                  </label>
+                  <label className="block font-heading text-sm uppercase mb-2">Description</label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -667,9 +734,7 @@ const VendorRegister = () => {
           {step === 3 && (
             <div className="space-y-6">
               <div>
-                <h2 className="font-heading text-2xl uppercase mb-2">
-                  Upload Documents
-                </h2>
+                <h2 className="font-heading text-2xl uppercase mb-2">Upload Documents</h2>
                 <p className="text-muted-foreground text-sm">
                   {formData.businessType === "established"
                     ? "As an established business, please provide the following documents."
@@ -735,9 +800,7 @@ const VendorRegister = () => {
           {step === 4 && (
             <div className="space-y-6">
               <div>
-                <h2 className="font-heading text-2xl uppercase mb-2">
-                  Review Your Application
-                </h2>
+                <h2 className="font-heading text-2xl uppercase mb-2">Review Your Application</h2>
                 <p className="text-muted-foreground text-sm">
                   Please review your information before submitting.
                 </p>

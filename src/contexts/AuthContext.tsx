@@ -27,10 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [roles, setRoles] = useState<AppRole[]>([]);
 
   const fetchRoles = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
+    const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
 
     if (error) {
       console.error("Error fetching roles:", error);
@@ -49,24 +46,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     // Set up auth state listener first
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
 
-        if (session?.user) {
-          // Use setTimeout to avoid potential race conditions
-          setTimeout(async () => {
-            const userRoles = await fetchRoles(session.user.id);
-            setRoles(userRoles);
-          }, 0);
-        } else {
-          setRoles([]);
-        }
-
-        setLoading(false);
+      if (session?.user) {
+        // Use setTimeout to avoid potential race conditions
+        setTimeout(async () => {
+          const userRoles = await fetchRoles(session.user.id);
+          setRoles(userRoles);
+        }, 0);
+      } else {
+        setRoles([]);
       }
-    );
+
+      setLoading(false);
+    });
 
     // Then get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {

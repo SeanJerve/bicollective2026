@@ -18,7 +18,11 @@ interface QuickAddDrawerProps {
 
 const QuickAddDrawer = ({ open, onOpenChange, product }: QuickAddDrawerProps) => {
   const [quantity, setQuantity] = useState(1);
-  const [selectedVariant, setSelectedVariant] = useState<{ id: string; size: string; stock_quantity: number } | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<{
+    id: string;
+    size: string;
+    stock_quantity: number;
+  } | null>(null);
   const { addToCart } = useCart();
 
   const variants = product.variants || [];
@@ -41,7 +45,10 @@ const QuickAddDrawer = ({ open, onOpenChange, product }: QuickAddDrawerProps) =>
           {/* Close */}
           <div className="flex justify-end mb-2">
             <DrawerClose asChild>
-              <button className="p-1.5 hover:bg-secondary rounded-sm transition-colors" aria-label="Close">
+              <button
+                className="p-1.5 hover:bg-secondary rounded-sm transition-colors"
+                aria-label="Close"
+              >
                 <X className="w-4 h-4" />
               </button>
             </DrawerClose>
@@ -77,8 +84,8 @@ const QuickAddDrawer = ({ open, onOpenChange, product }: QuickAddDrawerProps) =>
                     selectedVariant?.id === v.id
                       ? "border-foreground bg-foreground text-background"
                       : v.stock_quantity === 0
-                      ? "border-border-subtle text-muted-foreground line-through cursor-not-allowed"
-                      : "border-border-subtle hover:border-foreground"
+                        ? "border-border-subtle text-muted-foreground line-through cursor-not-allowed"
+                        : "border-border-subtle hover:border-foreground"
                   }`}
                 >
                   {v.size}

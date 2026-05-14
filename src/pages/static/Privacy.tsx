@@ -16,26 +16,26 @@ const Privacy = () => {
             <div>
               <h2 className="font-heading text-xl uppercase mb-4">Information We Collect</h2>
               <p className="text-muted-foreground">
-                We collect information you provide directly to us, such as when you create an account, 
-                make a purchase, or contact us for support. This includes your name, email address, 
-                phone number, shipping address, and payment information.
+                We collect information you provide directly to us, such as when you create an
+                account, make a purchase, or contact us for support. This includes your name, email
+                address, phone number, shipping address, and payment information.
               </p>
             </div>
 
             <div>
               <h2 className="font-heading text-xl uppercase mb-4">How We Use Your Information</h2>
               <p className="text-muted-foreground">
-                We use the information we collect to process transactions, send order updates, 
-                improve our services, and communicate with you about products and promotions. 
-                We never sell your personal information to third parties.
+                We use the information we collect to process transactions, send order updates,
+                improve our services, and communicate with you about products and promotions. We
+                never sell your personal information to third parties.
               </p>
             </div>
 
             <div>
               <h2 className="font-heading text-xl uppercase mb-4">Data Security</h2>
               <p className="text-muted-foreground">
-                We implement appropriate security measures to protect your personal information 
-                against unauthorized access, alteration, disclosure, or destruction. All sensitive 
+                We implement appropriate security measures to protect your personal information
+                against unauthorized access, alteration, disclosure, or destruction. All sensitive
                 data is encrypted in transit and at rest.
               </p>
             </div>
@@ -43,7 +43,7 @@ const Privacy = () => {
             <div>
               <h2 className="font-heading text-xl uppercase mb-4">Cookies</h2>
               <p className="text-muted-foreground">
-                We use cookies and similar technologies to maintain your session, remember your 
+                We use cookies and similar technologies to maintain your session, remember your
                 preferences, and improve your experience on our platform.
               </p>
             </div>
@@ -51,15 +51,15 @@ const Privacy = () => {
             <div>
               <h2 className="font-heading text-xl uppercase mb-4">Your Rights</h2>
               <p className="text-muted-foreground">
-                You have the right to access, correct, or delete your personal information. 
-                Contact us at privacy@bicollective.com for any privacy-related requests.
+                You have the right to access, correct, or delete your personal information. Contact
+                us at privacy@bicollective.com for any privacy-related requests.
               </p>
             </div>
 
             <div>
               <h2 className="font-heading text-xl uppercase mb-4">Contact Us</h2>
               <p className="text-muted-foreground">
-                If you have questions about this Privacy Policy, please contact us at 
+                If you have questions about this Privacy Policy, please contact us at
                 privacy@bicollective.com or through our Contact page.
               </p>
             </div>

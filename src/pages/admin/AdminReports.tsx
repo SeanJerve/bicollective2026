@@ -1,5 +1,15 @@
 import { useEffect, useState, useCallback } from "react";
-import { CheckCircle, XCircle, Trash2, AlertTriangle, X, Flag, Eye, ExternalLink, Loader2 } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  Trash2,
+  AlertTriangle,
+  X,
+  Flag,
+  Eye,
+  ExternalLink,
+  Loader2,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -26,12 +36,14 @@ const AdminReports = () => {
     try {
       const { data } = await supabase
         .from("reports")
-        .select(`
+        .select(
+          `
           *,
           product:products (name, slug),
           brand:brands (name, slug),
           review:reviews (comment, rating, is_visible)
-        `)
+        `
+        )
         .order("created_at", { ascending: false });
 
       setReports(data || []);
@@ -48,17 +60,13 @@ const AdminReports = () => {
     // Real-time: refresh when a new report is inserted
     const channel = supabase
       .channel("admin-reports-realtime")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "reports" },
-        () => {
-          fetchReports();
-          toast({
-            title: "🚩 New Report Received",
-            description: "A vendor has submitted a new review report.",
-          });
-        }
-      )
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "reports" }, () => {
+        fetchReports();
+        toast({
+          title: "🚩 New Report Received",
+          description: "A vendor has submitted a new review report.",
+        });
+      })
       .subscribe();
 
     return () => {
@@ -210,24 +218,36 @@ const AdminReports = () => {
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-6">
         {[
-          { value: "pending", label: "Pending", count: reports.filter(r => r.status === "pending").length },
-          { value: "resolved", label: "Resolved", count: reports.filter(r => r.status === "resolved").length },
-          { value: "dismissed", label: "Dismissed", count: reports.filter(r => r.status === "dismissed").length },
+          {
+            value: "pending",
+            label: "Pending",
+            count: reports.filter((r) => r.status === "pending").length,
+          },
+          {
+            value: "resolved",
+            label: "Resolved",
+            count: reports.filter((r) => r.status === "resolved").length,
+          },
+          {
+            value: "dismissed",
+            label: "Dismissed",
+            count: reports.filter((r) => r.status === "dismissed").length,
+          },
           { value: "all", label: "All", count: reports.length },
         ].map((f) => (
           <button
             key={f.value}
             onClick={() => setFilter(f.value)}
             className={`px-4 py-2 font-heading text-sm uppercase flex items-center gap-2 ${
-              filter === f.value
-                ? "bg-foreground text-background"
-                : "bg-secondary hover:bg-accent"
+              filter === f.value ? "bg-foreground text-background" : "bg-secondary hover:bg-accent"
             }`}
           >
             {f.label}
-            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-              filter === f.value ? "bg-background/20" : "bg-foreground/10"
-            }`}>
+            <span
+              className={`text-xs px-1.5 py-0.5 rounded-full ${
+                filter === f.value ? "bg-background/20" : "bg-foreground/10"
+              }`}
+            >
               {f.count}
             </span>
           </button>
@@ -261,8 +281,8 @@ const AdminReports = () => {
                     report.status === "pending"
                       ? "bg-yellow-100 text-yellow-800 border border-yellow-300"
                       : report.status === "resolved"
-                      ? "bg-green-100 text-green-800 border border-green-300"
-                      : "bg-muted text-muted-foreground border border-border-subtle"
+                        ? "bg-green-100 text-green-800 border border-green-300"
+                        : "bg-muted text-muted-foreground border border-border-subtle"
                   }`}
                 >
                   {report.status}
@@ -271,7 +291,9 @@ const AdminReports = () => {
 
               {/* Reason */}
               <div className="mb-4 p-3 md:p-4 bg-secondary border-l-4 border-foreground">
-                <h4 className="font-heading text-xs uppercase mb-1 text-muted-foreground">Reported Reason</h4>
+                <h4 className="font-heading text-xs uppercase mb-1 text-muted-foreground">
+                  Reported Reason
+                </h4>
                 <p className="text-sm font-medium">{report.reason}</p>
               </div>
 
@@ -279,7 +301,9 @@ const AdminReports = () => {
               {report.review && (
                 <div className="mb-4 p-3 bg-muted/50 border border-border-subtle">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-heading text-xs uppercase text-muted-foreground">Reported Review</h4>
+                    <h4 className="font-heading text-xs uppercase text-muted-foreground">
+                      Reported Review
+                    </h4>
                     {report.review.is_visible === false && (
                       <span className="text-xs text-destructive font-heading uppercase bg-destructive/10 px-2 py-0.5">
                         Deleted
@@ -292,7 +316,12 @@ const AdminReports = () => {
                   {report.review.rating && (
                     <div className="flex items-center gap-0.5 mt-1">
                       {[...Array(5)].map((_, i) => (
-                        <span key={i} className={`text-xs ${i < report.review.rating ? "text-foreground" : "text-muted"}`}>★</span>
+                        <span
+                          key={i}
+                          className={`text-xs ${i < report.review.rating ? "text-foreground" : "text-muted"}`}
+                        >
+                          ★
+                        </span>
                       ))}
                     </div>
                   )}
@@ -301,7 +330,9 @@ const AdminReports = () => {
 
               {report.product && (
                 <div className="mb-3 flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground uppercase font-heading">Product:</span>
+                  <span className="text-xs text-muted-foreground uppercase font-heading">
+                    Product:
+                  </span>
                   <a
                     href={`/products/${report.product.slug}`}
                     target="_blank"
@@ -316,7 +347,9 @@ const AdminReports = () => {
 
               {report.brand && (
                 <div className="mb-3 flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground uppercase font-heading">Brand:</span>
+                  <span className="text-xs text-muted-foreground uppercase font-heading">
+                    Brand:
+                  </span>
                   <a
                     href={`/brands/${report.brand.slug}`}
                     target="_blank"
@@ -331,7 +364,9 @@ const AdminReports = () => {
 
               {report.admin_notes && (
                 <div className="mb-4 p-3 bg-muted">
-                  <h4 className="font-heading text-xs uppercase mb-1 text-muted-foreground">Admin Notes</h4>
+                  <h4 className="font-heading text-xs uppercase mb-1 text-muted-foreground">
+                    Admin Notes
+                  </h4>
                   <p className="text-sm">{report.admin_notes}</p>
                 </div>
               )}
@@ -363,7 +398,9 @@ const AdminReports = () => {
                   )}
 
                   <button
-                    onClick={() => resolveReport(report.id, "dismissed", "Report reviewed. No action required.")}
+                    onClick={() =>
+                      resolveReport(report.id, "dismissed", "Report reviewed. No action required.")
+                    }
                     disabled={actionLoading === report.id + "dismissed"}
                     className="btn-brutal-secondary flex items-center justify-center gap-2 text-sm"
                   >
@@ -384,7 +421,9 @@ const AdminReports = () => {
           <Flag className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
           <h3 className="font-heading text-xl md:text-2xl uppercase mb-2">No Reports</h3>
           <p className="text-muted-foreground text-sm md:text-base">
-            {filter === "pending" ? "No pending reports. All clear!" : `No ${filter} reports found.`}
+            {filter === "pending"
+              ? "No pending reports. All clear!"
+              : `No ${filter} reports found.`}
           </p>
         </div>
       )}
@@ -415,7 +454,9 @@ const AdminReports = () => {
 
             {/* Review preview */}
             <div className="bg-secondary border-l-4 border-destructive p-4 mb-5">
-              <p className="text-xs font-heading uppercase text-muted-foreground mb-2">Review to be deleted</p>
+              <p className="text-xs font-heading uppercase text-muted-foreground mb-2">
+                Review to be deleted
+              </p>
               <p className="text-sm italic text-muted-foreground">
                 "{deleteConfirm.reviewComment || "(No comment)"}"
               </p>
@@ -423,14 +464,16 @@ const AdminReports = () => {
 
             {/* Report reason */}
             <div className="mb-5">
-              <p className="text-xs font-heading uppercase text-muted-foreground mb-1">Reported for</p>
+              <p className="text-xs font-heading uppercase text-muted-foreground mb-1">
+                Reported for
+              </p>
               <p className="text-sm">{deleteConfirm.reportReason}</p>
             </div>
 
             <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-              This will <strong>permanently hide</strong> the review from the product page and 
-              mark this report as <strong>resolved</strong>. The review will no longer be visible 
-              to shoppers or appear in the vendor's review list.
+              This will <strong>permanently hide</strong> the review from the product page and mark
+              this report as <strong>resolved</strong>. The review will no longer be visible to
+              shoppers or appear in the vendor's review list.
             </p>
 
             <div className="flex gap-3">

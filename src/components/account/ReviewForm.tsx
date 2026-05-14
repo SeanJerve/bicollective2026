@@ -26,7 +26,11 @@ const ReviewForm = ({ productId, brandId, vendorOrderId, onSuccess }: ReviewForm
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
       if (images.length + newFiles.length > 3) {
-        toast({ title: "Too many images", description: "You can only upload up to 3 images", variant: "destructive" });
+        toast({
+          title: "Too many images",
+          description: "You can only upload up to 3 images",
+          variant: "destructive",
+        });
         return;
       }
       setImages((prev) => [...prev, ...newFiles]);
@@ -63,13 +67,13 @@ const ReviewForm = ({ productId, brandId, vendorOrderId, onSuccess }: ReviewForm
 
     try {
       const mediaUrls: string[] = [];
-      
+
       // Upload images if any
       if (images.length > 0) {
         for (const file of images) {
           const fileExt = file.name.split(".").pop();
           const filePath = `${user.id}/${Date.now()}-${Math.random()}.${fileExt}`;
-          
+
           const { error: uploadError } = await supabase.storage
             .from("review-images")
             .upload(filePath, file);
@@ -181,7 +185,9 @@ const ReviewForm = ({ productId, brandId, vendorOrderId, onSuccess }: ReviewForm
               className="w-24 h-24 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border-subtle text-muted-foreground hover:bg-secondary/50 transition-colors"
             >
               <ImagePlus className="w-6 h-6" />
-              <span className="text-[10px] uppercase font-heading text-center leading-tight">Add Photo</span>
+              <span className="text-[10px] uppercase font-heading text-center leading-tight">
+                Add Photo
+              </span>
             </button>
           )}
         </div>

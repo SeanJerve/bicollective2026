@@ -1,16 +1,36 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Bell, ShoppingCart, Star, Shield, FileText, AlertTriangle, Scale, Package, MessageSquare } from "lucide-react";
+import {
+  Bell,
+  ShoppingCart,
+  Star,
+  Shield,
+  FileText,
+  AlertTriangle,
+  Scale,
+  Package,
+  MessageSquare,
+} from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useAuth } from "@/contexts/AuthContext";
 
 const NotificationCenter = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { counts, dismiss, totalAdmin, totalVendor, totalCustomer, recentNotifications, markAsRead } = useNotifications();
+  const {
+    counts,
+    dismiss,
+    totalAdmin,
+    totalVendor,
+    totalCustomer,
+    recentNotifications,
+    markAsRead,
+  } = useNotifications();
   const { user, isAdmin, isVendor } = useAuth();
   const ref = useRef<HTMLDivElement>(null);
 
-  const total = (isAdmin ? totalAdmin : isVendor ? totalVendor + totalCustomer : totalCustomer) + counts.unreadMessages;
+  const total =
+    (isAdmin ? totalAdmin : isVendor ? totalVendor + totalCustomer : totalCustomer) +
+    counts.unreadMessages;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -21,25 +41,85 @@ const NotificationCenter = () => {
   }, []);
 
   const adminItems = [
-    { label: "Pending Applications", count: counts.pendingApplications, key: "pendingApplications", icon: FileText, href: "/admin/applications" },
-    { label: "Pending Verifications", count: counts.pendingVerifications, key: "pendingVerifications", icon: Shield, href: "/admin/verifications" },
-    { label: "Pending Reports", count: counts.pendingReports, key: "pendingReports", icon: AlertTriangle, href: "/admin/reports" },
+    {
+      label: "Pending Applications",
+      count: counts.pendingApplications,
+      key: "pendingApplications",
+      icon: FileText,
+      href: "/admin/applications",
+    },
+    {
+      label: "Pending Verifications",
+      count: counts.pendingVerifications,
+      key: "pendingVerifications",
+      icon: Shield,
+      href: "/admin/verifications",
+    },
+    {
+      label: "Pending Reports",
+      count: counts.pendingReports,
+      key: "pendingReports",
+      icon: AlertTriangle,
+      href: "/admin/reports",
+    },
   ];
 
   const vendorItems = [
-    { label: "New Orders to Process", count: counts.pendingOrders, key: "pendingOrders", icon: ShoppingCart, href: "/vendor/orders" },
-    { label: "New Review Alerts", count: counts.newReviews, key: "newReviews", icon: Star, href: "/vendor/reviews" },
-    { label: "Low Stock Products", count: counts.lowStockProducts, key: "lowStockProducts", icon: Package, href: "/vendor/products" },
-    { label: "Verification Resubmission", count: counts.verificationResubmission, key: "verificationResubmission", icon: Shield, href: "/vendor/verification" },
+    {
+      label: "New Orders to Process",
+      count: counts.pendingOrders,
+      key: "pendingOrders",
+      icon: ShoppingCart,
+      href: "/vendor/orders",
+    },
+    {
+      label: "New Review Alerts",
+      count: counts.newReviews,
+      key: "newReviews",
+      icon: Star,
+      href: "/vendor/reviews",
+    },
+    {
+      label: "Low Stock Products",
+      count: counts.lowStockProducts,
+      key: "lowStockProducts",
+      icon: Package,
+      href: "/vendor/products",
+    },
+    {
+      label: "Verification Resubmission",
+      count: counts.verificationResubmission,
+      key: "verificationResubmission",
+      icon: Shield,
+      href: "/vendor/verification",
+    },
   ];
 
   const customerItems = [
-    { label: "Active Orders", count: counts.orderUpdates, key: "orderUpdates", icon: ShoppingCart, href: "/account/orders" },
-    { label: "Application Resubmission", count: counts.needsResubmission, key: "needsResubmission", icon: FileText, href: "/vendor/register" },
+    {
+      label: "Active Orders",
+      count: counts.orderUpdates,
+      key: "orderUpdates",
+      icon: ShoppingCart,
+      href: "/account/orders",
+    },
+    {
+      label: "Application Resubmission",
+      count: counts.needsResubmission,
+      key: "needsResubmission",
+      icon: FileText,
+      href: "/vendor/register",
+    },
   ];
 
   const sharedItems = [
-    { label: "Unread Messages", count: counts.unreadMessages, key: "unreadMessages", icon: MessageSquare, href: (isVendor && !isAdmin) ? "/vendor/messages" : "/account/messages" }
+    {
+      label: "Unread Messages",
+      count: counts.unreadMessages,
+      key: "unreadMessages",
+      icon: MessageSquare,
+      href: isVendor && !isAdmin ? "/vendor/messages" : "/account/messages",
+    },
   ];
 
   const items = [
@@ -70,8 +150,8 @@ const NotificationCenter = () => {
         <div className="absolute right-0 top-full mt-2 w-80 bg-background border-2 border-foreground shadow-brutal z-50 overflow-hidden">
           <div className="p-3 border-b-2 border-foreground flex items-center justify-between">
             <h3 className="font-heading text-sm uppercase">Quick Alerts</h3>
-            <Link 
-              to="/account/notifications" 
+            <Link
+              to="/account/notifications"
               onClick={() => setIsOpen(false)}
               className="text-[10px] font-heading uppercase underline hover:text-primary transition-colors"
             >
@@ -111,7 +191,9 @@ const NotificationCenter = () => {
             {recentNotifications.length > 0 ? (
               <div className="py-1">
                 <div className="px-4 py-2 bg-secondary/30">
-                  <p className="text-[10px] font-heading uppercase text-muted-foreground">Recent Activity</p>
+                  <p className="text-[10px] font-heading uppercase text-muted-foreground">
+                    Recent Activity
+                  </p>
                 </div>
                 {recentNotifications.map((notif) => (
                   <Link
@@ -123,41 +205,58 @@ const NotificationCenter = () => {
                     }}
                     className={`flex items-start gap-3 px-4 py-3 hover:bg-secondary transition-colors border-b border-border-subtle last:border-0 ${!notif.read_at ? "bg-primary/5" : "opacity-60"}`}
                   >
-                    <div className={`w-8 h-8 flex items-center justify-center flex-shrink-0 border border-foreground shadow-brutal-xs ${!notif.read_at ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-                      {notif.type === 'order' ? <ShoppingCart className="w-4 h-4" /> : 
-                       notif.type === 'review' ? <Star className="w-4 h-4" /> : 
-                       notif.type === 'message' ? <MessageSquare className="w-4 h-4" /> :
-                       <Bell className="w-4 h-4" />}
+                    <div
+                      className={`w-8 h-8 flex items-center justify-center flex-shrink-0 border border-foreground shadow-brutal-xs ${!notif.read_at ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+                    >
+                      {notif.type === "order" ? (
+                        <ShoppingCart className="w-4 h-4" />
+                      ) : notif.type === "review" ? (
+                        <Star className="w-4 h-4" />
+                      ) : notif.type === "message" ? (
+                        <MessageSquare className="w-4 h-4" />
+                      ) : (
+                        <Bell className="w-4 h-4" />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1 mb-0.5">
-                        <p className={`text-xs uppercase leading-none truncate ${!notif.read_at ? "font-bold" : "font-medium"}`}>
+                        <p
+                          className={`text-xs uppercase leading-none truncate ${!notif.read_at ? "font-bold" : "font-medium"}`}
+                        >
                           {notif.title}
                         </p>
-                        {!notif.read_at && <span className="w-1.5 h-1.5 bg-destructive rounded-full" />}
+                        {!notif.read_at && (
+                          <span className="w-1.5 h-1.5 bg-destructive rounded-full" />
+                        )}
                       </div>
-                      <p className="text-[11px] text-muted-foreground line-clamp-1">{notif.message}</p>
+                      <p className="text-[11px] text-muted-foreground line-clamp-1">
+                        {notif.message}
+                      </p>
                     </div>
                   </Link>
                 ))}
               </div>
-            ) : actionItems.length === 0 && (
-              <div className="p-8 text-center bg-background">
-                <Bell className="w-8 h-8 mx-auto mb-2 text-muted-foreground opacity-30" />
-                <p className="text-sm text-muted-foreground font-heading uppercase">All caught up!</p>
-              </div>
+            ) : (
+              actionItems.length === 0 && (
+                <div className="p-8 text-center bg-background">
+                  <Bell className="w-8 h-8 mx-auto mb-2 text-muted-foreground opacity-30" />
+                  <p className="text-sm text-muted-foreground font-heading uppercase">
+                    All caught up!
+                  </p>
+                </div>
+              )
             )}
           </div>
-          
+
           <div className="grid grid-cols-2 border-t-2 border-foreground">
-             <Link 
-              to="/account/notifications" 
+            <Link
+              to="/account/notifications"
               onClick={() => setIsOpen(false)}
               className="p-3 text-center text-xs font-heading uppercase hover:bg-secondary transition-colors border-r-2 border-foreground"
             >
               Full History
             </Link>
-            <button 
+            <button
               onClick={() => setIsOpen(false)}
               className="p-3 text-center text-xs font-heading uppercase hover:bg-secondary transition-colors"
             >

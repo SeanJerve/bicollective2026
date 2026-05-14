@@ -22,6 +22,7 @@ const VendorStore = () => {
     location: "",
     store_sale_percent: 0,
     store_sale_ends_at: "",
+    is_hidden: false,
   });
 
   const BICOL_LOCATIONS = [
@@ -47,11 +48,7 @@ const VendorStore = () => {
       if (!user) return;
 
       try {
-        const { data } = await supabase
-          .from("brands")
-          .select("*")
-          .eq("owner_id", user.id)
-          .single();
+        const { data } = await supabase.from("brands").select("*").eq("owner_id", user.id).single();
 
         if (data) {
           setBrand(data);
@@ -63,7 +60,10 @@ const VendorStore = () => {
             banner_url: data.banner_url || "",
             location: data.location || "",
             store_sale_percent: data.store_sale_percent || 0,
-            store_sale_ends_at: data.store_sale_ends_at ? data.store_sale_ends_at.split("T")[0] : "",
+            store_sale_ends_at: data.store_sale_ends_at
+              ? data.store_sale_ends_at.split("T")[0]
+              : "",
+            is_hidden: data.is_hidden || false,
           });
         }
       } catch (error) {
@@ -90,6 +90,26 @@ const VendorStore = () => {
     setSaving(true);
 
     try {
+      if (brand && formData.is_hidden) {
+        const { data: hasActiveOrders, error: rpcError } = await supabase.rpc(
+          "check_active_orders",
+          { v_brand_id: brand.id }
+        );
+
+        if (rpcError) throw rpcError;
+
+        if (hasActiveOrders) {
+          toast({
+            title: "Cannot Hide Store",
+            description:
+              "You have incomplete or ongoing transactions. You can only hide your store once all orders are delivered or cancelled.",
+            variant: "destructive",
+          });
+          setSaving(false);
+          return;
+        }
+      }
+
       const slug = formData.slug || generateSlug(formData.name);
 
       if (brand) {
@@ -105,6 +125,7 @@ const VendorStore = () => {
             location: formData.location || null,
             store_sale_percent: formData.store_sale_percent || 0,
             store_sale_ends_at: formData.store_sale_ends_at || null,
+            is_hidden: formData.is_hidden,
           })
           .eq("id", brand.id);
 
@@ -217,9 +238,7 @@ const VendorStore = () => {
               <input
                 type="text"
                 value={formData.slug}
-                onChange={(e) =>
-                  setFormData({ ...formData, slug: generateSlug(e.target.value) })
-                }
+                onChange={(e) => setFormData({ ...formData, slug: generateSlug(e.target.value) })}
                 className="input-brutal flex-1 text-sm md:text-base"
                 placeholder="your-brand"
               />
@@ -232,9 +251,7 @@ const VendorStore = () => {
             </label>
             <textarea
               value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="input-brutal min-h-[100px] md:min-h-[120px] text-sm md:text-base"
               placeholder="Tell customers about your brand..."
             />
@@ -246,9 +263,7 @@ const VendorStore = () => {
             </label>
             <select
               value={formData.location}
-              onChange={(e) =>
-                setFormData({ ...formData, location: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               className="input-brutal text-sm md:text-base"
               required
             >
@@ -277,7 +292,11 @@ const VendorStore = () => {
             />
             {formData.logo_url && (
               <div className="mt-2 w-16 h-16 border border-border-subtle overflow-hidden bg-muted">
-                <img src={formData.logo_url} alt="Logo preview" className="w-full h-full object-cover" />
+                <img
+                  src={formData.logo_url}
+                  alt="Logo preview"
+                  className="w-full h-full object-cover"
+                />
               </div>
             )}
           </div>
@@ -295,14 +314,20 @@ const VendorStore = () => {
             />
             {formData.banner_url && (
               <div className="mt-2 w-full h-24 border border-border-subtle overflow-hidden bg-muted">
-                <img src={formData.banner_url} alt="Banner preview" className="w-full h-full object-cover" />
+                <img
+                  src={formData.banner_url}
+                  alt="Banner preview"
+                  className="w-full h-full object-cover"
+                />
               </div>
             )}
           </div>
 
           {/* Store-wide Sale */}
           <div className="border-t-2 border-foreground pt-5 md:pt-6">
-            <h2 className="font-heading text-sm md:text-base uppercase tracking-wide mb-4">Store-wide Sale</h2>
+            <h2 className="font-heading text-sm md:text-base uppercase tracking-wide mb-4">
+              Store-wide Sale
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="font-heading text-xs md:text-sm uppercase tracking-wide mb-2 block">
@@ -327,9 +352,7 @@ const VendorStore = () => {
                 <input
                   type="date"
                   value={formData.store_sale_ends_at}
-                  onChange={(e) =>
-                    setFormData({ ...formData, store_sale_ends_at: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, store_sale_ends_at: e.target.value })}
                   className="input-brutal text-sm md:text-base"
                 />
               </div>
@@ -339,7 +362,39 @@ const VendorStore = () => {
             </p>
           </div>
 
-          <button type="submit" disabled={saving} className="btn-brutal w-full text-sm md:text-base">
+          {brand && (
+            <div className="border-t-2 border-foreground pt-5 md:pt-6">
+              <div className="flex items-start gap-4">
+                <div className="flex items-center h-5 mt-1">
+                  <input
+                    id="hide-store"
+                    type="checkbox"
+                    checked={formData.is_hidden}
+                    onChange={(e) => setFormData({ ...formData, is_hidden: e.target.checked })}
+                    className="w-4 h-4 border-2 border-foreground accent-foreground rounded-none cursor-pointer"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label
+                    htmlFor="hide-store"
+                    className="font-heading text-sm md:text-base uppercase tracking-wide cursor-pointer text-destructive"
+                  >
+                    Hide Store
+                  </label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Completely hide your store and all its products from the marketplace. You can
+                    only do this if you have no active or ongoing transactions.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="btn-brutal w-full text-sm md:text-base"
+          >
             {saving ? "Saving..." : brand ? "Save Changes" : "Create Store"}
           </button>
         </form>

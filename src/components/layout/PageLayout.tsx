@@ -13,7 +13,14 @@ interface PageLayoutProps {
   minimalHeader?: boolean;
 }
 
-const PageLayout = ({ children, hideHeader, hideFooter, hideSaleBanner, header, minimalHeader }: PageLayoutProps) => {
+const PageLayout = ({
+  children,
+  hideHeader,
+  hideFooter,
+  hideSaleBanner,
+  header,
+  minimalHeader,
+}: PageLayoutProps) => {
   return (
     <div className="min-h-screen flex flex-col">
       {!hideSaleBanner && <SaleBanner />}

@@ -1,6 +1,24 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, Package, ShoppingCart, Flag, BadgeCheck, LogOut, Tag, Ticket, Gift, BarChart3, AlertTriangle, Menu, X, UserCog, ChevronLeft, DollarSign } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  Package,
+  ShoppingCart,
+  Flag,
+  BadgeCheck,
+  LogOut,
+  Tag,
+  Ticket,
+  Gift,
+  BarChart3,
+  AlertTriangle,
+  Menu,
+  X,
+  UserCog,
+  ChevronLeft,
+  DollarSign,
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
 import Breadcrumbs from "./Breadcrumbs";
@@ -14,8 +32,18 @@ const AdminLayout = () => {
 
   const navItems = [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-    { href: "/admin/applications", label: "Applications", icon: Users, badge: counts.pendingApplications },
-    { href: "/admin/verifications", label: "Verifications", icon: BadgeCheck, badge: counts.pendingVerifications },
+    {
+      href: "/admin/applications",
+      label: "Applications",
+      icon: Users,
+      badge: counts.pendingApplications,
+    },
+    {
+      href: "/admin/verifications",
+      label: "Verifications",
+      icon: BadgeCheck,
+      badge: counts.pendingVerifications,
+    },
     { href: "/admin/vendors", label: "Vendors", icon: Users },
     { href: "/admin/promotions", label: "Marketing", icon: Tag },
     { href: "/admin/reports", label: "Reports", icon: Flag, badge: counts.pendingReports },
@@ -28,16 +56,19 @@ const AdminLayout = () => {
     return location.pathname.startsWith(path);
   };
 
-  const handleNavClick = (_e: React.MouseEvent, item: typeof navItems[0]) => {
+  const handleNavClick = (_e: React.MouseEvent, item: (typeof navItems)[0]) => {
     setSidebarOpen(false);
     if (item.label === "Applications") dismiss("pendingApplications");
     if (item.label === "Verifications") dismiss("pendingVerifications");
     if (item.label === "Reports") dismiss("pendingReports");
   };
 
-  const currentPage = navItems.find((item) =>
-    item.exact ? location.pathname === item.href : location.pathname.startsWith(item.href) && item.href !== "/admin"
-  ) || navItems[0];
+  const currentPage =
+    navItems.find((item) =>
+      item.exact
+        ? location.pathname === item.href
+        : location.pathname.startsWith(item.href) && item.href !== "/admin"
+    ) || navItems[0];
 
   return (
     <div className="min-h-screen flex">

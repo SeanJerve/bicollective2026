@@ -28,18 +28,16 @@ const AdminVendors = () => {
     fetchVendors();
   }, []);
 
-  const updateVendorStatus = async (vendorId: string, status: "approved" | "verified" | "suspended") => {
+  const updateVendorStatus = async (
+    vendorId: string,
+    status: "approved" | "verified" | "suspended"
+  ) => {
     try {
-      const { error } = await supabase
-        .from("brands")
-        .update({ status })
-        .eq("id", vendorId);
+      const { error } = await supabase.from("brands").update({ status }).eq("id", vendorId);
 
       if (error) throw error;
 
-      setVendors((prev) =>
-        prev.map((v) => (v.id === vendorId ? { ...v, status } : v))
-      );
+      setVendors((prev) => prev.map((v) => (v.id === vendorId ? { ...v, status } : v)));
 
       toast({
         title: "Vendor updated",
@@ -56,14 +54,19 @@ const AdminVendors = () => {
   };
 
   const deleteVendor = async (vendorId: string) => {
-    if (!confirm("Permanently delete this vendor and all their data? This cannot be undone.")) return;
+    if (!confirm("Permanently delete this vendor and all their data? This cannot be undone."))
+      return;
     try {
       const { error } = await supabase.from("brands").delete().eq("id", vendorId);
       if (error) throw error;
-      setVendors(prev => prev.filter(v => v.id !== vendorId));
+      setVendors((prev) => prev.filter((v) => v.id !== vendorId));
       toast({ title: "Vendor deleted permanently" });
     } catch (error: any) {
-      toast({ title: "Error", description: error.message || "Failed to delete vendor", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete vendor",
+        variant: "destructive",
+      });
     }
   };
 
@@ -120,9 +123,7 @@ const AdminVendors = () => {
             key={f.value}
             onClick={() => setFilter(f.value)}
             className={`px-4 py-2 font-heading text-sm uppercase ${
-              filter === f.value
-                ? "bg-foreground text-background"
-                : "bg-secondary hover:bg-accent"
+              filter === f.value ? "bg-foreground text-background" : "bg-secondary hover:bg-accent"
             }`}
           >
             {f.label}
@@ -153,9 +154,7 @@ const AdminVendors = () => {
                     <p className="text-xs text-muted-foreground truncate">{vendor.slug}</p>
                     <div className="flex items-center gap-2 mt-2">
                       <span
-                        className={`px-2 py-0.5 text-xs uppercase ${getStatusColor(
-                          vendor.status
-                        )}`}
+                        className={`px-2 py-0.5 text-xs uppercase ${getStatusColor(vendor.status)}`}
                       >
                         {vendor.status}
                       </span>
@@ -258,9 +257,7 @@ const AdminVendors = () => {
                       <td className="p-4">{vendor.rating?.toFixed(1) || "-"}</td>
                       <td className="p-4">
                         <span
-                          className={`px-2 py-1 text-xs uppercase ${getStatusColor(
-                            vendor.status
-                          )}`}
+                          className={`px-2 py-1 text-xs uppercase ${getStatusColor(vendor.status)}`}
                         >
                           {vendor.status}
                         </span>

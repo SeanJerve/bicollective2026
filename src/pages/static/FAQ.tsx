@@ -93,9 +93,7 @@ const FAQ = () => {
           <h1 className="font-heading text-3xl md:text-5xl uppercase">
             Frequently Asked Questions
           </h1>
-          <p className="text-muted-foreground mt-2">
-            Quick answers to common questions
-          </p>
+          <p className="text-muted-foreground mt-2">Quick answers to common questions</p>
         </div>
       </section>
 
@@ -122,9 +120,7 @@ const FAQ = () => {
                         />
                       </button>
                       {isOpen && (
-                        <div className="px-4 pb-4 text-sm text-muted-foreground">
-                          {item.a}
-                        </div>
+                        <div className="px-4 pb-4 text-sm text-muted-foreground">{item.a}</div>
                       )}
                     </div>
                   );

@@ -1,7 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Zap, TrendingUp, Clock, CheckCircle2, AlertCircle, Rocket, Info, Upload } from "lucide-react";
+import {
+  Zap,
+  TrendingUp,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Rocket,
+  Info,
+  Upload,
+} from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import DocumentUpload from "@/components/vendor/DocumentUpload";
@@ -24,9 +33,7 @@ const VendorMarketing = () => {
   const { data: brand } = useQuery({
     queryKey: ["vendor-brand-marketing", user?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase
-        .from("brands")
-        .select("id, name") as any)
+      const { data, error } = await (supabase.from("brands").select("id, name") as any)
         .eq("owner_id", user!.id)
         .single();
       if (error) throw error;
@@ -38,9 +45,9 @@ const VendorMarketing = () => {
   const { data: products } = useQuery({
     queryKey: ["vendor-products-marketing", brand?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase
-        .from("products")
-        .select("id, name, image_url, price") as any)
+      const { data, error } = await (
+        supabase.from("products").select("id, name, image_url, price") as any
+      )
         .eq("brand_id", brand!.id)
         .eq("is_active", true);
       if (error) throw error;
@@ -52,9 +59,9 @@ const VendorMarketing = () => {
   const { data: boosts, refetch: refetchBoosts } = useQuery({
     queryKey: ["vendor-boosts", brand?.id],
     queryFn: async () => {
-      const { data, error } = await ((supabase as any)
-        .from("ad_boosts")
-        .select("*, product:products(name)") as any)
+      const { data, error } = await (
+        (supabase as any).from("ad_boosts").select("*, product:products(name)") as any
+      )
         .eq("brand_id", brand!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -72,12 +79,16 @@ const VendorMarketing = () => {
   const handleBoostSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProduct || !paymentProofUrl) {
-      toast({ title: "Error", description: "Select a product and upload payment proof.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Select a product and upload payment proof.",
+        variant: "destructive",
+      });
       return;
     }
 
     try {
-      const { error: boostError } = await ((supabase as any).from("ad_boosts")).insert({
+      const { error: boostError } = await (supabase as any).from("ad_boosts").insert({
         brand_id: brand!.id,
         product_id: selectedProduct.id,
         boost_type: boostType,
@@ -86,8 +97,11 @@ const VendorMarketing = () => {
         status: "pending",
       });
       if (boostError) throw boostError;
- 
-      toast({ title: "Boost Request Sent!", description: "Admin will review and activate your boost soon." });
+
+      toast({
+        title: "Boost Request Sent!",
+        description: "Admin will review and activate your boost soon.",
+      });
       setSelectedProduct(null);
       setPaymentProofUrl(null);
       refetchBoosts();
@@ -105,7 +119,9 @@ const VendorMarketing = () => {
     <div className="p-4 md:p-8 space-y-8">
       <div>
         <h1 className="font-heading text-2xl md:text-4xl uppercase">Marketing & Ad Boosting</h1>
-        <p className="text-muted-foreground mt-1">Boost your visibility and reach more customers in the Bicol region.</p>
+        <p className="text-muted-foreground mt-1">
+          Boost your visibility and reach more customers in the Bicol region.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -114,12 +130,16 @@ const VendorMarketing = () => {
           <h2 className="font-heading text-xl uppercase mb-2 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-success" /> Sponsored Products
           </h2>
-          <p className="text-sm text-muted-foreground">Boosted products appear at the top of search results and category pages.</p>
-          
+          <p className="text-sm text-muted-foreground">
+            Boosted products appear at the top of search results and category pages.
+          </p>
+
           <form onSubmit={handleBoostSubmit} className="space-y-6">
             {/* Product Selection */}
             <div>
-              <label className="text-xs font-heading uppercase mb-2 block">1. Select Product to Boost</label>
+              <label className="text-xs font-heading uppercase mb-2 block">
+                1. Select Product to Boost
+              </label>
               <div className="grid grid-cols-2 gap-3 max-h-[250px] overflow-y-auto p-2 border-2 border-foreground/10 bg-secondary/20">
                 {products?.map((p) => (
                   <button
@@ -127,10 +147,15 @@ const VendorMarketing = () => {
                     type="button"
                     onClick={() => setSelectedProduct(p)}
                     className={`flex items-center gap-2 p-2 text-left transition-colors border-2 ${
-                      selectedProduct?.id === p.id ? "border-foreground bg-secondary" : "border-transparent hover:border-foreground/30"
+                      selectedProduct?.id === p.id
+                        ? "border-foreground bg-secondary"
+                        : "border-transparent hover:border-foreground/30"
                     }`}
                   >
-                    <img src={p.image_url || "/placeholder.svg"} className="w-10 h-10 object-cover" />
+                    <img
+                      src={p.image_url || "/placeholder.svg"}
+                      className="w-10 h-10 object-cover"
+                    />
                     <div className="min-w-0">
                       <p className="text-xs font-heading uppercase truncate">{p.name}</p>
                       <p className="text-[10px] text-muted-foreground">{formatPrice(p.price)}</p>
@@ -142,7 +167,9 @@ const VendorMarketing = () => {
 
             {/* Boost Type */}
             <div>
-              <label className="text-xs font-heading uppercase mb-2 block">2. Select Duration</label>
+              <label className="text-xs font-heading uppercase mb-2 block">
+                2. Select Duration
+              </label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {Object.entries(boostOptions).map(([key, opt]) => (
                   <button
@@ -150,7 +177,9 @@ const VendorMarketing = () => {
                     type="button"
                     onClick={() => setBoostType(key as any)}
                     className={`p-3 border-2 text-center transition-colors ${
-                      boostType === key ? "border-foreground bg-secondary" : "border-border-subtle hover:border-foreground/30"
+                      boostType === key
+                        ? "border-foreground bg-secondary"
+                        : "border-border-subtle hover:border-foreground/30"
                     }`}
                   >
                     <opt.icon className="w-5 h-5 mx-auto mb-2" />
@@ -172,8 +201,8 @@ const VendorMarketing = () => {
               required
             />
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={uploading || !selectedProduct}
               className="btn-brutal w-full flex items-center justify-center gap-2"
             >
@@ -199,7 +228,8 @@ const VendorMarketing = () => {
                       <h3 className="font-heading uppercase text-sm mb-1">{b.product?.name}</h3>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1 capitalize">
-                          {boostOptions[b.boost_type as keyof typeof boostOptions]?.label || b.boost_type}
+                          {boostOptions[b.boost_type as keyof typeof boostOptions]?.label ||
+                            b.boost_type}
                         </span>
                         <span className="opacity-30">|</span>
                         <span>{new Date(b.created_at).toLocaleDateString()}</span>
@@ -210,11 +240,15 @@ const VendorMarketing = () => {
                         </p>
                       )}
                     </div>
-                    <span className={`px-2 py-1 text-[10px] font-heading uppercase ${
-                      b.status === "active" ? "bg-success text-success-foreground" :
-                      b.status === "pending" ? "bg-muted text-muted-foreground" :
-                      "bg-destructive text-destructive-foreground opacity-50"
-                    }`}>
+                    <span
+                      className={`px-2 py-1 text-[10px] font-heading uppercase ${
+                        b.status === "active"
+                          ? "bg-success text-success-foreground"
+                          : b.status === "pending"
+                            ? "bg-muted text-muted-foreground"
+                            : "bg-destructive text-destructive-foreground opacity-50"
+                      }`}
+                    >
                       {b.status}
                     </span>
                   </div>

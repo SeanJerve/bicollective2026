@@ -17,9 +17,9 @@ const Returns = () => {
             <div className="card-brutal p-6 bg-secondary">
               <h3 className="font-heading uppercase mb-2">Important Note</h3>
               <p className="text-sm text-muted-foreground">
-                Bicollective is a marketplace connecting you with independent vendors. 
-                Each vendor sets their own return policy. Always check the vendor's specific 
-                return terms before making a purchase.
+                Bicollective is a marketplace connecting you with independent vendors. Each vendor
+                sets their own return policy. Always check the vendor's specific return terms before
+                making a purchase.
               </p>
             </div>
 
@@ -50,26 +50,28 @@ const Returns = () => {
             <div>
               <h2 className="font-heading text-xl uppercase mb-4">Defective or Wrong Items</h2>
               <p className="text-muted-foreground">
-                If you receive a defective or incorrect item, contact the vendor immediately. 
-                Most vendors will cover return shipping costs and provide a full refund or 
-                replacement for defective items.
+                If you receive a defective or incorrect item, contact the vendor immediately. Most
+                vendors will cover return shipping costs and provide a full refund or replacement
+                for defective items.
               </p>
             </div>
 
             <div>
               <h2 className="font-heading text-xl uppercase mb-4">Refund Processing</h2>
               <p className="text-muted-foreground">
-                Refunds are processed by individual vendors. Timing varies but typically 
-                takes 5-10 business days after the vendor receives and inspects the returned item.
+                Refunds are processed by individual vendors. Timing varies but typically takes 5-10
+                business days after the vendor receives and inspects the returned item.
               </p>
             </div>
 
             <div>
               <h2 className="font-heading text-xl uppercase mb-4">Need Help?</h2>
               <p className="text-muted-foreground">
-                If you're having trouble with a return or refund, our support team can help 
-                mediate. <Link to="/contact" className="underline">Contact us</Link> with your 
-                order details.
+                If you're having trouble with a return or refund, our support team can help mediate.{" "}
+                <Link to="/contact" className="underline">
+                  Contact us
+                </Link>{" "}
+                with your order details.
               </p>
             </div>
           </div>

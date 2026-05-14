@@ -49,15 +49,11 @@ const DocumentUpload = ({
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `${folder}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(filePath, file);
+      const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
 
       onChange(urlData.publicUrl);
 
@@ -99,9 +95,7 @@ const DocumentUpload = ({
         {label}
         {required && <span className="text-destructive ml-1">*</span>}
       </label>
-      {description && (
-        <p className="text-xs text-muted-foreground">{description}</p>
-      )}
+      {description && <p className="text-xs text-muted-foreground">{description}</p>}
 
       {value ? (
         <div className="flex items-center gap-2 p-3 border-2 border-foreground bg-secondary group">
@@ -141,9 +135,7 @@ const DocumentUpload = ({
               <span className="text-sm text-muted-foreground">
                 Click to upload or drag and drop
               </span>
-              <span className="text-xs text-muted-foreground">
-                PDF, JPG, PNG (max 10MB)
-              </span>
+              <span className="text-xs text-muted-foreground">PDF, JPG, PNG (max 10MB)</span>
             </div>
           )}
         </div>

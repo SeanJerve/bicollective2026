@@ -1,13 +1,32 @@
-# Bicollective 2026 — Complete Database Documentation
-### Every Table. Every Column. Every Reason Why.
+# 🗄️ Bicollective 2026 — Complete Database Documentation
 
-> This document justifies every design decision in our normalized database. Use it to confidently answer any question your professor asks.
+> [!IMPORTANT]
+> **Academic Justification Document**
+> This document details the rationale behind every table, column, and relational design decision in our normalized PostgreSQL database. It serves to justify our adherence to 3NF and proper data modeling principles.
+
+---
+
+## 📑 Table of Contents
+
+1. [Authentication & User Identity](#group-1-authentication--user-identity)
+2. [Brand & Vendor Management](#group-2-brand--vendor-management)
+3. [Product Catalog](#group-3-product-catalog)
+4. [Cart & Wishlist](#group-4-cart--wishlist)
+5. [Order Fulfillment](#group-5-order-fulfillment)
+6. [Payments (Supertype/Subtype)](#group-6-payments-disjoint-supertypesubtype)
+7. [Discounts (Supertype/Subtype)](#group-7-discounts-disjoint-supertypesubtype)
+8. [Lucky Promo System](#group-8-lucky-promo)
+9. [Loyalty System](#group-9-loyalty)
+10. [Messaging & Disputes](#group-10-messaging--disputes)
+11. [Reviews & Reports](#group-11-reviews--reports)
+12. [Summary of Normalization](#summary-why-every-structural-decision-is-sound)
 
 ---
 
 ## GROUP 1: AUTHENTICATION & USER IDENTITY
 
 ### `auth.users` (Supabase Internal)
+
 **Purpose:** This is Supabase's built-in authentication table. We do NOT own or manage this table. It stores raw login credentials. We reference it via `id` everywhere but never store sensitive auth data ourselves.
 | Column | Why It Exists |
 |--------|--------------|
@@ -17,6 +36,7 @@
 ---
 
 ### `profiles`
+
 **Purpose:** Extends `auth.users` with public-facing customer data. This is a 1-to-1 subtype of `auth.users`.
 **Why separate from `auth.users`?** Security. `auth.users` is locked down by Supabase. We cannot freely access or join it in queries. `profiles` holds what we CAN read publicly.
 | Column | Why It Exists |
@@ -34,6 +54,7 @@
 ---
 
 ### `user_roles`
+
 **Purpose:** Stores what role(s) a user has on the platform (admin, vendor, customer).
 **Why separate from `profiles`?** A user can hold multiple roles simultaneously (a vendor is also a customer). Storing roles as columns on `profiles` would be a 1NF violation.
 | Column | Why It Exists |
@@ -46,6 +67,7 @@
 ---
 
 ### `addresses`
+
 **Purpose:** Stores all physical delivery/billing addresses for users in a normalized, reusable format.
 **Why separate from `profiles`?** A user can have many saved addresses (Home, Office, etc.). Storing these as columns on `profiles` would be a 1NF violation. Using this table also lets `orders` reference a saved address via a FK instead of duplicating the raw text.
 | Column | Why It Exists |
@@ -68,6 +90,7 @@
 ## GROUP 2: BRAND & VENDOR MANAGEMENT
 
 ### `brands`
+
 **Purpose:** Represents a vendor's store on the platform. This is the Vendor subtype of `auth.users`.
 **Constraint: 1 brand per user is enforced via `UNIQUE(owner_id)`.**
 | Column | Why It Exists |
@@ -94,6 +117,7 @@
 ---
 
 ### `brand_aggregates` (VIEW — not a table)
+
 **Purpose:** A dynamic SQL view that always calculates the real-time rating and review count for each brand directly from the `reviews` table.
 **Why a VIEW and not a column?** Storing `rating` and `review_count` directly on `brands` means we must manually update those numbers every time a review is added, edited, or deleted. If we forget, the numbers become wrong (update anomaly). The view calculates the truth on demand, every time.
 | Column | Why It Exists |
@@ -105,6 +129,7 @@
 ---
 
 ### `vendor_applications`
+
 **Purpose:** Captures a user's application to become a vendor before their brand is created.
 | Column | Why It Exists |
 |--------|--------------|
@@ -126,6 +151,7 @@
 ---
 
 ### `vendor_verifications`
+
 **Purpose:** Stores the formal legal document submission for full verification (BIR, DTI, Mayor's Permit). Separate from `vendor_applications` because this is a DIFFERENT process triggered AFTER a brand is already approved.
 | Column | Why It Exists |
 |--------|--------------|
@@ -144,7 +170,8 @@
 ---
 
 ### `vendor_additional_docs`
-**Purpose:** Junction table holding any extra documents submitted alongside a vendor verification. 
+
+**Purpose:** Junction table holding any extra documents submitted alongside a vendor verification.
 **Website Usage/Why It Exists:** Sometimes standard BIR/DTI papers aren't enough, and admins request extra proof (like a bank statement or a selfie with an ID). When the vendor goes to their "Verification Settings" page and uploads multiple miscellaneous files, they are saved here as individual rows. This table physically replaces the old `additional_docs[]` array which was an automatic 1NF violation.
 | Column | Why It Exists |
 |--------|--------------|
@@ -158,6 +185,7 @@
 ## GROUP 3: PRODUCT CATALOG
 
 ### `categories`
+
 **Purpose:** A centralized taxonomy of product categories so vendors cannot invent arbitrary category names.
 | Column | Why It Exists |
 |--------|--------------|
@@ -170,6 +198,7 @@
 ---
 
 ### `products`
+
 **Purpose:** The Supertype entity representing a product listing. Holds all generic product metadata.
 | Column | Why It Exists |
 |--------|--------------|
@@ -196,6 +225,7 @@
 ---
 
 ### `product_variants`
+
 **Purpose:** Subtype of `products`. Each row is one specific SKU (e.g., "Blue Shirt, Size M"). Holds the per-size stock count. This is the direct fix to the professor's inventory tracking critique.
 | Column | Why It Exists |
 |--------|--------------|
@@ -208,6 +238,7 @@
 ---
 
 ### `product_images`
+
 **Purpose:** Junction table linking products to their gallery images. Replaces the `images[]` array.
 | Column | Why It Exists |
 |--------|--------------|
@@ -222,6 +253,7 @@
 ## GROUP 4: CART & WISHLIST
 
 ### `carts`
+
 **Purpose:** The parent container entity for a user's active shopping session. Added because the professor specifically noted `cart_items` had no governing parent entity.
 | Column | Why It Exists |
 |--------|--------------|
@@ -233,6 +265,7 @@
 ---
 
 ### `cart_items`
+
 **Purpose:** Junction table linking a user's cart to a specific product variant with a quantity.
 | Column | Why It Exists |
 |--------|--------------|
@@ -248,6 +281,7 @@
 ---
 
 ### `wishlists`
+
 **Purpose:** Tracks which products a user has favorited/saved for later.
 **Deletion Strategy: Hard Delete.** When a user clicks the heart icon to un-favorite, the row is permanently deleted. No soft delete needed — there's no audit requirement for unfavorites.
 | Column | Why It Exists |
@@ -262,6 +296,7 @@
 ## GROUP 5: ORDER FULFILLMENT
 
 ### `orders`
+
 **Purpose:** Represents a single checkout event. The master parent record created when a customer completes checkout. One order can contain items from multiple brands.
 | Column | Why It Exists |
 |--------|--------------|
@@ -281,6 +316,7 @@
 ---
 
 ### `vendor_orders`
+
 **Purpose:** When an order contains products from 3 different brands, it splits into 3 vendor_orders — one per brand. Each vendor manages their own fulfillment workflow.
 | Column | Why It Exists |
 |--------|--------------|
@@ -309,6 +345,7 @@
 ---
 
 ### `order_items`
+
 **Purpose:** A permanent snapshot of what was purchased inside each `vendor_order`. Price is snapshotted here to protect historical accuracy.
 | Column | Why It Exists |
 |--------|--------------|
@@ -328,6 +365,7 @@
 ## GROUP 6: PAYMENTS (DISJOINT SUPERTYPE/SUBTYPE)
 
 ### `payments` (Supertype)
+
 **Purpose:** Records the payment transaction for an order. Uses an integer instead of a string for payment method to save bits and prevent typos.
 | Column | Why It Exists |
 |--------|--------------|
@@ -339,6 +377,7 @@
 | `created_at` | When payment record was created. |
 
 ### `payment_verifications` (Disjoint Subtype — GCash & Bank only)
+
 **Purpose:** Extra data required ONLY for digital payments (GCash=1, Bank=2). COD (0) never needs this. This is the disjoint subtype your professor requested.
 | Column | Why It Exists |
 |--------|--------------|
@@ -354,6 +393,7 @@
 ## GROUP 7: DISCOUNTS (DISJOINT SUPERTYPE/SUBTYPE)
 
 ### `discounts` (Supertype)
+
 **Purpose:** The single source of truth for ALL discount logic. Replaces both the old `promotions` and `vouchers` tables which were doing the same job redundantly.
 | Column | Why It Exists |
 |--------|--------------|
@@ -375,6 +415,7 @@
 | `updated_at` | When last modified. |
 
 ### `platform_promos` (Disjoint Subtype A — Admin only)
+
 **Purpose:** Specific metadata for system-wide promotions created by platform admins. An entity here means this discount is platform-managed.
 | Column | Why It Exists |
 |--------|--------------|
@@ -386,6 +427,7 @@
 | `created_by` | FK → `auth.users.id`. Which admin created this. |
 
 ### `vendor_vouchers` (Disjoint Subtype B — Vendor only)
+
 **Purpose:** Specific metadata for discounts created by vendors for their own stores. An entity here means this discount is vendor-managed.
 | Column | Why It Exists |
 |--------|--------------|
@@ -403,6 +445,7 @@
 ## GROUP 8: LUCKY PROMO
 
 ### `lucky_promo_settings`
+
 **Purpose:** A single-row configuration table that controls how the Lucky Promo spinner feature works site-wide.
 | Column | Why It Exists |
 |--------|--------------|
@@ -418,6 +461,7 @@
 | `updated_at` | Last modified timestamp. |
 
 ### `lucky_promo_claims`
+
 **Purpose:** Records each time a user claims a Lucky Promo reward, to prevent duplicate claims per day.
 | Column | Why It Exists |
 |--------|--------------|
@@ -432,6 +476,7 @@
 ## GROUP 9: LOYALTY
 
 ### `loyalty_progress`
+
 **Purpose:** Tracks each user's progress toward earning milestone rewards.
 | Column | Why It Exists |
 |--------|--------------|
@@ -443,6 +488,7 @@
 | `updated_at` | When progress was last recalculated. |
 
 ### `user_purchased_sellers`
+
 **Purpose:** Junction table tracking which unique brands a user has bought from. Replaces the `unique_sellers_purchased[]` array. Used for the "buy from 10 different sellers" milestone.
 | Column | Why It Exists |
 |--------|--------------|
@@ -456,6 +502,7 @@
 ## GROUP 10: MESSAGING & DISPUTES
 
 ### `messages`
+
 **Purpose:** The live chat system between buyers and vendors, always tied to a specific order context for accountability.
 | Column | Why It Exists |
 |--------|--------------|
@@ -472,6 +519,7 @@
 | `created_at` | When sent. |
 
 ### `disputes`
+
 **Purpose:** A formal contention record when a buyer has a problem with an order (wrong item, damaged, not received).
 | Column | Why It Exists |
 |--------|--------------|
@@ -489,6 +537,7 @@
 | `created_at`, `updated_at` | Audit timestamps. |
 
 ### `dispute_evidence`
+
 **Purpose:** Junction table for uploaded proof images related to a dispute. Replaces `evidence_urls[]` array.
 | Column | Why It Exists |
 |--------|--------------|
@@ -502,6 +551,7 @@
 ## GROUP 11: REVIEWS & REPORTS
 
 ### `reviews`
+
 **Purpose:** Verified purchase reviews submitted by buyers after successful delivery. Tied to a specific vendor_order to ensure only real buyers can review.
 | Column | Why It Exists |
 |--------|--------------|
@@ -516,6 +566,7 @@
 | `created_at` | When submitted. |
 
 ### `review_media`
+
 **Purpose:** Junction table for photos/videos attached to a review. Replaces `media_urls[]` array.
 | Column | Why It Exists |
 |--------|--------------|
@@ -525,6 +576,7 @@
 | `created_at` | When uploaded. |
 
 ### `reports`
+
 **Purpose:** Allows users and vendors to flag inappropriate reviews, products, or brands for admin moderation.
 | Column | Why It Exists |
 |--------|--------------|
@@ -545,14 +597,14 @@
 
 ## Summary: Why Every Structural Decision Is Sound
 
-| Design Decision | Normalization Principle | Result |
-|---|---|---|
-| Arrays replaced with junction tables | 1NF — Atomic values only | No array violations |
-| `email` only in `auth.users` | 3NF — No transitive dependencies | Single source of truth |
-| `rating/review_count` removed from `brands` | 3NF — No update anomalies | Dynamic view calculates live |
-| `addresses` table, FK from `orders` | 2NF — No partial dependencies | No raw text duplication |
-| `products/product_variants` split | 1NF + Inventory accuracy | Per-size stock tracking |
-| `discounts` supertype replaces `promotions`+`vouchers` | 2NF — Eliminate redundancy | One discount system |
-| `payments`/`payment_verifications` disjoint | Supertype/Subtype modeling | COD needs no verification row |
-| `carts` parent for `cart_items` | Entity integrity | Governed cart hierarchy |
-| `UNIQUE(owner_id)` on `brands` | Referential integrity constraint | 1 vendor = 1 brand enforced |
+| Design Decision                                        | Normalization Principle          | Result                        |
+| ------------------------------------------------------ | -------------------------------- | ----------------------------- |
+| Arrays replaced with junction tables                   | 1NF — Atomic values only         | No array violations           |
+| `email` only in `auth.users`                           | 3NF — No transitive dependencies | Single source of truth        |
+| `rating/review_count` removed from `brands`            | 3NF — No update anomalies        | Dynamic view calculates live  |
+| `addresses` table, FK from `orders`                    | 2NF — No partial dependencies    | No raw text duplication       |
+| `products/product_variants` split                      | 1NF + Inventory accuracy         | Per-size stock tracking       |
+| `discounts` supertype replaces `promotions`+`vouchers` | 2NF — Eliminate redundancy       | One discount system           |
+| `payments`/`payment_verifications` disjoint            | Supertype/Subtype modeling       | COD needs no verification row |
+| `carts` parent for `cart_items`                        | Entity integrity                 | Governed cart hierarchy       |
+| `UNIQUE(owner_id)` on `brands`                         | Referential integrity constraint | 1 vendor = 1 brand enforced   |

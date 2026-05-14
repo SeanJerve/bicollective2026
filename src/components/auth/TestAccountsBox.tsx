@@ -18,8 +18,8 @@ const testAccounts: TestAccount[] = [
   },
   {
     label: "Vendor",
-    email: "bicollectivevendor@gmail.com",
-    password: "bicollectivevendor",
+    email: "vendor.syndicate@demo.com",
+    password: "password123",
     icon: <Store className="w-4 h-4" />,
     role: "Seller Account",
   },
@@ -53,12 +53,8 @@ const TestAccountsBox = ({ onSelectAccount }: TestAccountsBoxProps) => {
               {account.icon}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-heading text-sm uppercase tracking-wide">
-                {account.label}
-              </div>
-              <div className="text-xs text-muted-foreground truncate">
-                {account.role}
-              </div>
+              <div className="font-heading text-sm uppercase tracking-wide">{account.label}</div>
+              <div className="text-xs text-muted-foreground truncate">{account.role}</div>
             </div>
             <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
               Use

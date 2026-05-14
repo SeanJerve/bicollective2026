@@ -71,7 +71,11 @@ const ImageGallery = ({ mainImage, images = [], alt }: ImageGalleryProps) => {
                   : "border-border-subtle hover:border-foreground/50"
               }`}
             >
-              <img src={img} alt={`${alt} thumb ${idx + 1}`} className="w-full h-full object-cover" />
+              <img
+                src={img}
+                alt={`${alt} thumb ${idx + 1}`}
+                className="w-full h-full object-cover"
+              />
             </button>
           ))}
         </div>

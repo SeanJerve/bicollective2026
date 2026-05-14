@@ -2,7 +2,12 @@ import { useState, useEffect } from "react";
 import { X, Tag, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { differenceInSeconds, differenceInMinutes, differenceInHours, differenceInDays } from "date-fns";
+import {
+  differenceInSeconds,
+  differenceInMinutes,
+  differenceInHours,
+  differenceInDays,
+} from "date-fns";
 
 interface Promotion {
   id: string;
@@ -26,10 +31,12 @@ const SaleBanner = () => {
 
       const { data, error } = await (supabase
         .from("platform_promos")
-        .select(`
+        .select(
+          `
           *,
           discounts:discounts(*)
-        `)
+        `
+        )
         .eq("discounts.is_active", true)
         .lte("discounts.starts_at", now)
         .gte("discounts.ends_at", now)

@@ -70,16 +70,28 @@ const HelpCenter = () => {
           </div>
 
           <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Link to="/terms" className="p-4 border-2 border-foreground text-center font-heading text-xs uppercase hover:bg-accent transition-colors">
+            <Link
+              to="/terms"
+              className="p-4 border-2 border-foreground text-center font-heading text-xs uppercase hover:bg-accent transition-colors"
+            >
               Terms of Service
             </Link>
-            <Link to="/privacy" className="p-4 border-2 border-foreground text-center font-heading text-xs uppercase hover:bg-accent transition-colors">
+            <Link
+              to="/privacy"
+              className="p-4 border-2 border-foreground text-center font-heading text-xs uppercase hover:bg-accent transition-colors"
+            >
               Privacy Policy
             </Link>
-            <Link to="/returns" className="p-4 border-2 border-foreground text-center font-heading text-xs uppercase hover:bg-accent transition-colors">
+            <Link
+              to="/returns"
+              className="p-4 border-2 border-foreground text-center font-heading text-xs uppercase hover:bg-accent transition-colors"
+            >
               Return Policy
             </Link>
-            <Link to="/vendor/guidelines" className="p-4 border-2 border-foreground text-center font-heading text-xs uppercase hover:bg-accent transition-colors">
+            <Link
+              to="/vendor/guidelines"
+              className="p-4 border-2 border-foreground text-center font-heading text-xs uppercase hover:bg-accent transition-colors"
+            >
               Seller Guidelines
             </Link>
           </div>

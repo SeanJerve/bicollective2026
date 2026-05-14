@@ -1,5 +1,16 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { BadgeCheck, Minus, Plus, ShoppingBag, Star, ChevronRight, Heart, Zap, Clock, MessageSquare } from "lucide-react";
+import {
+  BadgeCheck,
+  Minus,
+  Plus,
+  ShoppingBag,
+  Star,
+  ChevronRight,
+  Heart,
+  Zap,
+  Clock,
+  MessageSquare,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import PageLayout from "@/components/layout/PageLayout";
 import ProductCard from "@/components/marketplace/ProductCard";
@@ -16,7 +27,9 @@ import DirectMessageDialog from "@/components/chat/DirectMessageDialog";
 const ProductDetail = () => {
   const { slug } = useParams();
   const { data: product, isLoading: productLoading } = useProduct(slug || "");
-  const { data: relatedProducts, isLoading: relatedLoading } = useProductsByBrand(product?.brandSlug || "");
+  const { data: relatedProducts, isLoading: relatedLoading } = useProductsByBrand(
+    product?.brandSlug || ""
+  );
   const [quantity, setQuantity] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const { user, isAdmin, isVendor } = useAuth();
@@ -55,7 +68,8 @@ const ProductDetail = () => {
 
   usePageSEO({
     title: product?.name || "Product",
-    description: product?.description || `Shop ${product?.name} from ${product?.brandName} on Bicollective.`,
+    description:
+      product?.description || `Shop ${product?.name} from ${product?.brandName} on Bicollective.`,
   });
 
   // Reviews state
@@ -141,7 +155,11 @@ const ProductDetail = () => {
     setWishlistLoading(true);
     try {
       if (isWishlisted) {
-        await supabase.from("wishlists").delete().eq("user_id", user.id).eq("product_id", product.id);
+        await supabase
+          .from("wishlists")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("product_id", product.id);
         setIsWishlisted(false);
         toast({ title: "Removed from wishlist" });
       } else {
@@ -199,24 +217,28 @@ const ProductDetail = () => {
     );
   }
 
-  const filteredRelated = (relatedProducts || [])
-    .filter((p) => p.id !== product.id)
-    .slice(0, 4);
+  const filteredRelated = (relatedProducts || []).filter((p) => p.id !== product.id).slice(0, 4);
 
   return (
     <PageLayout>
       {/* Breadcrumb */}
       <nav className="section-container py-3 md:py-4 border-b border-border-subtle overflow-x-auto">
         <div className="flex items-center gap-1 md:gap-2 text-xs md:text-sm text-muted-foreground whitespace-nowrap">
-          <Link to="/" className="hover:text-foreground">Home</Link>
+          <Link to="/" className="hover:text-foreground">
+            Home
+          </Link>
           <ChevronRight className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
-          <Link to="/products" className="hover:text-foreground">Products</Link>
+          <Link to="/products" className="hover:text-foreground">
+            Products
+          </Link>
           <ChevronRight className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
           <Link to={`/categories/${product.categorySlug}`} className="hover:text-foreground">
             {product.category}
           </Link>
           <ChevronRight className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
-          <span className="text-foreground truncate max-w-[150px] md:max-w-none">{product.name}</span>
+          <span className="text-foreground truncate max-w-[150px] md:max-w-none">
+            {product.name}
+          </span>
         </div>
       </nav>
 
@@ -268,7 +290,9 @@ const ProductDetail = () => {
                     />
                   ))}
                 </div>
-                <span className="text-xs md:text-sm text-muted-foreground">({reviewCount} reviews)</span>
+                <span className="text-xs md:text-sm text-muted-foreground">
+                  ({reviewCount} reviews)
+                </span>
               </div>
 
               {/* Listing Type Badge */}
@@ -281,7 +305,10 @@ const ProductDetail = () => {
               {product.listingType === "preorder" && (
                 <div className="mb-4 inline-flex items-center gap-2 px-3 py-1.5 bg-accent border-2 border-foreground text-sm font-heading uppercase">
                   <Zap className="w-4 h-4" />
-                  Pre-order {product.preorderDiscountPercent ? `— ${product.preorderDiscountPercent}% OFF` : ""}
+                  Pre-order{" "}
+                  {product.preorderDiscountPercent
+                    ? `— ${product.preorderDiscountPercent}% OFF`
+                    : ""}
                 </div>
               )}
               {product.releaseDate && (
@@ -293,10 +320,14 @@ const ProductDetail = () => {
               {/* Price */}
               <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-6 md:mb-8">
                 {product.listingType === "teaser" ? (
-                  <span className="font-heading text-2xl md:text-3xl text-muted-foreground">Price TBA</span>
+                  <span className="font-heading text-2xl md:text-3xl text-muted-foreground">
+                    Price TBA
+                  </span>
                 ) : (
                   <>
-                    <span className="font-heading text-2xl md:text-3xl">{formatPrice(product.price)}</span>
+                    <span className="font-heading text-2xl md:text-3xl">
+                      {formatPrice(product.price)}
+                    </span>
                     {product.originalPrice && product.originalPrice > product.price && (
                       <>
                         <span className="text-lg md:text-xl text-muted-foreground line-through">
@@ -319,7 +350,9 @@ const ProductDetail = () => {
               )}
 
               {/* Size / Variant Selection */}
-              <div className={`mb-6 md:mb-8 ${!product.inStock ? "opacity-50 pointer-events-none select-none grayscale" : ""}`}>
+              <div
+                className={`mb-6 md:mb-8 ${!product.inStock ? "opacity-50 pointer-events-none select-none grayscale" : ""}`}
+              >
                 <div className="flex items-center justify-between mb-2 md:mb-3">
                   <span className="font-heading uppercase text-xs md:text-sm">Select Size</span>
                   {selectedVariant && (
@@ -339,8 +372,8 @@ const ProductDetail = () => {
                           selectedVariant?.id === variant.id
                             ? "border-foreground bg-foreground text-background"
                             : variant.stock_quantity === 0
-                            ? "border-border-subtle text-muted-foreground line-through cursor-not-allowed"
-                            : "border-border-subtle hover:border-foreground"
+                              ? "border-border-subtle text-muted-foreground line-through cursor-not-allowed"
+                              : "border-border-subtle hover:border-foreground"
                         }`}
                       >
                         {variant.size}
@@ -353,8 +386,12 @@ const ProductDetail = () => {
               </div>
 
               {/* Quantity */}
-              <div className={`mb-6 md:mb-8 ${!product.inStock ? "opacity-50 pointer-events-none select-none grayscale" : ""}`}>
-                <span className="font-heading uppercase text-xs md:text-sm mb-2 md:mb-3 block">Quantity</span>
+              <div
+                className={`mb-6 md:mb-8 ${!product.inStock ? "opacity-50 pointer-events-none select-none grayscale" : ""}`}
+              >
+                <span className="font-heading uppercase text-xs md:text-sm mb-2 md:mb-3 block">
+                  Quantity
+                </span>
                 <div className="inline-flex items-center border-2 border-foreground">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -378,15 +415,21 @@ const ProductDetail = () => {
               {/* Actions */}
               {isAdmin ? (
                 <div className="p-4 border-2 border-border-subtle bg-secondary text-center">
-                  <p className="text-xs font-heading uppercase text-muted-foreground">Admin accounts cannot purchase products</p>
+                  <p className="text-xs font-heading uppercase text-muted-foreground">
+                    Admin accounts cannot purchase products
+                  </p>
                 </div>
               ) : isVendor && vendorBrandId && vendorBrandId === product.brandId ? (
                 <div className="p-4 border-2 border-border-subtle bg-secondary text-center">
-                  <p className="text-xs font-heading uppercase text-muted-foreground">You cannot purchase your own products</p>
+                  <p className="text-xs font-heading uppercase text-muted-foreground">
+                    You cannot purchase your own products
+                  </p>
                 </div>
               ) : !product.inStock ? (
                 <div className="py-4 border-y-2 border-destructive bg-destructive/10 text-center">
-                  <p className="text-sm font-heading uppercase text-destructive tracking-widest font-bold">Out of Stock</p>
+                  <p className="text-sm font-heading uppercase text-destructive tracking-widest font-bold">
+                    Out of Stock
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -428,7 +471,11 @@ const ProductDetail = () => {
                     disabled={product.listingType === "teaser"}
                   >
                     <Zap className="w-4 h-4 md:w-5 md:h-5" />
-                    {product.listingType === "teaser" ? "Coming Soon" : product.listingType === "preorder" ? "Pre-order Now" : "Buy Now"}
+                    {product.listingType === "teaser"
+                      ? "Coming Soon"
+                      : product.listingType === "preorder"
+                        ? "Pre-order Now"
+                        : "Buy Now"}
                   </button>
 
                   {/* Add to Cart */}
@@ -572,8 +619,7 @@ const ProductDetail = () => {
             <div className="product-grid">
               {relatedLoading
                 ? Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)
-                : (filteredRelated as any[]).map((p) => <ProductCard key={p.id} {...p} />)
-              }
+                : (filteredRelated as any[]).map((p) => <ProductCard key={p.id} {...p} />)}
             </div>
           </div>
         </section>

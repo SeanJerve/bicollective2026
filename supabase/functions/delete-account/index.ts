@@ -51,15 +51,14 @@ Deno.serve(async (req) => {
       .eq("customer_id", userId);
 
     const hasActiveOrders = activeOrders?.some((order: any) =>
-      order.vendor_orders?.some((vo: any) =>
-        !["delivered", "cancelled"].includes(vo.status)
-      )
+      order.vendor_orders?.some((vo: any) => !["delivered", "cancelled"].includes(vo.status))
     );
 
     if (hasActiveOrders) {
       return new Response(
         JSON.stringify({
-          error: "You have active orders. Please wait for all orders to be delivered or cancelled before deleting your account.",
+          error:
+            "You have active orders. Please wait for all orders to be delivered or cancelled before deleting your account.",
         }),
         {
           status: 400,
@@ -86,7 +85,8 @@ Deno.serve(async (req) => {
       if (activeVendorOrders && activeVendorOrders.length > 0) {
         return new Response(
           JSON.stringify({
-            error: "You have active vendor orders. Please fulfill or cancel all orders before deleting your account.",
+            error:
+              "You have active vendor orders. Please fulfill or cancel all orders before deleting your account.",
           }),
           {
             status: 400,
@@ -151,12 +151,9 @@ Deno.serve(async (req) => {
     );
   } catch (error: any) {
     console.error("Account deletion error:", error);
-    return new Response(
-      JSON.stringify({ error: error.message || "Failed to delete account" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ error: error.message || "Failed to delete account" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

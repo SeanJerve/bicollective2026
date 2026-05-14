@@ -1,6 +1,17 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { Package, Truck, MapPin, Phone, Clock, Star, XCircle, Loader2, CheckCircle2, RotateCcw } from "lucide-react";
+import {
+  Package,
+  Truck,
+  MapPin,
+  Phone,
+  Clock,
+  Star,
+  XCircle,
+  Loader2,
+  CheckCircle2,
+  RotateCcw,
+} from "lucide-react";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import PageLayout from "@/components/layout/PageLayout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -50,16 +61,23 @@ const PaymentProofImage = ({ path }: { path: string }) => {
       setUrl(path);
       return;
     }
-    supabase.storage.from("payment-proofs").createSignedUrl(path, 3600).then(({ data }) => {
-      if (data) setUrl(data.signedUrl);
-    });
+    supabase.storage
+      .from("payment-proofs")
+      .createSignedUrl(path, 3600)
+      .then(({ data }) => {
+        if (data) setUrl(data.signedUrl);
+      });
   }, [path]);
   if (!url) return null;
   return (
     <div className="border-t border-border-subtle pt-4 mt-4">
       <h4 className="font-heading text-sm uppercase mb-2">Payment Proof</h4>
       <a href={url} target="_blank" rel="noopener noreferrer">
-        <img src={url} alt="Payment proof" className="w-32 h-32 object-cover border border-border-subtle" />
+        <img
+          src={url}
+          alt="Payment proof"
+          className="w-32 h-32 object-cover border border-border-subtle"
+        />
       </a>
     </div>
   );
@@ -83,15 +101,22 @@ const OrderDetail = () => {
     setCancellingOrder(vendorOrderId);
     try {
       const { error } = await (supabase.rpc as any)("cancel_vendor_order_customer", {
-        vo_id: vendorOrderId
+        vo_id: vendorOrderId,
       });
       if (error) throw error;
-      toast({ title: "Order cancelled", description: "Your order has been cancelled successfully." });
+      toast({
+        title: "Order cancelled",
+        description: "Your order has been cancelled successfully.",
+      });
       queryClient.invalidateQueries({ queryKey: ["order-detail", orderId] });
       setShowCancelConfirmId(null);
     } catch (err) {
       console.error("Cancel error:", err);
-      toast({ title: "Error", description: "Failed to cancel order. Please try again.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to cancel order. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setCancellingOrder(null);
     }
@@ -103,16 +128,16 @@ const OrderDetail = () => {
       // Step 1: Call the "Harmony" Pipeline (RPC)
       // This verifies both Order status and Payment status atomically.
       const { error } = await (supabase as any).rpc("confirm_delivery", {
-        target_order_id: vendorOrderId
+        target_order_id: vendorOrderId,
       });
-      
+
       if (error) throw error;
-      
+
       toast({ title: "Order received", description: "Thank you for confirming your delivery!" });
       queryClient.invalidateQueries({ queryKey: ["order-detail", orderId] });
       queryClient.invalidateQueries({ queryKey: ["customer-orders"] });
       setShowConfirmId(null);
-      
+
       // Redirect to the "Completed" orders tab
       setTimeout(() => {
         navigate("/account/orders?filter=delivered");
@@ -145,7 +170,7 @@ const OrderDetail = () => {
       toast({
         title: "Cannot buy again",
         description: "Products may no longer be available.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -195,7 +220,7 @@ const OrderDetail = () => {
   });
 
   // Fetch order_items separately for all vendor_orders
-  const vendorOrderIds = useMemo(() => vendorOrders.map(vo => vo.id), [vendorOrders]);
+  const vendorOrderIds = useMemo(() => vendorOrders.map((vo) => vo.id), [vendorOrders]);
   const { data: orderItems = [] } = useQuery({
     queryKey: ["order-items-batch", vendorOrderIds],
     queryFn: async () => {
@@ -233,10 +258,10 @@ const OrderDetail = () => {
     return {
       ...order,
       payments,
-      vendor_orders: vendorOrders.map(vo => ({
+      vendor_orders: vendorOrders.map((vo) => ({
         ...vo,
-        order_items: orderItems.filter(item => item.vendor_order_id === vo.id)
-      }))
+        order_items: orderItems.filter((item) => item.vendor_order_id === vo.id),
+      })),
     };
   }, [order, payments, vendorOrders, orderItems]);
 
@@ -247,7 +272,10 @@ const OrderDetail = () => {
       threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
       enrichedOrder.vendor_orders.forEach(async (vo: any) => {
-        if ((vo.status === "shipped" || vo.status === "for_delivery") && new Date(vo.updated_at) < threeDaysAgo) {
+        if (
+          (vo.status === "shipped" || vo.status === "for_delivery") &&
+          new Date(vo.updated_at) < threeDaysAgo
+        ) {
           await supabase
             .from("vendor_orders")
             .update({ status: "delivered", delivered_at: new Date().toISOString() })
@@ -330,12 +358,17 @@ const OrderDetail = () => {
           </nav>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <h1 className="font-heading text-3xl md:text-4xl uppercase tracking-tighter">Order Detail</h1>
-              <p className="text-muted-foreground mt-1">ID: {enrichedOrder.id.slice(0, 8)} • {new Date(enrichedOrder.created_at).toLocaleDateString()}</p>
+              <h1 className="font-heading text-3xl md:text-4xl uppercase tracking-tighter">
+                Order Detail
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                ID: {enrichedOrder.id.slice(0, 8)} •{" "}
+                {new Date(enrichedOrder.created_at).toLocaleDateString()}
+              </p>
             </div>
             <div className="flex gap-2 w-full md:w-auto">
-              <Link 
-                to="/account/orders" 
+              <Link
+                to="/account/orders"
                 className="btn-brutal-secondary flex-1 md:flex-none text-center text-sm px-4 py-2"
               >
                 Back to Orders
@@ -370,12 +403,15 @@ const OrderDetail = () => {
                 <div className="font-medium mt-1">
                   {address ? (
                     <p className="text-sm">
-                      {address.street}, {address.barangay}, {address.city}, {address.province} {address.zip_code}
+                      {address.street}, {address.barangay}, {address.city}, {address.province}{" "}
+                      {address.zip_code}
                     </p>
                   ) : enrichedOrder.shipping_address ? (
                     <p className="text-sm">{enrichedOrder.shipping_address}</p>
                   ) : (
-                    <p className="text-sm text-muted-foreground italic">Address details not found.</p>
+                    <p className="text-sm text-muted-foreground italic">
+                      Address details not found.
+                    </p>
                   )}
                 </div>
               </div>
@@ -398,9 +434,7 @@ const OrderDetail = () => {
                     className="font-heading uppercase hover:underline flex items-center gap-1.5"
                   >
                     {vo.brand?.name}
-                    {vo.brand?.status === "verified" && (
-                      <VerifiedBadge size="sm" />
-                    )}
+                    {vo.brand?.status === "verified" && <VerifiedBadge size="sm" />}
                   </Link>
                   <span
                     className={`inline-block px-2 py-0.5 text-[10px] md:text-xs uppercase font-bold border border-foreground shadow-brutal-xs ${
@@ -449,7 +483,7 @@ const OrderDetail = () => {
                                 <Star className="w-3.5 h-3.5" />
                                 Reviewing {item.product_name}
                               </h4>
-                              <button 
+                              <button
                                 onClick={() => setReviewingOrderItem(null)}
                                 className="text-[10px] font-heading uppercase underline hover:text-destructive"
                               >
@@ -462,7 +496,9 @@ const OrderDetail = () => {
                               vendorOrderId={vo.id}
                               onSuccess={() => {
                                 setReviewingOrderItem(null);
-                                queryClient.invalidateQueries({ queryKey: ["order-reviews", orderId] });
+                                queryClient.invalidateQueries({
+                                  queryKey: ["order-reviews", orderId],
+                                });
                                 queryClient.invalidateQueries({ queryKey: ["vendor-brand"] });
                                 queryClient.invalidateQueries({ queryKey: ["vendor-reviews"] });
                                 queryClient.invalidateQueries({ queryKey: ["vendor-stats"] });
@@ -493,72 +529,100 @@ const OrderDetail = () => {
                     <div className="relative pl-6">
                       <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-success border-2 border-background shadow-brutal-xs" />
                       <p className="text-sm font-bold">Delivered</p>
-                      <p className="text-[10px] text-muted-foreground">{new Date(vo.delivered_at).toLocaleString()}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {new Date(vo.delivered_at).toLocaleString()}
+                      </p>
                     </div>
                   )}
                   {vo.for_delivery_at && (
                     <div className="relative pl-6">
                       <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-primary border-2 border-background shadow-brutal-xs" />
                       <p className="text-sm font-bold">Out for Delivery</p>
-                      <p className="text-[10px] text-muted-foreground">{new Date(vo.for_delivery_at).toLocaleString()}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {new Date(vo.for_delivery_at).toLocaleString()}
+                      </p>
                     </div>
                   )}
                   {vo.handed_to_courier_at && (
                     <div className="relative pl-6">
                       <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-info border-2 border-background shadow-brutal-xs" />
                       <p className="text-sm font-bold">Handed to Courier</p>
-                      <p className="text-[10px] text-muted-foreground">{new Date(vo.handed_to_courier_at).toLocaleString()}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {new Date(vo.handed_to_courier_at).toLocaleString()}
+                      </p>
                     </div>
                   )}
                   {vo.shipped_at && (
                     <div className="relative pl-6">
                       <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-info border-2 border-background shadow-brutal-xs" />
                       <p className="text-sm font-bold">Shipped</p>
-                      <p className="text-[10px] text-muted-foreground">{new Date(vo.shipped_at).toLocaleString()}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {new Date(vo.shipped_at).toLocaleString()}
+                      </p>
                     </div>
                   )}
                   {vo.confirmed_at && (
                     <div className="relative pl-6">
                       <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-secondary border-2 border-foreground shadow-brutal-xs" />
                       <p className="text-sm font-bold">Order Confirmed</p>
-                      <p className="text-[10px] text-muted-foreground">{new Date(vo.confirmed_at).toLocaleString()}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {new Date(vo.confirmed_at).toLocaleString()}
+                      </p>
                     </div>
                   )}
                   <div className="relative pl-6">
                     <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-secondary border-2 border-foreground shadow-brutal-xs" />
                     <p className="text-sm font-bold">Order Placed</p>
-                    <p className="text-[10px] text-muted-foreground">{new Date(vo.created_at).toLocaleString()}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {new Date(vo.created_at).toLocaleString()}
+                    </p>
                   </div>
                 </div>
               </div>
 
-          {/* Final Totals & Payments Section */}
+              {/* Final Totals & Payments Section */}
               {/* Sub-order Summary */}
               <div className="mt-6 pt-4 border-t-2 border-border-subtle space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground uppercase text-[10px] font-bold">Items Subtotal</span>
+                  <span className="text-muted-foreground uppercase text-[10px] font-bold">
+                    Items Subtotal
+                  </span>
                   <span className="font-heading">{formatPrice(Number(vo.subtotal))}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground uppercase text-[10px] font-bold">Shipping Fee</span>
-                  <span className="font-heading">{formatPrice(Number(vo.shipping_fee_original || vo.shipping_fee))}</span>
+                  <span className="text-muted-foreground uppercase text-[10px] font-bold">
+                    Shipping Fee
+                  </span>
+                  <span className="font-heading">
+                    {formatPrice(Number(vo.shipping_fee_original || vo.shipping_fee))}
+                  </span>
                 </div>
                 {vo.free_shipping_applied && (
                   <div className="flex justify-between text-sm text-success">
                     <span className="uppercase text-[10px] font-bold">Free Shipping Applied</span>
-                    <span className="font-heading">-{formatPrice(Number(vo.shipping_fee_original || vo.shipping_fee) - Number(vo.shipping_fee))}</span>
+                    <span className="font-heading">
+                      -
+                      {formatPrice(
+                        Number(vo.shipping_fee_original || vo.shipping_fee) -
+                          Number(vo.shipping_fee)
+                      )}
+                    </span>
                   </div>
                 )}
                 {Number(vo.discount_amount) > 0 && (
                   <div className="flex justify-between text-sm text-success">
-                    <span className="uppercase text-[10px] font-bold">Voucher Discount {vo.discount?.name ? `(${vo.discount.name})` : ""}</span>
+                    <span className="uppercase text-[10px] font-bold">
+                      Voucher Discount {vo.discount?.name ? `(${vo.discount.name})` : ""}
+                    </span>
                     <span className="font-heading">-{formatPrice(Number(vo.discount_amount))}</span>
                   </div>
                 )}
                 <div className="flex justify-between items-center pt-2">
                   <span className="font-heading uppercase text-xs">Sub-Order Total</span>
                   <span className="font-heading">
-                    {formatPrice(Number(vo.subtotal) + Number(vo.shipping_fee) - Number(vo.discount_amount))}
+                    {formatPrice(
+                      Number(vo.subtotal) + Number(vo.shipping_fee) - Number(vo.discount_amount)
+                    )}
                   </span>
                 </div>
               </div>
@@ -571,7 +635,6 @@ const OrderDetail = () => {
                   otherUserName={vo.brand?.name || "Vendor"}
                 />
               </div>
-
 
               {/* Cancel button for cancellable orders */}
               {cancellableStatuses.includes(vo.status) && (
@@ -679,20 +742,35 @@ const OrderDetail = () => {
           {/* Final Grand Totals & Payments Section */}
           <div className="card-brutal p-4 md:p-6 bg-secondary mb-6">
             <h3 className="font-heading text-lg uppercase mb-4">Payment & Discount Summary</h3>
-            
+
             {enrichedOrder.payments?.map((payment: any) => (
-              <div key={payment.id} className="mb-4 pb-4 border-b border-foreground/10 last:border-0 last:pb-0 last:mb-0">
+              <div
+                key={payment.id}
+                className="mb-4 pb-4 border-b border-foreground/10 last:border-0 last:pb-0 last:mb-0"
+              >
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-heading uppercase">
-                    {payment.payment_method === 0 ? "Cash on Delivery" : (payment.payment_method === 1 ? "GCash" : "Bank Transfer")}
+                    {payment.payment_method === 0
+                      ? "Cash on Delivery"
+                      : payment.payment_method === 1
+                        ? "GCash"
+                        : "Bank Transfer"}
                   </span>
-                  <span className={`px-2 py-0.5 text-[10px] font-bold border border-foreground ${
-                    (payment.status === "verified" || enrichedOrder.vendor_orders?.some((vo: any) => ["shipped", "for_delivery", "delivered", "confirmed"].includes(vo.status))) 
-                      ? "bg-success" 
-                      : "bg-warning"
-                  }`}>
-                    {(payment.status === "verified" || enrichedOrder.vendor_orders?.some((vo: any) => ["shipped", "for_delivery", "delivered", "confirmed"].includes(vo.status))) 
-                      ? "VERIFIED / PAID" 
+                  <span
+                    className={`px-2 py-0.5 text-[10px] font-bold border border-foreground ${
+                      payment.status === "verified" ||
+                      enrichedOrder.vendor_orders?.some((vo: any) =>
+                        ["shipped", "for_delivery", "delivered", "confirmed"].includes(vo.status)
+                      )
+                        ? "bg-success"
+                        : "bg-warning"
+                    }`}
+                  >
+                    {payment.status === "verified" ||
+                    enrichedOrder.vendor_orders?.some((vo: any) =>
+                      ["shipped", "for_delivery", "delivered", "confirmed"].includes(vo.status)
+                    )
+                      ? "VERIFIED / PAID"
                       : payment.status.toUpperCase()}
                   </span>
                 </div>
@@ -702,49 +780,88 @@ const OrderDetail = () => {
               </div>
             ))}
 
-              <div className="space-y-2 mb-6">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground uppercase text-[10px] font-bold">Global Items Subtotal</span>
-                  <span className="font-heading">{formatPrice(Number(order.total_amount) + Number(order.total_discount) - Number(order.total_shipping))}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground uppercase text-[10px] font-bold">Global Shipping Fee</span>
-                  <span className="font-heading">{formatPrice(Number(order.total_shipping) + enrichedOrder.vendor_orders.reduce((acc: number, vo: any) => acc + (vo.free_shipping_applied ? (Number(vo.shipping_fee_original) || 0) - Number(vo.shipping_fee) : 0), 0))}</span>
-                </div>
-                
-                {/* Specific Discount Labels */}
-                {enrichedOrder.discount && (
-                   <div className="flex justify-between text-sm text-success">
-                     <span className="uppercase text-[10px] font-bold">Platform Promo ({enrichedOrder.discount.name})</span>
-                     <span className="font-heading">-{formatPrice(Number(enrichedOrder.discount.discount_value))}</span>
-                   </div>
-                )}
-                {enrichedOrder.vendor_orders?.map((vo: any) => {
-                  return (
-                    <div key={`discount-${vo.id}`}>
-                      {vo.free_shipping_applied && (
-                        <div className="flex justify-between text-sm text-success mt-1">
-                          <span className="uppercase text-[10px] font-bold">Free Shipping ({vo.brand?.name})</span>
-                          <span className="font-heading">-{formatPrice(Number(vo.shipping_fee_original || vo.shipping_fee) - Number(vo.shipping_fee))}</span>
-                        </div>
-                      )}
-                      {Number(vo.discount_amount) > 0 && (
-                        <div className="flex justify-between text-sm text-success mt-1">
-                          <span className="uppercase text-[10px] font-bold">Voucher ({vo.brand?.name}{vo.discount?.name ? ` - ${vo.discount.name}` : ""})</span>
-                          <span className="font-heading">-{formatPrice(Number(vo.discount_amount))}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="flex justify-between items-center pt-4 border-t-2 border-foreground">
-                <span className="font-heading uppercase">Grand Order Total</span>
-                <span className="font-heading text-xl md:text-2xl">
-                  {formatPrice(Number(order.total_amount))}
+            <div className="space-y-2 mb-6">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground uppercase text-[10px] font-bold">
+                  Global Items Subtotal
+                </span>
+                <span className="font-heading">
+                  {formatPrice(
+                    Number(order.total_amount) +
+                      Number(order.total_discount) -
+                      Number(order.total_shipping)
+                  )}
                 </span>
               </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground uppercase text-[10px] font-bold">
+                  Global Shipping Fee
+                </span>
+                <span className="font-heading">
+                  {formatPrice(
+                    Number(order.total_shipping) +
+                      enrichedOrder.vendor_orders.reduce(
+                        (acc: number, vo: any) =>
+                          acc +
+                          (vo.free_shipping_applied
+                            ? (Number(vo.shipping_fee_original) || 0) - Number(vo.shipping_fee)
+                            : 0),
+                        0
+                      )
+                  )}
+                </span>
+              </div>
+
+              {/* Specific Discount Labels */}
+              {enrichedOrder.discount && (
+                <div className="flex justify-between text-sm text-success">
+                  <span className="uppercase text-[10px] font-bold">
+                    Platform Promo ({enrichedOrder.discount.name})
+                  </span>
+                  <span className="font-heading">
+                    -{formatPrice(Number(enrichedOrder.discount.discount_value))}
+                  </span>
+                </div>
+              )}
+              {enrichedOrder.vendor_orders?.map((vo: any) => {
+                return (
+                  <div key={`discount-${vo.id}`}>
+                    {vo.free_shipping_applied && (
+                      <div className="flex justify-between text-sm text-success mt-1">
+                        <span className="uppercase text-[10px] font-bold">
+                          Free Shipping ({vo.brand?.name})
+                        </span>
+                        <span className="font-heading">
+                          -
+                          {formatPrice(
+                            Number(vo.shipping_fee_original || vo.shipping_fee) -
+                              Number(vo.shipping_fee)
+                          )}
+                        </span>
+                      </div>
+                    )}
+                    {Number(vo.discount_amount) > 0 && (
+                      <div className="flex justify-between text-sm text-success mt-1">
+                        <span className="uppercase text-[10px] font-bold">
+                          Voucher ({vo.brand?.name}
+                          {vo.discount?.name ? ` - ${vo.discount.name}` : ""})
+                        </span>
+                        <span className="font-heading">
+                          -{formatPrice(Number(vo.discount_amount))}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-between items-center pt-4 border-t-2 border-foreground">
+              <span className="font-heading uppercase">Grand Order Total</span>
+              <span className="font-heading text-xl md:text-2xl">
+                {formatPrice(Number(order.total_amount))}
+              </span>
+            </div>
           </div>
 
           <div className="mt-8 text-center">

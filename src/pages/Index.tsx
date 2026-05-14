@@ -20,19 +20,28 @@ const Index = () => {
 
   usePageSEO({
     title: "",
-    description: "Shop curated collections from verified local Bicolano clothing brands. Quality fashion, community-driven commerce from the Bicol region.",
+    description:
+      "Shop curated collections from verified local Bicolano clothing brands. Quality fashion, community-driven commerce from the Bicol region.",
   });
 
   const featuredProducts = products?.slice(0, 4) || [];
   const featuredBrands = brands?.slice(0, 3) || [];
 
   const saleProducts = useMemo(() => {
-    return products?.filter((p) => {
-      const isProductSale = p.originalPrice && p.originalPrice > p.price;
-      const isPreorderSale = p.preorderDiscountPercent && p.preorderDiscountPercent > 0;
-      const isStoreSale = p.storeSalePercent && p.storeSalePercent > 0 && p.storeSaleEndsAt && new Date(p.storeSaleEndsAt) > new Date();
-      return isProductSale || isPreorderSale || isStoreSale;
-    }).slice(0, 4) || [];
+    return (
+      products
+        ?.filter((p) => {
+          const isProductSale = p.originalPrice && p.originalPrice > p.price;
+          const isPreorderSale = p.preorderDiscountPercent && p.preorderDiscountPercent > 0;
+          const isStoreSale =
+            p.storeSalePercent &&
+            p.storeSalePercent > 0 &&
+            p.storeSaleEndsAt &&
+            new Date(p.storeSaleEndsAt) > new Date();
+          return isProductSale || isPreorderSale || isStoreSale;
+        })
+        .slice(0, 4) || []
+    );
   }, [products]);
 
   const dailyDiscoverProducts = useMemo(() => {
@@ -63,15 +72,21 @@ const Index = () => {
               Style
             </h1>
             <p className="text-base md:text-xl mb-6 md:mb-8 max-w-md">
-              Shop curated collections from verified local Bicolano clothing brands. 
-              Quality fashion, community-driven commerce.
+              Shop curated collections from verified local Bicolano clothing brands. Quality
+              fashion, community-driven commerce.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
-              <Link to="/products" className="btn-brutal inline-flex items-center justify-center gap-2">
+              <Link
+                to="/products"
+                className="btn-brutal inline-flex items-center justify-center gap-2"
+              >
                 Shop Now
                 <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
               </Link>
-              <Link to="/brands" className="btn-brutal-secondary inline-flex items-center justify-center gap-2">
+              <Link
+                to="/brands"
+                className="btn-brutal-secondary inline-flex items-center justify-center gap-2"
+              >
                 Explore Brands
               </Link>
             </div>
@@ -85,15 +100,21 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 text-center">
             <div className="flex items-center justify-center gap-2 md:gap-3">
               <BadgeCheck className="w-5 h-5 md:w-6 md:h-6" />
-              <span className="font-heading text-sm md:text-base uppercase tracking-wide">Verified Local Brands</span>
+              <span className="font-heading text-sm md:text-base uppercase tracking-wide">
+                Verified Local Brands
+              </span>
             </div>
             <div className="flex items-center justify-center gap-2 md:gap-3">
               <Shield className="w-5 h-5 md:w-6 md:h-6" />
-              <span className="font-heading text-sm md:text-base uppercase tracking-wide">Buyer Protection</span>
+              <span className="font-heading text-sm md:text-base uppercase tracking-wide">
+                Buyer Protection
+              </span>
             </div>
             <div className="flex items-center justify-center gap-2 md:gap-3">
               <span className="text-xl md:text-2xl">🇵🇭</span>
-              <span className="font-heading text-sm md:text-base uppercase tracking-wide">Supporting Bicol</span>
+              <span className="font-heading text-sm md:text-base uppercase tracking-wide">
+                Supporting Bicol
+              </span>
             </div>
           </div>
         </div>
@@ -122,9 +143,7 @@ const Index = () => {
             {productsLoading ? (
               Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)
             ) : featuredProducts.length > 0 ? (
-              featuredProducts.map((product) => (
-                <ProductCard key={product.id} {...product} />
-              ))
+              featuredProducts.map((product) => <ProductCard key={product.id} {...product} />)
             ) : (
               <div className="col-span-full text-center py-12">
                 <p className="text-muted-foreground">No products available yet.</p>
@@ -145,21 +164,19 @@ const Index = () => {
       <section className="py-8 md:py-12 bg-foreground text-background border-y-2 border-foreground">
         <div className="section-container">
           <div className="flex flex-wrap justify-center gap-3 md:gap-8">
-            {categoriesLoading ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-6 w-20 bg-background/20 animate-pulse" />
-              ))
-            ) : (
-              categories?.map((category) => (
-                <Link
-                  key={category.id}
-                  to={`/categories/${category.slug}`}
-                  className="font-heading text-base md:text-2xl uppercase tracking-wide hover:opacity-60 transition-opacity"
-                >
-                  {category.name}
-                </Link>
-              ))
-            )}
+            {categoriesLoading
+              ? Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="h-6 w-20 bg-background/20 animate-pulse" />
+                ))
+              : categories?.map((category) => (
+                  <Link
+                    key={category.id}
+                    to={`/categories/${category.slug}`}
+                    className="font-heading text-base md:text-2xl uppercase tracking-wide hover:opacity-60 transition-opacity"
+                  >
+                    {category.name}
+                  </Link>
+                ))}
           </div>
         </div>
       </section>
@@ -173,7 +190,9 @@ const Index = () => {
                 <span className="text-xs md:text-sm uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-2">
                   <Tag className="w-4 h-4" /> Limited Time Offers
                 </span>
-                <h2 className="font-heading text-3xl md:text-5xl uppercase text-destructive">Flash Deals</h2>
+                <h2 className="font-heading text-3xl md:text-5xl uppercase text-destructive">
+                  Flash Deals
+                </h2>
               </div>
               <Link
                 to="/products"
@@ -189,7 +208,7 @@ const Index = () => {
                 <ProductCard key={product.id} {...product} />
               ))}
             </div>
-            
+
             <Link
               to="/products"
               className="sm:hidden btn-brutal-secondary w-full mt-6 md:mt-8 text-center block"
@@ -223,9 +242,7 @@ const Index = () => {
             {brandsLoading ? (
               Array.from({ length: 3 }).map((_, i) => <BrandCardSkeleton key={i} />)
             ) : featuredBrands.length > 0 ? (
-              featuredBrands.map((brand) => (
-                <BrandCard key={brand.id} {...brand} />
-              ))
+              featuredBrands.map((brand) => <BrandCard key={brand.id} {...brand} />)
             ) : (
               <div className="col-span-full text-center py-12">
                 <p className="text-muted-foreground">No brands available yet.</p>
@@ -274,21 +291,40 @@ const Index = () => {
       <section className="py-12 md:py-16 border-t-2 border-foreground bg-secondary/50">
         <div className="section-container max-w-5xl text-sm md:text-base text-muted-foreground space-y-6">
           <div>
-            <h3 className="font-heading text-lg md:text-xl text-foreground uppercase mb-2">Buy and Sell the Best Local Fashion on Bicollective</h3>
+            <h3 className="font-heading text-lg md:text-xl text-foreground uppercase mb-2">
+              Buy and Sell the Best Local Fashion on Bicollective
+            </h3>
             <p className="leading-relaxed">
-              Bicollective is a community-driven, free, and trusted way to buy and sell authentic clothing online. We are the premier local fashion marketplace platform for the Bicol region—bringing together the best streetwear, tailored garments, and lifestyle brands from Camarines Sur, Albay, Sorsogon, and beyond. Join thousands of others on Bicollective to list products and shop for the best local deals online. Doing your online shopping is safe with our robust Buyer Protection. You get the item you ordered, or you get your money back! Create and browse verified listings for free. Join the Bicollective community and wear your local pride today!
+              Bicollective is a community-driven, free, and trusted way to buy and sell authentic
+              clothing online. We are the premier local fashion marketplace platform for the Bicol
+              region—bringing together the best streetwear, tailored garments, and lifestyle brands
+              from Camarines Sur, Albay, Sorsogon, and beyond. Join thousands of others on
+              Bicollective to list products and shop for the best local deals online. Doing your
+              online shopping is safe with our robust Buyer Protection. You get the item you
+              ordered, or you get your money back! Create and browse verified listings for free.
+              Join the Bicollective community and wear your local pride today!
             </p>
           </div>
           <div>
-            <h3 className="font-heading text-lg md:text-xl text-foreground uppercase mb-2">Experience a Curated Shopping Journey</h3>
+            <h3 className="font-heading text-lg md:text-xl text-foreground uppercase mb-2">
+              Experience a Curated Shopping Journey
+            </h3>
             <p className="leading-relaxed">
-              Join Bicollective to find everything you need at the best prices, directly from the creators. Shopping on the region's best marketplace cannot get any easier. Support homegrown talent by browsing through our extensive categories, from exclusive graphic tees by Soul of Bicol, heavyweight hoodies by Gubat Collective, to timeless accessories by Magayon Studio.
+              Join Bicollective to find everything you need at the best prices, directly from the
+              creators. Shopping on the region's best marketplace cannot get any easier. Support
+              homegrown talent by browsing through our extensive categories, from exclusive graphic
+              tees by Soul of Bicol, heavyweight hoodies by Gubat Collective, to timeless
+              accessories by Magayon Studio.
             </p>
           </div>
           <div>
-            <h3 className="font-heading text-lg md:text-xl text-foreground uppercase mb-2">Enjoy Special Drops, Promos, and Local Discounts</h3>
+            <h3 className="font-heading text-lg md:text-xl text-foreground uppercase mb-2">
+              Enjoy Special Drops, Promos, and Local Discounts
+            </h3>
             <p className="leading-relaxed">
-              Shopping locally is not only easy and safe, but we make it rewarding. Keep an eye out for our exclusive Product Target Drops, store-wide sales, and Premium Vendor discounts. Treat yourself during payday with exclusive vouchers!
+              Shopping locally is not only easy and safe, but we make it rewarding. Keep an eye out
+              for our exclusive Product Target Drops, store-wide sales, and Premium Vendor
+              discounts. Treat yourself during payday with exclusive vouchers!
             </p>
           </div>
         </div>
@@ -302,8 +338,8 @@ const Index = () => {
               Own a Local Brand?
             </h2>
             <p className="text-base md:text-lg text-muted-foreground max-w-xl mx-auto mb-6 md:mb-8">
-              Join Bicollective and reach thousands of customers. 
-              Get your own storefront with zero setup fees.
+              Join Bicollective and reach thousands of customers. Get your own storefront with zero
+              setup fees.
             </p>
             <Link to="/vendor/register" className="btn-brutal inline-flex items-center gap-2">
               Become a Vendor

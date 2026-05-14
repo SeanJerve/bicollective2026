@@ -31,7 +31,7 @@ serve(async (req) => {
         roles: ["admin", "customer"],
       },
       {
-        email: "customer@bicollective.test", 
+        email: "customer@bicollective.test",
         password: "customer123",
         fullName: "Test Customer",
         roles: ["customer"],
@@ -43,7 +43,7 @@ serve(async (req) => {
     for (const account of testAccounts) {
       // Check if user exists
       const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-      const existingUser = existingUsers?.users?.find(u => u.email === account.email);
+      const existingUser = existingUsers?.users?.find((u) => u.email === account.email);
 
       if (existingUser) {
         results.push({ email: account.email, status: "exists" });

@@ -25,15 +25,21 @@ const Vouchers = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: vouchers, isLoading, refetch: refetchVouchers } = useQuery({
+  const {
+    data: vouchers,
+    isLoading,
+    refetch: refetchVouchers,
+  } = useQuery({
     queryKey: ["user-vouchers-new", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_discount_claims")
-        .select(`
+        .select(
+          `
           *,
           discounts:discounts(*)
-        `)
+        `
+        )
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
 
@@ -43,19 +49,23 @@ const Vouchers = () => {
     enabled: !!user,
   });
 
-  const { data: availablePromos, isLoading: promosLoading, refetch: refetchPromos } = useQuery({
+  const {
+    data: availablePromos,
+    isLoading: promosLoading,
+    refetch: refetchPromos,
+  } = useQuery({
     queryKey: ["available-promos", user?.id],
     queryFn: async () => {
       const now = new Date().toISOString();
-      
+
       // Get all active discounts that have a code (i.e. are either platform or vendor vouchers)
       // And filter out those already claimed by the user.
       const { data: claimed } = await supabase
         .from("user_discount_claims")
         .select("discount_id")
         .eq("user_id", user!.id);
-      
-      const claimedIds = (claimed || []).map(c => c.discount_id);
+
+      const claimedIds = (claimed || []).map((c) => c.discount_id);
 
       // Fetch platform promos (using !inner to filter by joined table)
       const { data: platformPromos } = await (supabase
@@ -72,8 +82,8 @@ const Vouchers = () => {
         .gte("discounts.ends_at", now) as any);
 
       const allPromos = [...(platformPromos || []), ...(vendorPromos || [])]
-        .map(p => ({ ...p.discounts, code: p.code }))
-        .filter(p => p && !claimedIds.includes(p.id));
+        .map((p) => ({ ...p.discounts, code: p.code }))
+        .filter((p) => p && !claimedIds.includes(p.id));
 
       return allPromos;
     },
@@ -116,7 +126,9 @@ const Vouchers = () => {
       // Get main progress
       const { data: progress, error: pError } = await supabase
         .from("loyalty_progress")
-        .select("id, user_id, total_delivered_orders, milestone_5_deliveries_claimed, milestone_10_sellers_claimed, created_at, updated_at")
+        .select(
+          "id, user_id, total_delivered_orders, milestone_5_deliveries_claimed, milestone_10_sellers_claimed, created_at, updated_at"
+        )
         .eq("user_id", user!.id)
         .maybeSingle();
 
@@ -132,7 +144,7 @@ const Vouchers = () => {
 
       return {
         ...progress,
-        unique_sellers_count: count || 0
+        unique_sellers_count: count || 0,
       };
     },
     enabled: !!user,
@@ -154,9 +166,16 @@ const Vouchers = () => {
     }
   };
 
-  const activeVouchers = (vouchers as any[])?.filter((v) => v.status === "active" && !isPast(new Date(v.discounts?.ends_at))) || [];
+  const activeVouchers =
+    (vouchers as any[])?.filter(
+      (v) => v.status === "active" && !isPast(new Date(v.discounts?.ends_at))
+    ) || [];
   const usedVouchers = (vouchers as any[])?.filter((v) => v.status === "used") || [];
-  const expiredVouchers = (vouchers as any[])?.filter((v) => v.status === "expired" || (v.status === "active" && isPast(new Date(v.discounts?.ends_at)))) || [];
+  const expiredVouchers =
+    (vouchers as any[])?.filter(
+      (v) =>
+        v.status === "expired" || (v.status === "active" && isPast(new Date(v.discounts?.ends_at)))
+    ) || [];
 
   if (!user) {
     return (
@@ -200,7 +219,9 @@ const Vouchers = () => {
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-heading text-sm uppercase">5 Deliveries</span>
                   {loyaltyProgress?.milestone_5_deliveries_claimed ? (
-                    <span className="text-xs bg-success text-success-foreground px-2 py-0.5">CLAIMED</span>
+                    <span className="text-xs bg-success text-success-foreground px-2 py-0.5">
+                      CLAIMED
+                    </span>
                   ) : (
                     <span className="text-xs bg-secondary px-2 py-0.5">
                       {loyaltyProgress?.total_delivered_orders || 0}/5
@@ -225,7 +246,9 @@ const Vouchers = () => {
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-heading text-sm uppercase">10 Sellers</span>
                   {loyaltyProgress?.milestone_10_sellers_claimed ? (
-                    <span className="text-xs bg-success text-success-foreground px-2 py-0.5">CLAIMED</span>
+                    <span className="text-xs bg-success text-success-foreground px-2 py-0.5">
+                      CLAIMED
+                    </span>
                   ) : (
                     <span className="text-xs bg-secondary px-2 py-0.5">
                       {loyaltyProgress?.unique_sellers_count || 0}/10
@@ -275,8 +298,8 @@ const Vouchers = () => {
                         <div className="flex justify-between items-start mb-4">
                           <div className="bg-primary text-primary-foreground px-3 py-1 font-heading text-lg">
                             {promo.discount_type === "percentage"
-                                ? `${promo.discount_value}% OFF`
-                                : formatPrice(Number(promo.discount_value || 0)) + " OFF"}
+                              ? `${promo.discount_value}% OFF`
+                              : formatPrice(Number(promo.discount_value || 0)) + " OFF"}
                           </div>
                           <code className="text-xs font-mono bg-muted px-2 py-1 border border-border-subtle">
                             {promo.code}
@@ -339,15 +362,18 @@ const Vouchers = () => {
                           {v.discounts?.ends_at && (
                             <span className="text-warning flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {formatDistanceToNow(new Date(v.discounts.ends_at), { addSuffix: true })}
+                              {formatDistanceToNow(new Date(v.discounts.ends_at), {
+                                addSuffix: true,
+                              })}
                             </span>
                           )}
                         </div>
-                        {v.discounts?.min_order_amount && Number(v.discounts.min_order_amount) > 0 && (
-                          <p className="text-xs text-muted-foreground mt-2">
-                            Min. order: {formatPrice(Number(v.discounts.min_order_amount))}
-                          </p>
-                        )}
+                        {v.discounts?.min_order_amount &&
+                          Number(v.discounts.min_order_amount) > 0 && (
+                            <p className="text-xs text-muted-foreground mt-2">
+                              Min. order: {formatPrice(Number(v.discounts.min_order_amount))}
+                            </p>
+                          )}
                       </div>
                     ))}
                   </div>
@@ -362,10 +388,7 @@ const Vouchers = () => {
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {usedVouchers.map((v) => (
-                      <div
-                        key={v.id}
-                        className="card-brutal p-4 bg-muted/30 opacity-60"
-                      >
+                      <div key={v.id} className="card-brutal p-4 bg-muted/30 opacity-60">
                         <div className="flex justify-between items-start mb-2">
                           <span className="font-heading text-lg line-through">
                             {v.discounts?.discount_type === "percentage"
@@ -396,10 +419,7 @@ const Vouchers = () => {
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {expiredVouchers.map((v) => (
-                      <div
-                        key={v.id}
-                        className="card-brutal p-4 bg-destructive/5 opacity-50"
-                      >
+                      <div key={v.id} className="card-brutal p-4 bg-destructive/5 opacity-50">
                         <div className="flex justify-between items-start mb-2">
                           <span className="font-heading text-lg line-through">
                             {v.discounts?.discount_type === "percentage"

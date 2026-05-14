@@ -59,7 +59,9 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
     // Get all messages where user is sender or receiver
     const { data: messages, error } = await supabase
       .from("messages")
-      .select("vendor_order_id, sender_id, receiver_id, content, created_at, read_at, attachment_type")
+      .select(
+        "vendor_order_id, sender_id, receiver_id, content, created_at, read_at, attachment_type"
+      )
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .order("created_at", { ascending: false });
 
@@ -80,7 +82,7 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
     // Get all vendor order IDs from all messages to fetch their brands
     const allVoIds = new Set<string>();
     for (const msgs of grouped.values()) {
-      msgs.forEach(m => {
+      msgs.forEach((m) => {
         if (m.vendor_order_id) allVoIds.add(m.vendor_order_id);
       });
     }
@@ -125,9 +127,7 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
       if (deleted.has(convKey)) continue;
 
       const unreadCount = msgs.filter((m) => m.receiver_id === user.id && !m.read_at).length;
-      const otherUserName = role === "customer"
-        ? brandName
-        : profileMap.get(otherId) || "Customer";
+      const otherUserName = role === "customer" ? brandName : profileMap.get(otherId) || "Customer";
 
       convs.push({
         vendorOrderId: lastMsg.vendor_order_id,
@@ -148,7 +148,9 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
     // Also fetch direct messages
     const { data: dms } = await supabase
       .from("direct_messages")
-      .select("id, sender_id, receiver_id, content, created_at, read_at, product_name, product_image")
+      .select(
+        "id, sender_id, receiver_id, content, created_at, read_at, product_name, product_image"
+      )
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .order("created_at", { ascending: false });
 
@@ -168,7 +170,9 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
         .from("profiles")
         .select("user_id, full_name")
         .in("user_id", dmOtherIds);
-      const dmProfileMap = new Map(dmProfiles?.map((p) => [p.user_id, p.full_name || "User"]) || []);
+      const dmProfileMap = new Map(
+        dmProfiles?.map((p) => [p.user_id, p.full_name || "User"]) || []
+      );
 
       // Get brand names for vendor users (for customer view)
       const { data: dmBrands } = await supabase
@@ -187,9 +191,10 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
 
         const lastMsg = msgs[0];
         const unreadCount = msgs.filter((m) => m.receiver_id === user.id && !m.read_at).length;
-        const otherUserName = role === "customer"
-          ? (dmBrandMap.get(otherId) || dmProfileMap.get(otherId) || "Seller")
-          : (dmProfileMap.get(otherId) || "Customer");
+        const otherUserName =
+          role === "customer"
+            ? dmBrandMap.get(otherId) || dmProfileMap.get(otherId) || "Seller"
+            : dmProfileMap.get(otherId) || "Customer";
 
         // Find product context from messages
         const productMsg = msgs.find((m) => m.product_name);
@@ -209,7 +214,9 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
       }
 
       // Re-sort after merging
-      convs.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+      convs.sort(
+        (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+      );
     }
 
     setConversations(convs);
@@ -223,23 +230,33 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
     // Subscribe to new messages for live updates
     const channel = supabase
       .channel("conversations-list")
-      .on("postgres_changes", {
-        event: "INSERT",
-        schema: "public",
-        table: "messages",
-      }, () => {
-        fetchConversations();
-      })
-      .on("postgres_changes", {
-        event: "INSERT",
-        schema: "public",
-        table: "direct_messages",
-      }, () => {
-        fetchConversations();
-      })
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+        },
+        () => {
+          fetchConversations();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "direct_messages",
+        },
+        () => {
+          fetchConversations();
+        }
+      )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user, role, fetchConversations]);
 
   const formatTime = (dateStr: string) => {
@@ -252,13 +269,14 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
   const handleDeleteConversation = (conv: Conversation) => {
     const convKey = `${user!.id}:${conv.otherUserId}`;
     saveDeletedConv(convKey);
-    setConversations(prev => prev.filter(c => c.otherUserId !== conv.otherUserId));
+    setConversations((prev) => prev.filter((c) => c.otherUserId !== conv.otherUserId));
     setConfirmDeleteId(null);
   };
 
-  const filtered = conversations.filter((c) =>
-    c.otherUserName.toLowerCase().includes(search.toLowerCase()) ||
-    (c.lastMessage || "").toLowerCase().includes(search.toLowerCase())
+  const filtered = conversations.filter(
+    (c) =>
+      c.otherUserName.toLowerCase().includes(search.toLowerCase()) ||
+      (c.lastMessage || "").toLowerCase().includes(search.toLowerCase())
   );
 
   if (loading) {
@@ -286,31 +304,32 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
       </div>
 
       {/* Confirm Delete Overlay */}
-      {confirmDeleteId && (() => {
-        const conv = conversations.find(c => c.otherUserId === confirmDeleteId);
-        if (!conv) return null;
-        return (
-          <div className="mx-3 mt-2 mb-1 p-3 border-2 border-destructive bg-destructive/10 animate-fade-in">
-            <p className="text-xs font-heading uppercase text-destructive mb-2">
-              Remove conversation with {conv.otherUserName}?
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setConfirmDeleteId(null)}
-                className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 border-2 border-foreground text-xs font-heading uppercase hover:bg-secondary transition-colors"
-              >
-                <X className="w-3 h-3" /> Keep
-              </button>
-              <button
-                onClick={() => handleDeleteConversation(conv)}
-                className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 border-2 border-destructive bg-destructive text-destructive-foreground text-xs font-heading uppercase hover:bg-destructive/90 transition-colors"
-              >
-                <Trash2 className="w-3 h-3" /> Delete
-              </button>
+      {confirmDeleteId &&
+        (() => {
+          const conv = conversations.find((c) => c.otherUserId === confirmDeleteId);
+          if (!conv) return null;
+          return (
+            <div className="mx-3 mt-2 mb-1 p-3 border-2 border-destructive bg-destructive/10 animate-fade-in">
+              <p className="text-xs font-heading uppercase text-destructive mb-2">
+                Remove conversation with {conv.otherUserName}?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setConfirmDeleteId(null)}
+                  className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 border-2 border-foreground text-xs font-heading uppercase hover:bg-secondary transition-colors"
+                >
+                  <X className="w-3 h-3" /> Keep
+                </button>
+                <button
+                  onClick={() => handleDeleteConversation(conv)}
+                  className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 border-2 border-destructive bg-destructive text-destructive-foreground text-xs font-heading uppercase hover:bg-destructive/90 transition-colors"
+                >
+                  <Trash2 className="w-3 h-3" /> Delete
+                </button>
+              </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
       {/* Conversation Items */}
       <div className="flex-1 overflow-y-auto">
@@ -324,19 +343,19 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
             <div
               key={conv.otherUserId}
               className={`group relative border-b border-border-subtle transition-colors ${
-                selectedConversation === conv.vendorOrderId || selectedConversation === conv.otherUserId
+                selectedConversation === conv.vendorOrderId ||
+                selectedConversation === conv.otherUserId
                   ? "bg-secondary border-l-4 border-l-foreground"
                   : "hover:bg-secondary/50"
               }`}
             >
-              <button
-                onClick={() => onSelect(conv)}
-                className="w-full text-left px-4 py-3 pr-10"
-              >
+              <button onClick={() => onSelect(conv)} className="w-full text-left px-4 py-3 pr-10">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className={`text-sm truncate ${conv.unreadCount > 0 ? "font-bold" : "font-medium"}`}>
+                      <span
+                        className={`text-sm truncate ${conv.unreadCount > 0 ? "font-bold" : "font-medium"}`}
+                      >
                         {conv.otherUserName}
                       </span>
                       {conv.unreadCount > 0 && (
@@ -346,9 +365,13 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
                       )}
                     </div>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wide mt-0.5">
-                      {conv.vendorOrderId.startsWith("dm-") ? "Direct Message" : `Order #${conv.orderId.slice(0, 8)}`}
+                      {conv.vendorOrderId.startsWith("dm-")
+                        ? "Direct Message"
+                        : `Order #${conv.orderId.slice(0, 8)}`}
                     </p>
-                    <p className={`text-xs mt-1 truncate flex items-center gap-1 ${conv.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                    <p
+                      className={`text-xs mt-1 truncate flex items-center gap-1 ${conv.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}
+                    >
                       {conv.hasAttachment && <Paperclip className="w-3 h-3 shrink-0" />}
                       {conv.lastMessage || (conv.hasAttachment ? "Attachment" : "")}
                     </p>

@@ -39,7 +39,9 @@ const VendorProducts = () => {
         const [productsRes, categoriesRes] = await Promise.all([
           supabase
             .from("products")
-            .select(`*, category:categories (name), product_variants(id, size, stock_quantity), product_images(image_url, sort_order)`)
+            .select(
+              `*, category:categories (name), product_variants(id, size, stock_quantity), product_images(image_url, sort_order)`
+            )
             .eq("brand_id", brandData.id)
             .is("deleted_at", null)
             .order("created_at", { ascending: false }),
@@ -48,7 +50,9 @@ const VendorProducts = () => {
 
         // Calculate total stock for each product
         const productsWithStock = (productsRes.data || []).map((p: any) => {
-          const totalStock = p.product_variants?.reduce((sum: number, v: any) => sum + (v.stock_quantity || 0), 0) || 0;
+          const totalStock =
+            p.product_variants?.reduce((sum: number, v: any) => sum + (v.stock_quantity || 0), 0) ||
+            0;
           return { ...p, totalStock };
         });
 
@@ -69,13 +73,16 @@ const VendorProducts = () => {
 
     const { data } = await supabase
       .from("products")
-      .select(`*, category:categories (name), product_variants(id, size, stock_quantity), product_images(image_url, sort_order)`)
+      .select(
+        `*, category:categories (name), product_variants(id, size, stock_quantity), product_images(image_url, sort_order)`
+      )
       .eq("brand_id", brand.id)
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
     const productsWithStock = (data || []).map((p: any) => {
-      const totalStock = p.product_variants?.reduce((sum: number, v: any) => sum + (v.stock_quantity || 0), 0) || 0;
+      const totalStock =
+        p.product_variants?.reduce((sum: number, v: any) => sum + (v.stock_quantity || 0), 0) || 0;
       return { ...p, totalStock };
     });
 
@@ -92,9 +99,7 @@ const VendorProducts = () => {
       if (error) throw error;
 
       setProducts((prev) =>
-        prev.map((p) =>
-          p.id === productId ? { ...p, is_active: !currentActive } : p
-        )
+        prev.map((p) => (p.id === productId ? { ...p, is_active: !currentActive } : p))
       );
 
       toast({
@@ -114,7 +119,12 @@ const VendorProducts = () => {
   };
 
   const deleteProduct = async (productId: string) => {
-    if (!confirm("Are you sure you want to delete this product? It will be hidden from the marketplace.")) return;
+    if (
+      !confirm(
+        "Are you sure you want to delete this product? It will be hidden from the marketplace."
+      )
+    )
+      return;
 
     try {
       // Soft delete - set deleted_at timestamp instead of hard delete
@@ -158,7 +168,9 @@ const VendorProducts = () => {
       description: product.description,
       categoryId: product.category_id,
       imageUrl: product.image_url,
-      images: (product.product_images || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => img.image_url),
+      images: (product.product_images || [])
+        .sort((a: any, b: any) => a.sort_order - b.sort_order)
+        .map((img: any) => img.image_url),
       inStock: product.in_stock,
       variants: product.product_variants || [],
     });
@@ -180,7 +192,9 @@ const VendorProducts = () => {
     return (
       <div className="p-4 md:p-8">
         <div className="card-brutal p-6 md:p-8 text-center">
-          <h2 className="font-heading text-xl md:text-2xl uppercase mb-4">Set Up Your Store First</h2>
+          <h2 className="font-heading text-xl md:text-2xl uppercase mb-4">
+            Set Up Your Store First
+          </h2>
           <p className="text-muted-foreground mb-6 text-sm md:text-base">
             You need to set up your store before adding products.
           </p>
@@ -254,16 +268,10 @@ const VendorProducts = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-sm truncate">{product.name}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {product.category?.name || "-"}
-                    </p>
-                    <p className="font-heading mt-1">
-                      {formatPrice(Number(product.price))}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{product.category?.name || "-"}</p>
+                    <p className="font-heading mt-1">{formatPrice(Number(product.price))}</p>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-xs font-heading">
-                        {product.totalStock} in stock
-                      </span>
+                      <span className="text-xs font-heading">{product.totalStock} in stock</span>
                     </div>
                     <div className="flex items-center gap-2 mt-2">
                       <span
@@ -340,13 +348,13 @@ const VendorProducts = () => {
                           <span className="font-medium">{product.name}</span>
                         </div>
                       </td>
-                      <td className="p-4 text-muted-foreground">
-                        {product.category?.name || "-"}
-                      </td>
+                      <td className="p-4 text-muted-foreground">{product.category?.name || "-"}</td>
                       <td className="p-4">{formatPrice(Number(product.price))}</td>
                       <td className="p-4">
                         {product.totalStock > 0 ? (
-                          <span className="text-success font-heading">{product.totalStock} in stock</span>
+                          <span className="text-success font-heading">
+                            {product.totalStock} in stock
+                          </span>
                         ) : (
                           <span className="text-destructive font-heading">Out of Stock</span>
                         )}

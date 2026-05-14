@@ -67,7 +67,15 @@ const AddAddress = () => {
     e.preventDefault();
     if (!user) return;
 
-    if (!formData.full_name || !formData.phone || !formData.street || !formData.barangay || !formData.province || !formData.city || !formData.zip_code) {
+    if (
+      !formData.full_name ||
+      !formData.phone ||
+      !formData.street ||
+      !formData.barangay ||
+      !formData.province ||
+      !formData.city ||
+      !formData.zip_code
+    ) {
       toast({ title: "Please fill all fields", variant: "destructive" });
       return;
     }
@@ -92,7 +100,11 @@ const AddAddress = () => {
       toast({ title: "Address saved" });
       navigate(returnTo || "/account/profile");
     } catch (error: any) {
-      toast({ title: "Failed to save address", description: error.message, variant: "destructive" });
+      toast({
+        title: "Failed to save address",
+        description: error.message,
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -110,9 +122,7 @@ const AddAddress = () => {
             Back
           </button>
 
-          <h1 className="font-heading text-3xl md:text-4xl uppercase mb-6">
-            Add Address
-          </h1>
+          <h1 className="font-heading text-3xl md:text-4xl uppercase mb-6">Add Address</h1>
 
           <div className="card-brutal p-6 md:p-8">
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -201,10 +211,7 @@ const AddAddress = () => {
                 <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
                   Province
                 </label>
-                <Select
-                  value={formData.province}
-                  onValueChange={handleProvinceChange}
-                >
+                <Select value={formData.province} onValueChange={handleProvinceChange}>
                   <SelectTrigger className="input-brutal">
                     <SelectValue placeholder="Select province" />
                   </SelectTrigger>
@@ -229,7 +236,9 @@ const AddAddress = () => {
                   disabled={!formData.province}
                 >
                   <SelectTrigger className="input-brutal">
-                    <SelectValue placeholder={formData.province ? "Select city" : "Select province first"} />
+                    <SelectValue
+                      placeholder={formData.province ? "Select city" : "Select province first"}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {selectedProvince?.cities.map((c) => (

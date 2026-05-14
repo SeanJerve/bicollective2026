@@ -33,13 +33,15 @@ const Disputes = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("disputes")
-        .select(`
+        .select(
+          `
           *,
           vendor_order:vendor_orders(
             id,
             brand:brands(name, slug)
           )
-        `)
+        `
+        )
         .eq("customer_id", user!.id)
         .order("created_at", { ascending: false });
 
@@ -88,10 +90,7 @@ const Disputes = () => {
           ) : disputes && disputes.length > 0 ? (
             <div className="space-y-4">
               {disputes.map((dispute: any) => (
-                <div
-                  key={dispute.id}
-                  className="card-brutal p-4 md:p-6"
-                >
+                <div key={dispute.id} className="card-brutal p-4 md:p-6">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 bg-warning/20 flex items-center justify-center flex-shrink-0">
@@ -179,8 +178,8 @@ const Disputes = () => {
               <CheckCircle className="w-12 h-12 mx-auto mb-4 text-success" />
               <h2 className="font-heading text-xl uppercase mb-2">No Disputes</h2>
               <p className="text-muted-foreground mb-6">
-                You haven't filed any disputes. If you have issues with an order,
-                you can report them from your order details page.
+                You haven't filed any disputes. If you have issues with an order, you can report
+                them from your order details page.
               </p>
               <Link to="/account/orders" className="btn-brutal-secondary">
                 View Orders

@@ -47,32 +47,34 @@ const VendorReviews = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reviews")
-        .select(`
+        .select(
+          `
           *,
           product:products(name, slug)
-        `)
+        `
+        )
         .eq("brand_id", brand!.id)
         .order("created_at", { ascending: false })
         .limit(50);
-      
+
       if (error) throw error;
       if (!data) return [];
 
       // Manual enrichment for profiles
-      const userIds = [...new Set(data.map(r => r.user_id))];
+      const userIds = [...new Set(data.map((r) => r.user_id))];
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
           .select("user_id, full_name, avatar_url")
           .in("user_id", userIds);
-        
-        const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-        return data.map(r => ({
+
+        const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) || []);
+        return data.map((r) => ({
           ...r,
-          reviewer: profileMap.get(r.user_id) || { full_name: "Anonymous", avatar_url: null }
+          reviewer: profileMap.get(r.user_id) || { full_name: "Anonymous", avatar_url: null },
         }));
       }
-      
+
       return data;
     },
     enabled: !!brand,
@@ -114,7 +116,7 @@ const VendorReviews = () => {
 
       if (error) throw error;
 
-      setReportedIds(prev => new Set([...prev, reportingReview.id]));
+      setReportedIds((prev) => new Set([...prev, reportingReview.id]));
       toast({
         title: "Review reported",
         description: "Our admin team will review your report and take appropriate action.",
@@ -137,9 +139,13 @@ const VendorReviews = () => {
 
   const loading = brandLoading || reviewsLoading;
 
-  const stats = reviews && reviews.length > 0
-    ? { average: reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length, total: reviews.length }
-    : { average: 0, total: 0 };
+  const stats =
+    reviews && reviews.length > 0
+      ? {
+          average: reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length,
+          total: reviews.length,
+        }
+      : { average: 0, total: 0 };
 
   const alreadyReported = (reviewId: string) =>
     reportedIds.has(reviewId) || (existingReports?.has(reviewId) ?? false);
@@ -157,8 +163,12 @@ const VendorReviews = () => {
       <div className="p-4 md:p-8">
         <div className="card-brutal p-8 text-center">
           <h2 className="font-heading text-xl uppercase mb-4">Store Not Found</h2>
-          <p className="text-muted-foreground mb-6">Set up your store to start receiving reviews.</p>
-          <Link to="/vendor/store" className="btn-brutal">Set Up Store</Link>
+          <p className="text-muted-foreground mb-6">
+            Set up your store to start receiving reviews.
+          </p>
+          <Link to="/vendor/store" className="btn-brutal">
+            Set Up Store
+          </Link>
         </div>
       </div>
     );
@@ -169,7 +179,9 @@ const VendorReviews = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
         <div>
           <h1 className="font-heading text-2xl md:text-4xl uppercase">Reviews</h1>
-          <p className="text-muted-foreground mt-1 text-sm md:text-base">Customer feedback for your products</p>
+          <p className="text-muted-foreground mt-1 text-sm md:text-base">
+            Customer feedback for your products
+          </p>
         </div>
       </div>
 
@@ -199,7 +211,10 @@ const VendorReviews = () => {
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
                 <div>
                   {review.product && (
-                    <Link to={`/products/${review.product.slug}`} className="font-medium text-sm hover:underline">
+                    <Link
+                      to={`/products/${review.product.slug}`}
+                      className="font-medium text-sm hover:underline"
+                    >
                       {review.product.name}
                     </Link>
                   )}
@@ -209,7 +224,9 @@ const VendorReviews = () => {
                         <Star
                           key={i}
                           className={`w-3 h-3 md:w-4 md:h-4 ${
-                            i < review.rating ? "fill-foreground" : "fill-muted stroke-muted-foreground"
+                            i < review.rating
+                              ? "fill-foreground"
+                              : "fill-muted stroke-muted-foreground"
                           }`}
                         />
                       ))}
@@ -217,7 +234,9 @@ const VendorReviews = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">{format(new Date(review.created_at), "PP")}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {format(new Date(review.created_at), "PP")}
+                  </span>
                   {/* Report Button */}
                   {alreadyReported(review.id) ? (
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground border border-border-subtle px-2 py-1">
@@ -244,7 +263,11 @@ const VendorReviews = () => {
               {/* Reviewer info */}
               <div className="flex items-center gap-2 mb-2">
                 {review.reviewer?.avatar_url ? (
-                  <img src={review.reviewer.avatar_url} alt="" className="w-5 h-5 rounded-full object-cover" />
+                  <img
+                    src={review.reviewer.avatar_url}
+                    alt=""
+                    className="w-5 h-5 rounded-full object-cover"
+                  />
                 ) : (
                   <div className="w-5 h-5 bg-muted flex items-center justify-center rounded-full">
                     <User className="w-3 h-3 text-muted-foreground" />
@@ -255,9 +278,7 @@ const VendorReviews = () => {
                 </span>
               </div>
 
-              {review.comment && (
-                <p className="text-sm text-muted-foreground">{review.comment}</p>
-              )}
+              {review.comment && <p className="text-sm text-muted-foreground">{review.comment}</p>}
             </div>
           ))}
         </div>
@@ -265,7 +286,9 @@ const VendorReviews = () => {
         <div className="card-brutal p-8 md:p-12 text-center">
           <MessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
           <h3 className="font-heading text-xl uppercase mb-2">No Reviews Yet</h3>
-          <p className="text-muted-foreground text-sm">Reviews will appear here once customers leave feedback on your products.</p>
+          <p className="text-muted-foreground text-sm">
+            Reviews will appear here once customers leave feedback on your products.
+          </p>
         </div>
       )}
 
@@ -287,7 +310,10 @@ const VendorReviews = () => {
             <div className="bg-secondary p-3 mb-6 text-sm">
               <div className="flex items-center gap-1 mb-1">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className={`w-3 h-3 ${i < reportingReview.rating ? "fill-foreground" : "fill-muted"}`} />
+                  <Star
+                    key={i}
+                    className={`w-3 h-3 ${i < reportingReview.rating ? "fill-foreground" : "fill-muted"}`}
+                  />
                 ))}
               </div>
               <p className="text-muted-foreground line-clamp-3">
@@ -299,7 +325,8 @@ const VendorReviews = () => {
             </div>
 
             <p className="text-sm text-muted-foreground mb-4">
-              Select a reason for reporting this review. Our admin team will review and take action within 24–48 hours.
+              Select a reason for reporting this review. Our admin team will review and take action
+              within 24–48 hours.
             </p>
 
             <div className="space-y-2 mb-4">
@@ -313,7 +340,9 @@ const VendorReviews = () => {
                     onChange={() => setReportReason(reason)}
                     className="w-4 h-4"
                   />
-                  <span className="text-sm group-hover:text-foreground transition-colors">{reason}</span>
+                  <span className="text-sm group-hover:text-foreground transition-colors">
+                    {reason}
+                  </span>
                 </label>
               ))}
             </div>

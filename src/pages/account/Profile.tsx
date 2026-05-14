@@ -22,11 +22,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import VerificationSection from "@/components/vendor/VerificationSection";
 
 const Profile = () => {
@@ -122,9 +118,7 @@ const Profile = () => {
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from("profile-pictures")
-        .getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from("profile-pictures").getPublicUrl(filePath);
 
       const newUrl = urlData.publicUrl;
 
@@ -226,10 +220,7 @@ const Profile = () => {
 
   const handleDeleteAddress = async (addressId: string) => {
     try {
-      const { error } = await supabase
-        .from("addresses")
-        .delete()
-        .eq("id", addressId);
+      const { error } = await supabase.from("addresses").delete().eq("id", addressId);
 
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["user-addresses"] });
@@ -308,13 +299,12 @@ const Profile = () => {
             <ChevronLeft className="w-3 h-3" />
             Back to Marketplace
           </Link>
-          <h1 className="font-heading text-3xl md:text-4xl uppercase mb-6">
-            Profile Settings
-          </h1>
+          <h1 className="font-heading text-3xl md:text-4xl uppercase mb-6">Profile Settings</h1>
 
           {/* Two-column layout for vendors, single column for customers */}
-          <div className={`${isVendor ? "grid grid-cols-1 lg:grid-cols-2 gap-8 items-start" : "space-y-0"}`}>
-
+          <div
+            className={`${isVendor ? "grid grid-cols-1 lg:grid-cols-2 gap-8 items-start" : "space-y-0"}`}
+          >
             {/* LEFT COLUMN — Profile info for everyone */}
             <div className="space-y-6">
               {/* Avatar Section */}
@@ -323,11 +313,7 @@ const Profile = () => {
                   <div className="relative group">
                     <div className="w-20 h-20 md:w-24 md:h-24 border-2 border-foreground bg-muted overflow-hidden flex items-center justify-center flex-shrink-0">
                       {avatarUrl ? (
-                        <img
-                          src={avatarUrl}
-                          alt="Profile"
-                          className="w-full h-full object-cover"
-                        />
+                        <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
                       ) : (
                         <User className="w-8 h-8 md:w-10 md:h-10 text-muted-foreground" />
                       )}
@@ -382,9 +368,7 @@ const Profile = () => {
                       <input
                         type="text"
                         value={formData.full_name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, full_name: e.target.value })
-                        }
+                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                         className="input-brutal pl-12"
                         placeholder="Juan Dela Cruz"
                       />
@@ -400,9 +384,7 @@ const Profile = () => {
                       <input
                         type="tel"
                         value={formData.phone}
-                        onChange={(e) =>
-                          setFormData({ ...formData, phone: e.target.value })
-                        }
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                         className="input-brutal pl-12"
                         placeholder="+63 9XX XXX XXXX"
                       />
@@ -436,19 +418,14 @@ const Profile = () => {
                   <CollapsibleTrigger className="w-full p-6 flex items-center justify-between text-left">
                     <div className="flex items-center gap-3">
                       <Lock className="w-5 h-5" />
-                      <span className="font-heading text-lg uppercase">
-                        Change Password
-                      </span>
+                      <span className="font-heading text-lg uppercase">Change Password</span>
                     </div>
                     <span className="text-xs text-muted-foreground">
                       {passwordOpen ? "Close" : "Expand"}
                     </span>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
-                    <form
-                      onSubmit={handlePasswordChange}
-                      className="p-6 pt-0 space-y-4"
-                    >
+                    <form onSubmit={handlePasswordChange} className="p-6 pt-0 space-y-4">
                       <div>
                         <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
                           New Password
@@ -537,24 +514,18 @@ const Profile = () => {
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <span className="font-heading text-sm">
-                                {addr.full_name}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                ({addr.label})
-                              </span>
+                              <span className="font-heading text-sm">{addr.full_name}</span>
+                              <span className="text-xs text-muted-foreground">({addr.label})</span>
                               {addr.is_default && (
                                 <span className="text-xs bg-foreground text-background px-2 py-0.5">
                                   DEFAULT
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                              {addr.phone}
-                            </p>
+                            <p className="text-xs text-muted-foreground">{addr.phone}</p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              {addr.street}, {addr.barangay}, {addr.city},{" "}
-                              {addr.province} {addr.zip_code}
+                              {addr.street}, {addr.barangay}, {addr.city}, {addr.province}{" "}
+                              {addr.zip_code}
                             </p>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
@@ -582,9 +553,7 @@ const Profile = () => {
                 ) : (
                   <div className="card-brutal p-8 text-center">
                     <MapPin className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground mb-4">
-                      No addresses saved yet
-                    </p>
+                    <p className="text-sm text-muted-foreground mb-4">No addresses saved yet</p>
                     <button
                       onClick={() => navigate("/account/add-address")}
                       className="btn-brutal text-sm"
@@ -617,16 +586,9 @@ const Profile = () => {
                         </p>
                         <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
                           <li>Your profile and personal data will be anonymized</li>
-                          <li>
-                            Your addresses, wishlist, and cart will be deleted
-                          </li>
-                          <li>
-                            If you are a vendor, your store and products will be
-                            archived
-                          </li>
-                          <li>
-                            Your past reviews will remain but be anonymized
-                          </li>
+                          <li>Your addresses, wishlist, and cart will be deleted</li>
+                          <li>If you are a vendor, your store and products will be archived</li>
+                          <li>Your past reviews will remain but be anonymized</li>
                           <li>You must have no active orders to proceed</li>
                         </ul>
                       </div>
@@ -658,29 +620,21 @@ const Profile = () => {
                             } = await supabase.auth.getSession();
                             if (!session) throw new Error("Not authenticated");
 
-                            const res = await supabase.functions.invoke(
-                              "delete-account",
-                              {
-                                headers: {
-                                  Authorization: `Bearer ${session.access_token}`,
-                                },
-                              }
-                            );
+                            const res = await supabase.functions.invoke("delete-account", {
+                              headers: {
+                                Authorization: `Bearer ${session.access_token}`,
+                              },
+                            });
 
-                            if (res.error)
-                              throw new Error(
-                                res.error.message || "Deletion failed"
-                              );
+                            if (res.error) throw new Error(res.error.message || "Deletion failed");
 
                             const responseData = res.data;
-                            if (responseData?.error)
-                              throw new Error(responseData.error);
+                            if (responseData?.error) throw new Error(responseData.error);
 
                             await supabase.auth.signOut();
                             toast({
                               title: "Account deleted",
-                              description:
-                                "Your account has been permanently deleted.",
+                              description: "Your account has been permanently deleted.",
                             });
                             navigate("/");
                           } catch (error: any) {
@@ -701,9 +655,7 @@ const Profile = () => {
                         ) : (
                           <Trash2 className="w-4 h-4" />
                         )}
-                        {deleting
-                          ? "Deleting Account..."
-                          : "Permanently Delete My Account"}
+                        {deleting ? "Deleting Account..." : "Permanently Delete My Account"}
                       </button>
                     </div>
                   </CollapsibleContent>

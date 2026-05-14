@@ -32,7 +32,8 @@ const Brands = () => {
 
   usePageSEO({
     title: "Brands",
-    description: "Discover verified local Bicolano clothing brands. Explore trusted fashion partners from the Bicol region.",
+    description:
+      "Discover verified local Bicolano clothing brands. Explore trusted fashion partners from the Bicol region.",
   });
 
   const filteredBrands = (brands || []).filter((b) => {

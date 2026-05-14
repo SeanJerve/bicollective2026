@@ -1,6 +1,21 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ShoppingBag, Menu, X, User, LogOut, LayoutDashboard, Shield, Search, Heart, Ticket, UserCog, Star, Store, MessageSquare } from "lucide-react";
+import {
+  ShoppingBag,
+  Menu,
+  X,
+  User,
+  LogOut,
+  LayoutDashboard,
+  Shield,
+  Search,
+  Heart,
+  Ticket,
+  UserCog,
+  Star,
+  Store,
+  MessageSquare,
+} from "lucide-react";
 import NotificationCenter from "./NotificationCenter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
@@ -51,7 +66,7 @@ const Header = ({ minimal = false }: HeaderProps) => {
     closeMenu();
     if (href === "/account/orders") dismiss("orderUpdates");
     if (href === "/account/messages") dismiss("unreadMessages");
-    
+
     if (isDisabledForAdmin(href)) {
       navigate("/coming-soon");
       return;
@@ -61,7 +76,12 @@ const Header = ({ minimal = false }: HeaderProps) => {
 
   const userMenuItems = [
     { href: "/account/orders", label: "My Orders", icon: ShoppingBag, badge: totalCustomer },
-    { href: "/account/messages", label: "Messages", icon: MessageSquare, badge: counts.unreadMessages },
+    {
+      href: "/account/messages",
+      label: "Messages",
+      icon: MessageSquare,
+      badge: counts.unreadMessages,
+    },
     { href: "/account/to-review", label: "To Review", icon: Star },
     { href: "/account/wishlist", label: "Wishlist", icon: Heart },
     { href: "/account/vouchers", label: "My Vouchers", icon: Ticket },
@@ -107,151 +127,160 @@ const Header = ({ minimal = false }: HeaderProps) => {
                 <Search className="w-5 h-5" />
               </button>
 
-            {/* Notification Center */}
-            {user && <NotificationCenter />}
+              {/* Notification Center */}
+              {user && <NotificationCenter />}
 
-            {/* User Menu */}
-            <div className="relative">
-              <button
-                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="p-2 hover:bg-secondary transition-colors border-2 border-transparent hover:border-foreground relative"
-                aria-label="Account"
-              >
-                <User className="w-5 h-5" />
-                {user && (
-                  <NotificationBadge
-                    count={(isAdmin ? totalAdmin : isVendor ? totalVendor + totalCustomer : totalCustomer) + counts.unreadMessages}
-                    dot
-                  />
-                )}
-              </button>
+              {/* User Menu */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="p-2 hover:bg-secondary transition-colors border-2 border-transparent hover:border-foreground relative"
+                  aria-label="Account"
+                >
+                  <User className="w-5 h-5" />
+                  {user && (
+                    <NotificationBadge
+                      count={
+                        (isAdmin
+                          ? totalAdmin
+                          : isVendor
+                            ? totalVendor + totalCustomer
+                            : totalCustomer) + counts.unreadMessages
+                      }
+                      dot
+                    />
+                  )}
+                </button>
 
-              {isUserMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 w-56 bg-background border-2 border-foreground shadow-brutal z-50">
-                  {user ? (
-                    <>
-                      <div className="p-4 border-b border-border-subtle">
-                        <p className="text-sm text-muted-foreground">Signed in as</p>
-                        <p className="text-sm font-medium truncate">{user.email}</p>
-                      </div>
-                      <div className="py-2">
-                        {!isAdmin && userMenuItems.map((item) => (
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-background border-2 border-foreground shadow-brutal z-50">
+                    {user ? (
+                      <>
+                        <div className="p-4 border-b border-border-subtle">
+                          <p className="text-sm text-muted-foreground">Signed in as</p>
+                          <p className="text-sm font-medium truncate">{user.email}</p>
+                        </div>
+                        <div className="py-2">
+                          {!isAdmin &&
+                            userMenuItems.map((item) => (
+                              <button
+                                key={item.href}
+                                onClick={() =>
+                                  handleNavClick(item.href, () => setIsUserMenuOpen(false))
+                                }
+                                className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary w-full text-left"
+                              >
+                                <item.icon className="w-4 h-4" />
+                                {item.label}
+                                {(item.badge ?? 0) > 0 && (
+                                  <span className="ml-auto min-w-[18px] h-[18px] bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 rounded-full">
+                                    {item.badge}
+                                  </span>
+                                )}
+                              </button>
+                            ))}
+                          {isVendor && !isAdmin && (
+                            <Link
+                              to="/vendor"
+                              onClick={() => setIsUserMenuOpen(false)}
+                              className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary relative"
+                            >
+                              <LayoutDashboard className="w-4 h-4" />
+                              Vendor Dashboard
+                              {totalVendor > 0 && (
+                                <span className="ml-auto min-w-[18px] h-[18px] bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 rounded-full">
+                                  {totalVendor}
+                                </span>
+                              )}
+                            </Link>
+                          )}
+                          {!isVendor && !isAdmin && (
+                            <Link
+                              to="/vendor/register"
+                              onClick={() => {
+                                setIsUserMenuOpen(false);
+                                dismiss("needsResubmission");
+                              }}
+                              className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary relative"
+                            >
+                              <Store className="w-4 h-4" />
+                              Become a Vendor
+                              {counts.needsResubmission > 0 && (
+                                <span className="ml-auto w-2 h-2 bg-destructive rounded-full"></span>
+                              )}
+                            </Link>
+                          )}
+                          {isAdmin && (
+                            <Link
+                              to="/admin"
+                              onClick={() => setIsUserMenuOpen(false)}
+                              className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary relative"
+                            >
+                              <Shield className="w-4 h-4" />
+                              Admin Panel
+                              {totalAdmin > 0 && (
+                                <span className="ml-auto min-w-[18px] h-[18px] bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 rounded-full">
+                                  {totalAdmin}
+                                </span>
+                              )}
+                            </Link>
+                          )}
                           <button
-                            key={item.href}
-                            onClick={() => handleNavClick(item.href, () => setIsUserMenuOpen(false))}
+                            onClick={handleSignOut}
                             className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary w-full text-left"
                           >
-                            <item.icon className="w-4 h-4" />
-                            {item.label}
-                            {(item.badge ?? 0) > 0 && (
-                              <span className="ml-auto min-w-[18px] h-[18px] bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 rounded-full">
-                                {item.badge}
-                              </span>
-                            )}
+                            <LogOut className="w-4 h-4" />
+                            Sign Out
                           </button>
-                        ))}
-                        {isVendor && !isAdmin && (
-                          <Link
-                            to="/vendor"
-                            onClick={() => setIsUserMenuOpen(false)}
-                            className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary relative"
-                          >
-                            <LayoutDashboard className="w-4 h-4" />
-                            Vendor Dashboard
-                            {totalVendor > 0 && (
-                              <span className="ml-auto min-w-[18px] h-[18px] bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 rounded-full">
-                                {totalVendor}
-                              </span>
-                            )}
-                          </Link>
-                        )}
-                        {!isVendor && !isAdmin && (
-                          <Link
-                            to="/vendor/register"
-                            onClick={() => {
-                              setIsUserMenuOpen(false);
-                              dismiss("needsResubmission");
-                            }}
-                            className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary relative"
-                          >
-                            <Store className="w-4 h-4" />
-                            Become a Vendor
-                            {counts.needsResubmission > 0 && (
-                              <span className="ml-auto w-2 h-2 bg-destructive rounded-full"></span>
-                            )}
-                          </Link>
-                        )}
-                        {isAdmin && (
-                          <Link
-                            to="/admin"
-                            onClick={() => setIsUserMenuOpen(false)}
-                            className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary relative"
-                          >
-                            <Shield className="w-4 h-4" />
-                            Admin Panel
-                            {totalAdmin > 0 && (
-                              <span className="ml-auto min-w-[18px] h-[18px] bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 rounded-full">
-                                {totalAdmin}
-                              </span>
-                            )}
-                          </Link>
-                        )}
-                        <button
-                          onClick={handleSignOut}
-                          className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-secondary w-full text-left"
+                        </div>
+                      </>
+                    ) : (
+                      <div className="py-2">
+                        <Link
+                          to="/login"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="block px-4 py-2 text-sm hover:bg-secondary"
                         >
-                          <LogOut className="w-4 h-4" />
-                          Sign Out
-                        </button>
+                          Sign In
+                        </Link>
+                        <Link
+                          to="/register"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="block px-4 py-2 text-sm hover:bg-secondary"
+                        >
+                          Create Account
+                        </Link>
+                        <hr className="my-2 border-border-subtle" />
+                        <Link
+                          to="/vendor/register"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center justify-between px-4 py-2 text-sm hover:bg-secondary"
+                        >
+                          Become a Vendor
+                          {counts.needsResubmission > 0 && (
+                            <span className="w-2 h-2 bg-destructive rounded-full"></span>
+                          )}
+                        </Link>
                       </div>
-                    </>
-                  ) : (
-                    <div className="py-2">
-                      <Link
-                        to="/login"
-                        onClick={() => setIsUserMenuOpen(false)}
-                        className="block px-4 py-2 text-sm hover:bg-secondary"
-                      >
-                        Sign In
-                      </Link>
-                      <Link
-                        to="/register"
-                        onClick={() => setIsUserMenuOpen(false)}
-                        className="block px-4 py-2 text-sm hover:bg-secondary"
-                      >
-                        Create Account
-                      </Link>
-                      <hr className="my-2 border-border-subtle" />
-                      <Link
-                        to="/vendor/register"
-                        onClick={() => setIsUserMenuOpen(false)}
-                        className="flex items-center justify-between px-4 py-2 text-sm hover:bg-secondary"
-                      >
-                        Become a Vendor
-                        {counts.needsResubmission > 0 && (
-                          <span className="w-2 h-2 bg-destructive rounded-full"></span>
-                        )}
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {!isAdmin && (
-              <Link
-                to="/cart"
-                className="p-2 hover:bg-secondary transition-colors border-2 border-transparent hover:border-foreground relative"
-                aria-label="Cart"
-              >
-                <ShoppingBag className="w-5 h-5" />
-                {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-foreground text-background text-xs font-bold flex items-center justify-center">
-                    {itemCount > 99 ? "99+" : itemCount}
-                  </span>
+                    )}
+                  </div>
                 )}
-              </Link>
-            )}
+              </div>
+
+              {!isAdmin && (
+                <Link
+                  to="/cart"
+                  className="p-2 hover:bg-secondary transition-colors border-2 border-transparent hover:border-foreground relative"
+                  aria-label="Cart"
+                >
+                  <ShoppingBag className="w-5 h-5" />
+                  {itemCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-foreground text-background text-xs font-bold flex items-center justify-center">
+                      {itemCount > 99 ? "99+" : itemCount}
+                    </span>
+                  )}
+                </Link>
+              )}
             </div>
           )}
 
@@ -283,7 +312,13 @@ const Header = ({ minimal = false }: HeaderProps) => {
                 {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                 {user && (
                   <NotificationBadge
-                    count={(isAdmin ? totalAdmin : isVendor ? totalVendor + totalCustomer : totalCustomer) + counts.unreadMessages}
+                    count={
+                      (isAdmin
+                        ? totalAdmin
+                        : isVendor
+                          ? totalVendor + totalCustomer
+                          : totalCustomer) + counts.unreadMessages
+                    }
                   />
                 )}
               </button>
@@ -291,13 +326,10 @@ const Header = ({ minimal = false }: HeaderProps) => {
           )}
         </div>
 
-      {/* Search Bar */}
+        {/* Search Bar */}
         {isSearchOpen && (
           <div className="py-4 border-t-2 border-foreground animate-fade-in">
-            <SearchAutocomplete
-              autoFocus
-              onClose={() => setIsSearchOpen(false)}
-            />
+            <SearchAutocomplete autoFocus onClose={() => setIsSearchOpen(false)} />
           </div>
         )}
       </div>
@@ -401,10 +433,7 @@ const Header = ({ minimal = false }: HeaderProps) => {
 
       {/* Overlay for user menu */}
       {isUserMenuOpen && (
-        <div
-          className="fixed inset-0 z-[45]"
-          onClick={() => setIsUserMenuOpen(false)}
-        />
+        <div className="fixed inset-0 z-[45]" onClick={() => setIsUserMenuOpen(false)} />
       )}
     </header>
   );

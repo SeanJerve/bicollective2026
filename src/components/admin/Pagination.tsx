@@ -15,7 +15,11 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) 
   } else {
     pages.push(1);
     if (currentPage > 3) pages.push("...");
-    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+    for (
+      let i = Math.max(2, currentPage - 1);
+      i <= Math.min(totalPages - 1, currentPage + 1);
+      i++
+    ) {
       pages.push(i);
     }
     if (currentPage < totalPages - 2) pages.push("...");
@@ -33,15 +37,15 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) 
       </button>
       {pages.map((page, i) =>
         page === "..." ? (
-          <span key={`e${i}`} className="px-2 text-muted-foreground">…</span>
+          <span key={`e${i}`} className="px-2 text-muted-foreground">
+            …
+          </span>
         ) : (
           <button
             key={page}
             onClick={() => onPageChange(page)}
             className={`w-9 h-9 text-sm font-heading ${
-              page === currentPage
-                ? "bg-foreground text-background"
-                : "hover:bg-secondary"
+              page === currentPage ? "bg-foreground text-background" : "hover:bg-secondary"
             }`}
           >
             {page}

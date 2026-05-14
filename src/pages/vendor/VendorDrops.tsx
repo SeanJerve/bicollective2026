@@ -39,10 +39,12 @@ const VendorDrops = () => {
     queryFn: async () => {
       const { data, error } = await (supabase
         .from("product_drops" as any)
-        .select(`
+        .select(
+          `
           *,
           notifications:product_drop_notifications(count)
-        `)
+        `
+        )
         .eq("brand_id", brand?.id)
         .order("launch_date", { ascending: true }) as any);
       if (error) throw error;
@@ -77,7 +79,10 @@ const VendorDrops = () => {
 
   const toggleActive = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await (supabase.from("product_drops" as any).update({ is_active }).eq("id", id) as any);
+      const { error } = await (supabase
+        .from("product_drops" as any)
+        .update({ is_active })
+        .eq("id", id) as any);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -88,7 +93,10 @@ const VendorDrops = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase.from("product_drops" as any).delete().eq("id", id) as any);
+      const { error } = await (supabase
+        .from("product_drops" as any)
+        .delete()
+        .eq("id", id) as any);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -120,10 +128,12 @@ const VendorDrops = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div>
-                <label className="font-heading text-sm uppercase tracking-wide mb-1.5 block">Release Title *</label>
-                <input 
-                  type="text" 
-                  required 
+                <label className="font-heading text-sm uppercase tracking-wide mb-1.5 block">
+                  Release Title *
+                </label>
+                <input
+                  type="text"
+                  required
                   className="input-brutal w-full"
                   placeholder="e.g. Summer Collection '26"
                   value={form.title}
@@ -132,10 +142,12 @@ const VendorDrops = () => {
               </div>
 
               <div>
-                <label className="font-heading text-sm uppercase tracking-wide mb-1.5 block">Launch Date & Time *</label>
-                <input 
-                  type="datetime-local" 
-                  required 
+                <label className="font-heading text-sm uppercase tracking-wide mb-1.5 block">
+                  Launch Date & Time *
+                </label>
+                <input
+                  type="datetime-local"
+                  required
                   className="input-brutal w-full"
                   value={form.launch_date}
                   onChange={(e) => setForm({ ...form, launch_date: e.target.value })}
@@ -143,8 +155,10 @@ const VendorDrops = () => {
               </div>
 
               <div>
-                <label className="font-heading text-sm uppercase tracking-wide mb-1.5 block">Description</label>
-                <textarea 
+                <label className="font-heading text-sm uppercase tracking-wide mb-1.5 block">
+                  Description
+                </label>
+                <textarea
                   className="input-brutal w-full min-h-[100px]"
                   placeholder="Briefly describe what customers can expect..."
                   value={form.description}
@@ -153,14 +167,16 @@ const VendorDrops = () => {
               </div>
 
               <div className="flex items-center gap-3">
-                <input 
-                  type="checkbox" 
-                  id="active" 
+                <input
+                  type="checkbox"
+                  id="active"
                   checked={form.is_active}
                   onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
                   className="w-5 h-5 accent-foreground"
                 />
-                <label htmlFor="active" className="font-heading text-sm uppercase">Make Visible Immediately</label>
+                <label htmlFor="active" className="font-heading text-sm uppercase">
+                  Make Visible Immediately
+                </label>
               </div>
             </div>
 
@@ -176,16 +192,22 @@ const VendorDrops = () => {
               />
               {form.image_url && (
                 <div className="mt-4 border-2 border-foreground overflow-hidden bg-muted aspect-video">
-                  <img src={form.image_url} alt="Trailer Preview" className="w-full h-full object-cover" />
+                  <img
+                    src={form.image_url}
+                    alt="Trailer Preview"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               )}
             </div>
           </div>
 
           <div className="flex gap-4 mt-8 pt-4 border-t border-border-subtle">
-            <button 
-              onClick={() => saveMutation.mutate(form)} 
-              disabled={saveMutation.isPending || !form.title || !form.launch_date || !form.image_url} 
+            <button
+              onClick={() => saveMutation.mutate(form)}
+              disabled={
+                saveMutation.isPending || !form.title || !form.launch_date || !form.image_url
+              }
               className="btn-brutal"
             >
               {saveMutation.isPending ? "Publishing..." : "Publish Trailer"}
@@ -209,12 +231,21 @@ const VendorDrops = () => {
             const notifCount = drop.notifications?.[0]?.count || 0;
 
             return (
-              <div key={drop.id} className={`card-brutal flex flex-col overflow-hidden ${!drop.is_active ? 'opacity-60' : ''}`}>
+              <div
+                key={drop.id}
+                className={`card-brutal flex flex-col overflow-hidden ${!drop.is_active ? "opacity-60" : ""}`}
+              >
                 <div className="relative aspect-video bg-muted border-b-2 border-foreground">
-                  <img src={drop.image_url} alt={drop.title} className="w-full h-full object-cover" />
+                  <img
+                    src={drop.image_url}
+                    alt={drop.title}
+                    className="w-full h-full object-cover"
+                  />
                   <div className="absolute top-2 right-2 flex flex-col gap-2">
-                    <span className={`px-2 py-1 text-xs font-bold uppercase ${drop.is_active ? 'bg-success text-success-foreground' : 'bg-muted text-muted-foreground'}`}>
-                      {drop.is_active ? 'Visible' : 'Hidden'}
+                    <span
+                      className={`px-2 py-1 text-xs font-bold uppercase ${drop.is_active ? "bg-success text-success-foreground" : "bg-muted text-muted-foreground"}`}
+                    >
+                      {drop.is_active ? "Visible" : "Hidden"}
                     </span>
                     {isLaunched && (
                       <span className="px-2 py-1 text-xs font-bold uppercase bg-foreground text-background">
@@ -223,36 +254,50 @@ const VendorDrops = () => {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="p-4 flex-1 flex flex-col bg-background">
-                  <h3 className="font-heading text-lg uppercase mb-1 line-clamp-1" title={drop.title}>{drop.title}</h3>
+                  <h3
+                    className="font-heading text-lg uppercase mb-1 line-clamp-1"
+                    title={drop.title}
+                  >
+                    {drop.title}
+                  </h3>
                   <div className="flex items-center text-xs text-muted-foreground mb-3 bg-secondary/50 p-2 border border-border-subtle">
                     <Calendar className="w-4 h-4 mr-2 text-foreground" />
-                    <span className="font-medium text-foreground">{new Date(drop.launch_date).toLocaleString()}</span>
+                    <span className="font-medium text-foreground">
+                      {new Date(drop.launch_date).toLocaleString()}
+                    </span>
                   </div>
-                  
+
                   {drop.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{drop.description}</p>
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                      {drop.description}
+                    </p>
                   )}
 
                   <div className="mt-auto">
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-1 flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                        {notifCount} User{notifCount !== 1 ? 's' : ''} Notified
+                        {notifCount} User{notifCount !== 1 ? "s" : ""} Notified
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2 border-t border-border-subtle pt-4">
-                      <button 
-                        onClick={() => toggleActive.mutate({ id: drop.id, is_active: !drop.is_active })}
-                        className={`flex-1 text-xs px-3 py-2 flex items-center justify-center font-bold uppercase transition-colors border-2 border-transparent ${drop.is_active ? 'bg-secondary hover:border-foreground/20' : 'bg-success hover:bg-success/90 text-success-foreground'}`}
+                      <button
+                        onClick={() =>
+                          toggleActive.mutate({ id: drop.id, is_active: !drop.is_active })
+                        }
+                        className={`flex-1 text-xs px-3 py-2 flex items-center justify-center font-bold uppercase transition-colors border-2 border-transparent ${drop.is_active ? "bg-secondary hover:border-foreground/20" : "bg-success hover:bg-success/90 text-success-foreground"}`}
                       >
                         <Power className="w-3 h-3 mr-2" />
-                        {drop.is_active ? 'Hide' : 'Show'}
+                        {drop.is_active ? "Hide" : "Show"}
                       </button>
-                      <button 
-                        onClick={() => { if(confirm("Are you sure you want to delete this trailer?")) deleteMutation.mutate(drop.id); }}
+                      <button
+                        onClick={() => {
+                          if (confirm("Are you sure you want to delete this trailer?"))
+                            deleteMutation.mutate(drop.id);
+                        }}
                         className="btn-brutal-secondary text-destructive px-3 py-2"
                         title="Delete Trailer"
                       >
@@ -269,8 +314,13 @@ const VendorDrops = () => {
         <div className="card-brutal p-12 text-center bg-secondary/5 border-dashed">
           <Calendar className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
           <h2 className="font-heading text-xl uppercase mb-2">No Upcoming Drops</h2>
-          <p className="text-muted-foreground mb-6 max-w-sm mx-auto">Build hype by scheduling trailers for your future collections and products.</p>
-          <button onClick={() => setShowForm(true)} className="btn-brutal px-8 shadow-[4px_4px_0_0_#000]">
+          <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+            Build hype by scheduling trailers for your future collections and products.
+          </p>
+          <button
+            onClick={() => setShowForm(true)}
+            className="btn-brutal px-8 shadow-[4px_4px_0_0_#000]"
+          >
             <Plus className="w-4 h-4 mr-2" /> Create First Trailer
           </button>
         </div>

@@ -20,10 +20,20 @@ const AdminPaymentProof = ({ path, paymentMethod }: AdminPaymentProofProps) => {
 
   if (!url) return null;
 
-  const label = paymentMethod === "gcash" ? "GCash" : paymentMethod === "bank_transfer" ? "Bank Transfer" : "COD";
+  const label =
+    paymentMethod === "gcash"
+      ? "GCash"
+      : paymentMethod === "bank_transfer"
+        ? "Bank Transfer"
+        : "COD";
 
   return (
-    <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline">
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+    >
       <Image className="w-3.5 h-3.5" />
       Proof ({label})
     </a>

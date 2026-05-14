@@ -13,7 +13,7 @@ const VerifiedBadge = ({ size = "sm", className = "" }: VerifiedBadgeProps) => {
   };
 
   return (
-    <div 
+    <div
       className={`inline-flex items-center justify-center bg-primary text-primary-foreground rounded-full border border-foreground shadow-sm ${sizeClasses[size]} ${className}`}
       title="Verified Brand"
     >

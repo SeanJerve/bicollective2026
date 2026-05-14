@@ -30,16 +30,17 @@ const VoucherSelector = ({ onSelect, selectedVoucherId, orderTotal }: VoucherSel
     queryKey: ["available-vouchers", user?.id],
     queryFn: async () => {
       const now = new Date().toISOString();
-      const { data, error } = await ((supabase
-        .from("user_discount_claims") as any)
-        .select(`
+      const { data, error } = await (supabase.from("user_discount_claims") as any)
+        .select(
+          `
           *,
           discounts!inner(*)
-        `)
+        `
+        )
         .eq("user_id", user!.id)
         .eq("status", "active")
         .gte("discounts.ends_at", now)
-        .order("discounts(discount_value)", { ascending: false }));
+        .order("discounts(discount_value)", { ascending: false });
 
       if (error) throw error;
       return (data || []).map((v: any) => ({
@@ -74,9 +75,7 @@ const VoucherSelector = ({ onSelect, selectedVoucherId, orderTotal }: VoucherSel
   const nonApplicableVouchers = vouchers?.filter((v) => !isVoucherApplicable(v)) || [];
 
   if (isLoading) {
-    return (
-      <div className="skeleton-brutal h-12 w-full" />
-    );
+    return <div className="skeleton-brutal h-12 w-full" />;
   }
 
   if (!vouchers || vouchers.length === 0) {
@@ -109,11 +108,7 @@ const VoucherSelector = ({ onSelect, selectedVoucherId, orderTotal }: VoucherSel
             </span>
           )}
         </div>
-        {isExpanded ? (
-          <ChevronUp className="w-4 h-4" />
-        ) : (
-          <ChevronDown className="w-4 h-4" />
-        )}
+        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
       </button>
 
       {isExpanded && (
@@ -146,18 +141,14 @@ const VoucherSelector = ({ onSelect, selectedVoucherId, orderTotal }: VoucherSel
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-heading text-sm">
-                    {getDiscountDisplay(voucher)}
-                  </div>
+                  <div className="font-heading text-sm">{getDiscountDisplay(voucher)}</div>
                   <div className="text-xs text-muted-foreground">{voucher.name}</div>
                   <div className="text-xs text-warning flex items-center gap-1 mt-1">
                     <Clock className="w-3 h-3" />
                     {formatDistanceToNow(new Date(voucher.expires_at), { addSuffix: true })}
                   </div>
                 </div>
-                {selectedVoucherId === voucher.id && (
-                  <Check className="w-4 h-4 text-success" />
-                )}
+                {selectedVoucherId === voucher.id && <Check className="w-4 h-4 text-success" />}
               </div>
             </button>
           ))}
@@ -173,9 +164,7 @@ const VoucherSelector = ({ onSelect, selectedVoucherId, orderTotal }: VoucherSel
                   key={voucher.id}
                   className="w-full p-3 text-left opacity-50 border-t border-border-subtle"
                 >
-                  <div className="font-heading text-sm">
-                    {getDiscountDisplay(voucher)}
-                  </div>
+                  <div className="font-heading text-sm">{getDiscountDisplay(voucher)}</div>
                   <div className="text-xs text-muted-foreground">{voucher.name}</div>
                   <div className="text-xs text-destructive mt-1">
                     Min. order: {formatPrice(Number(voucher.min_order_amount))}

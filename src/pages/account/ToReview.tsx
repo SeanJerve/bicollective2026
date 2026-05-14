@@ -25,7 +25,8 @@ const ToReview = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vendor_orders")
-        .select(`
+        .select(
+          `
           id,
           brand_id,
           status,
@@ -33,7 +34,8 @@ const ToReview = () => {
           brand:brands(id, name, slug),
           order:orders!inner(customer_id),
           items:order_items(id, product_name, product_price, quantity, size, product_id)
-        `)
+        `
+        )
         .eq("status", "delivered")
         .eq("order.customer_id", user!.id)
         .order("created_at", { ascending: false });
@@ -58,9 +60,7 @@ const ToReview = () => {
     enabled: !!user,
   });
 
-  const pendingReviews = deliveredOrders?.filter(
-    (vo) => !existingReviews?.has(vo.id)
-  );
+  const pendingReviews = deliveredOrders?.filter((vo) => !existingReviews?.has(vo.id));
 
   const handleSubmitReview = async (vendorOrder: any) => {
     if (!user || rating === 0) return;
@@ -78,9 +78,7 @@ const ToReview = () => {
             .from("review-media")
             .upload(path, file);
           if (uploadError) throw uploadError;
-          const { data: urlData } = supabase.storage
-            .from("review-media")
-            .getPublicUrl(path);
+          const { data: urlData } = supabase.storage.from("review-media").getPublicUrl(path);
           mediaUrls.push(urlData.publicUrl);
         }
         setUploadingMedia(false);
@@ -110,7 +108,11 @@ const ToReview = () => {
       queryClient.invalidateQueries({ queryKey: ["to-review-orders"] });
     } catch (error: any) {
       console.error("Error submitting review:", error);
-      toast({ title: "Failed to submit review", description: error.message, variant: "destructive" });
+      toast({
+        title: "Failed to submit review",
+        description: error.message,
+        variant: "destructive",
+      });
     } finally {
       setSubmitting(false);
       setUploadingMedia(false);
@@ -134,7 +136,9 @@ const ToReview = () => {
       <PageLayout>
         <div className="section-container py-16 text-center">
           <p className="text-muted-foreground mb-4">Please sign in to view reviews.</p>
-          <Link to="/login" className="btn-brutal">Sign In</Link>
+          <Link to="/login" className="btn-brutal">
+            Sign In
+          </Link>
         </div>
       </PageLayout>
     );
@@ -155,14 +159,19 @@ const ToReview = () => {
         <div className="section-container max-w-3xl">
           {isLoading ? (
             <div className="space-y-4">
-              {[1, 2, 3].map((i) => <div key={i} className="skeleton-brutal h-32" />)}
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="skeleton-brutal h-32" />
+              ))}
             </div>
           ) : pendingReviews && pendingReviews.length > 0 ? (
             <div className="space-y-6">
               {pendingReviews.map((vo: any) => (
                 <div key={vo.id} className="card-brutal p-4 md:p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <Link to={`/brands/${vo.brand?.slug}`} className="font-heading uppercase hover:opacity-60">
+                    <Link
+                      to={`/brands/${vo.brand?.slug}`}
+                      className="font-heading uppercase hover:opacity-60"
+                    >
                       {vo.brand?.name}
                     </Link>
                     <span className="text-xs text-muted-foreground">
@@ -212,7 +221,9 @@ const ToReview = () => {
 
                       {/* Comment */}
                       <div>
-                        <label className="block text-sm font-medium mb-2">Your Review (optional)</label>
+                        <label className="block text-sm font-medium mb-2">
+                          Your Review (optional)
+                        </label>
                         <textarea
                           value={comment}
                           onChange={(e) => setComment(e.target.value)}
@@ -230,9 +241,16 @@ const ToReview = () => {
                         </label>
                         <div className="flex flex-wrap gap-2 mb-2">
                           {mediaFiles.map((file, idx) => (
-                            <div key={idx} className="relative w-16 h-16 border-2 border-border-subtle bg-muted">
+                            <div
+                              key={idx}
+                              className="relative w-16 h-16 border-2 border-border-subtle bg-muted"
+                            >
                               {file.type.startsWith("image/") ? (
-                                <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
+                                <img
+                                  src={URL.createObjectURL(file)}
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
                                   Video
@@ -263,7 +281,12 @@ const ToReview = () => {
 
                       <div className="flex gap-2">
                         <button
-                          onClick={() => { setActiveReview(null); setRating(0); setComment(""); setMediaFiles([]); }}
+                          onClick={() => {
+                            setActiveReview(null);
+                            setRating(0);
+                            setComment("");
+                            setMediaFiles([]);
+                          }}
                           className="btn-brutal-secondary flex-1"
                         >
                           Cancel
@@ -274,7 +297,9 @@ const ToReview = () => {
                           className="btn-brutal flex-1 flex items-center justify-center gap-2"
                         >
                           {submitting ? (
-                            <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</>
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" /> Submitting...
+                            </>
                           ) : (
                             "Submit Review"
                           )}
@@ -283,7 +308,12 @@ const ToReview = () => {
                     </div>
                   ) : (
                     <button
-                      onClick={() => { setActiveReview(vo.id); setRating(0); setComment(""); setMediaFiles([]); }}
+                      onClick={() => {
+                        setActiveReview(vo.id);
+                        setRating(0);
+                        setComment("");
+                        setMediaFiles([]);
+                      }}
                       className="btn-brutal-secondary w-full flex items-center justify-center gap-2"
                     >
                       <Star className="w-4 h-4" />
@@ -300,7 +330,9 @@ const ToReview = () => {
               <p className="text-muted-foreground text-sm mb-6">
                 You don't have any pending reviews right now.
               </p>
-              <Link to="/products" className="btn-brutal">Continue Shopping</Link>
+              <Link to="/products" className="btn-brutal">
+                Continue Shopping
+              </Link>
             </div>
           )}
         </div>

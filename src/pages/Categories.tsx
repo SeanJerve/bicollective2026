@@ -19,9 +19,7 @@ const Categories = () => {
             <span>Categories</span>
           </nav>
           <h1 className="font-heading text-5xl md:text-6xl uppercase">Shop by Category</h1>
-          <p className="text-muted-foreground mt-2">
-            Browse our curated collections
-          </p>
+          <p className="text-muted-foreground mt-2">Browse our curated collections</p>
         </div>
       </section>
 

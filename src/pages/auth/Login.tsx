@@ -45,11 +45,11 @@ const Login = () => {
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
-    
+
     if (result.redirected) {
       return;
     }
-    
+
     if (result.error) {
       toast({
         title: "Sign in failed",
@@ -74,7 +74,7 @@ const Login = () => {
     <PageLayout header={<AuthHeader />} hideSaleBanner minimalHeader>
       <div className="flex-1 relative flex items-center justify-center min-h-[calc(100vh-80px)] overflow-hidden">
         {/* Background Image Container - Ready for future image */}
-        <div 
+        <div
           className="absolute inset-0 z-0 bg-secondary/30"
           style={{
             backgroundImage: "none", // User will add image here
@@ -82,7 +82,7 @@ const Login = () => {
             backgroundPosition: "center",
           }}
         />
-        
+
         <section className="relative z-10 w-full py-8 md:py-12">
           <div className="section-container max-w-md">
             {/* Title */}
@@ -154,11 +154,7 @@ const Login = () => {
                   </Link>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-brutal w-full text-sm"
-                >
+                <button type="submit" disabled={loading} className="btn-brutal w-full text-sm">
                   {loading ? "Signing in..." : "Sign In"}
                 </button>
               </form>
@@ -168,9 +164,7 @@ const Login = () => {
                   <div className="w-full border-t border-border-subtle" />
                 </div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="bg-background px-4 text-muted-foreground">
-                    Or continue with
-                  </span>
+                  <span className="bg-background px-4 text-muted-foreground">Or continue with</span>
                 </div>
               </div>
 
@@ -202,8 +196,13 @@ const Login = () => {
               <div className="mt-6 text-center">
                 <p className="text-[10px] md:text-xs text-muted-foreground leading-relaxed">
                   By signing up, you agree to Bicollective's{" "}
-                  <Link to="/terms" className="text-foreground font-medium hover:underline">Terms of Service</Link> &{" "}
-                  <Link to="/privacy" className="text-foreground font-medium hover:underline">Privacy Policy</Link>
+                  <Link to="/terms" className="text-foreground font-medium hover:underline">
+                    Terms of Service
+                  </Link>{" "}
+                  &{" "}
+                  <Link to="/privacy" className="text-foreground font-medium hover:underline">
+                    Privacy Policy
+                  </Link>
                 </p>
               </div>
 
@@ -217,10 +216,10 @@ const Login = () => {
 
             {/* Subtle Test Accounts Toggle or Link */}
             <div className="mt-8 text-center opacity-50 hover:opacity-100 transition-opacity">
-              <button 
+              <button
                 onClick={() => {
-                  const el = document.getElementById('test-accounts');
-                  if (el) el.classList.toggle('hidden');
+                  const el = document.getElementById("test-accounts");
+                  if (el) el.classList.toggle("hidden");
                 }}
                 className="text-[10px] uppercase tracking-widest hover:underline"
               >

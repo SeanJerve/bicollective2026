@@ -33,7 +33,13 @@ interface DirectMsg {
 const formatPrice = (amount: number) =>
   new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(amount);
 
-const DirectMessageDialog = ({ open, onClose, brandOwnerId, brandName, product }: DirectMessageDialogProps) => {
+const DirectMessageDialog = ({
+  open,
+  onClose,
+  brandOwnerId,
+  brandName,
+  product,
+}: DirectMessageDialogProps) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<DirectMsg[]>([]);
   const [newMsg, setNewMsg] = useState("");
@@ -48,7 +54,9 @@ const DirectMessageDialog = ({ open, onClose, brandOwnerId, brandName, product }
     const { data } = await supabase
       .from("direct_messages")
       .select("id, sender_id, content, created_at, product_id, product_name, product_image")
-      .or(`and(sender_id.eq.${user.id},receiver_id.eq.${brandOwnerId}),and(sender_id.eq.${brandOwnerId},receiver_id.eq.${user.id})`)
+      .or(
+        `and(sender_id.eq.${user.id},receiver_id.eq.${brandOwnerId}),and(sender_id.eq.${brandOwnerId},receiver_id.eq.${user.id})`
+      )
       .order("created_at", { ascending: true });
 
     setMessages(data || []);
@@ -69,22 +77,28 @@ const DirectMessageDialog = ({ open, onClose, brandOwnerId, brandName, product }
 
       const channel = supabase
         .channel(`dm-${user.id}-${brandOwnerId}`)
-        .on("postgres_changes", {
-          event: "INSERT",
-          schema: "public",
-          table: "direct_messages",
-        }, (payload) => {
-          const msg = payload.new as any;
-          if (
-            (msg.sender_id === user.id && msg.receiver_id === brandOwnerId) ||
-            (msg.sender_id === brandOwnerId && msg.receiver_id === user.id)
-          ) {
-            setMessages((prev) => [...prev, msg]);
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "direct_messages",
+          },
+          (payload) => {
+            const msg = payload.new as any;
+            if (
+              (msg.sender_id === user.id && msg.receiver_id === brandOwnerId) ||
+              (msg.sender_id === brandOwnerId && msg.receiver_id === user.id)
+            ) {
+              setMessages((prev) => [...prev, msg]);
+            }
           }
-        })
+        )
         .subscribe();
 
-      return () => { supabase.removeChannel(channel); };
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [open, user, brandOwnerId, fetchMessages]);
 
@@ -147,7 +161,9 @@ const DirectMessageDialog = ({ open, onClose, brandOwnerId, brandName, product }
               className="w-10 h-10 object-cover border border-border-subtle flex-shrink-0"
             />
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-heading uppercase truncate leading-tight">{product.name}</p>
+              <p className="text-xs font-heading uppercase truncate leading-tight">
+                {product.name}
+              </p>
               <p className="text-xs text-muted-foreground">{formatPrice(product.price)}</p>
             </div>
           </div>
@@ -163,7 +179,9 @@ const DirectMessageDialog = ({ open, onClose, brandOwnerId, brandName, product }
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-center">
               <MessageSquare className="w-10 h-10 mb-3 opacity-30" />
               <p className="text-sm font-heading uppercase">Start a conversation</p>
-              <p className="text-xs mt-1">Ask {brandName} about {product ? `"${product.name}"` : "their products"}</p>
+              <p className="text-xs mt-1">
+                Ask {brandName} about {product ? `"${product.name}"` : "their products"}
+              </p>
             </div>
           ) : (
             messages.map((msg) => {
@@ -180,7 +198,9 @@ const DirectMessageDialog = ({ open, onClose, brandOwnerId, brandName, product }
                           className="w-8 h-8 object-cover border border-border-subtle flex-shrink-0"
                         />
                         <div className="min-w-0">
-                          <p className="text-[10px] text-muted-foreground uppercase">Re: Product Inquiry</p>
+                          <p className="text-[10px] text-muted-foreground uppercase">
+                            Re: Product Inquiry
+                          </p>
                           <p className="text-xs font-medium truncate">{msg.product_name}</p>
                         </div>
                       </div>
@@ -195,7 +215,9 @@ const DirectMessageDialog = ({ open, onClose, brandOwnerId, brandName, product }
                       }`}
                     >
                       <p className="break-words">{msg.content}</p>
-                      <p className={`text-[10px] mt-1 ${isMine ? "text-background/60" : "text-muted-foreground"}`}>
+                      <p
+                        className={`text-[10px] mt-1 ${isMine ? "text-background/60" : "text-muted-foreground"}`}
+                      >
                         {format(new Date(msg.created_at), "h:mm a")}
                       </p>
                     </div>
@@ -209,7 +231,10 @@ const DirectMessageDialog = ({ open, onClose, brandOwnerId, brandName, product }
         {/* Input */}
         <div className="border-t-2 border-foreground p-3">
           <form
-            onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSend();
+            }}
             className="flex items-center gap-2"
           >
             <input

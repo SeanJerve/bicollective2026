@@ -43,7 +43,7 @@ const ProductForm = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     name: initialData?.name || "",
     slug: initialData?.slug || "",
@@ -88,9 +88,9 @@ const ProductForm = ({
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("product-images")
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("product-images").getPublicUrl(filePath);
 
       if (!formData.imageUrl) {
         setFormData((prev) => ({ ...prev, imageUrl: publicUrl }));
@@ -150,7 +150,7 @@ const ProductForm = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.price) {
       toast({
         title: "Missing fields",
@@ -190,10 +190,7 @@ const ProductForm = ({
       let productId = initialData?.id;
 
       if (productId) {
-        const { error } = await supabase
-          .from("products")
-          .update(productData)
-          .eq("id", productId);
+        const { error } = await supabase.from("products").update(productData).eq("id", productId);
         if (error) throw error;
       } else {
         const { data, error } = await supabase
@@ -217,12 +214,15 @@ const ProductForm = ({
       }
 
       // Sync Product Variants (Safer Upsert Path)
-      const existingVariants = await supabase.from("product_variants").select("id, size").eq("product_id", productId);
-      const existingIds = existingVariants.data?.map(v => v.id) || [];
-      const currentIds = formData.variants.map(v => v.id).filter(Boolean);
-      
+      const existingVariants = await supabase
+        .from("product_variants")
+        .select("id, size")
+        .eq("product_id", productId);
+      const existingIds = existingVariants.data?.map((v) => v.id) || [];
+      const currentIds = formData.variants.map((v) => v.id).filter(Boolean);
+
       // Delete removed variants
-      const toDelete = existingIds.filter(id => !currentIds.includes(id));
+      const toDelete = existingIds.filter((id) => !currentIds.includes(id));
       if (toDelete.length > 0) {
         await supabase.from("product_variants").delete().in("id", toDelete);
       }
@@ -235,7 +235,9 @@ const ProductForm = ({
         stock_quantity: v.stock_quantity,
       }));
       if (variantUpserts.length > 0) {
-        const { error: variantError } = await (supabase.from("product_variants").upsert(variantUpserts as any) as any);
+        const { error: variantError } = await (supabase
+          .from("product_variants")
+          .upsert(variantUpserts as any) as any);
         if (variantError) throw variantError;
       }
 
@@ -268,11 +270,7 @@ const ProductForm = ({
               key={url}
               className="relative w-24 h-24 md:w-32 md:h-32 border-2 border-foreground overflow-hidden group"
             >
-              <img
-                src={url}
-                alt={`Product ${idx + 1}`}
-                className="w-full h-full object-cover"
-              />
+              <img src={url} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" />
               <button
                 type="button"
                 onClick={() => removeImage(url)}
@@ -362,7 +360,9 @@ const ProductForm = ({
           <input
             type="number"
             value={formData.originalPrice}
-            onChange={(e) => setFormData((prev) => ({ ...prev, originalPrice: Number(e.target.value) }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, originalPrice: Number(e.target.value) }))
+            }
             className="input-brutal w-full"
             min="0"
             step="0.01"
@@ -437,7 +437,12 @@ const ProductForm = ({
             <input
               type="number"
               value={formData.preorderDiscountPercent}
-              onChange={(e) => setFormData((prev) => ({ ...prev, preorderDiscountPercent: Number(e.target.value) }))}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  preorderDiscountPercent: Number(e.target.value),
+                }))
+              }
               className="input-brutal w-full"
               min="0"
               max="100"
@@ -454,18 +459,25 @@ const ProductForm = ({
           </label>
           <button
             type="button"
-            onClick={() => setFormData(prev => ({ ...prev, variants: [...prev.variants, { size: "", stock_quantity: 0 }] }))}
+            onClick={() =>
+              setFormData((prev) => ({
+                ...prev,
+                variants: [...prev.variants, { size: "", stock_quantity: 0 }],
+              }))
+            }
             className="text-xs uppercase font-heading underline hover:text-accent"
           >
             + Add Size
           </button>
         </div>
-        
+
         <div className="space-y-3">
           {formData.variants.map((variant, idx) => (
             <div key={idx} className="flex items-end gap-3 animate-slide-in">
               <div className="flex-1">
-                <label className="text-[10px] uppercase font-bold text-muted-foreground mb-1 block">Size</label>
+                <label className="text-[10px] uppercase font-bold text-muted-foreground mb-1 block">
+                  Size
+                </label>
                 <input
                   type="text"
                   placeholder="e.g. M, 42, OS"
@@ -473,21 +485,23 @@ const ProductForm = ({
                   onChange={(e) => {
                     const newVariants = [...formData.variants];
                     newVariants[idx].size = e.target.value.toUpperCase();
-                    setFormData(prev => ({ ...prev, variants: newVariants }));
+                    setFormData((prev) => ({ ...prev, variants: newVariants }));
                   }}
                   className="input-brutal py-1.5 px-3 w-full"
                   required
                 />
               </div>
               <div className="w-24">
-                <label className="text-[10px] uppercase font-bold text-muted-foreground mb-1 block">Stock</label>
+                <label className="text-[10px] uppercase font-bold text-muted-foreground mb-1 block">
+                  Stock
+                </label>
                 <input
                   type="number"
                   value={variant.stock_quantity}
                   onChange={(e) => {
                     const newVariants = [...formData.variants];
                     newVariants[idx].stock_quantity = Number(e.target.value);
-                    setFormData(prev => ({ ...prev, variants: newVariants }));
+                    setFormData((prev) => ({ ...prev, variants: newVariants }));
                   }}
                   className="input-brutal py-1.5 px-3 w-full"
                   min="0"
@@ -498,7 +512,7 @@ const ProductForm = ({
                 type="button"
                 onClick={() => {
                   const newVariants = formData.variants.filter((_, i) => i !== idx);
-                  setFormData(prev => ({ ...prev, variants: newVariants }));
+                  setFormData((prev) => ({ ...prev, variants: newVariants }));
                 }}
                 className="p-2 border-2 border-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors h-[38px]"
               >
@@ -507,7 +521,9 @@ const ProductForm = ({
             </div>
           ))}
           {formData.variants.length === 0 && (
-            <p className="text-xs text-muted-foreground text-center py-2">No variants added. Please add at least one.</p>
+            <p className="text-xs text-muted-foreground text-center py-2">
+              No variants added. Please add at least one.
+            </p>
           )}
         </div>
 
@@ -527,18 +543,10 @@ const ProductForm = ({
 
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-3 pt-4">
-        <button
-          type="submit"
-          disabled={loading}
-          className="btn-brutal flex-1"
-        >
+        <button type="submit" disabled={loading} className="btn-brutal flex-1">
           {loading ? "Saving..." : initialData?.id ? "Update Product" : "Create Product"}
         </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="btn-brutal-secondary flex-1"
-        >
+        <button type="button" onClick={onCancel} className="btn-brutal-secondary flex-1">
           Cancel
         </button>
       </div>

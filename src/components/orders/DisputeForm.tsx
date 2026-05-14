@@ -47,9 +47,7 @@ const DisputeForm = ({ vendorOrderId, vendorId, onSuccess, onCancel }: DisputeFo
 
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage
-          .from("payment-proofs")
-          .getPublicUrl(fileName);
+        const { data: urlData } = supabase.storage.from("payment-proofs").getPublicUrl(fileName);
 
         return urlData.publicUrl;
       });
@@ -215,11 +213,7 @@ const DisputeForm = ({ vendorOrderId, vendorId, onSuccess, onCancel }: DisputeFo
         >
           Cancel
         </button>
-        <button
-          type="submit"
-          className="btn-brutal flex-1"
-          disabled={loading || !reason}
-        >
+        <button type="submit" className="btn-brutal flex-1" disabled={loading || !reason}>
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin mr-2" />

@@ -19,12 +19,54 @@ const BICOL_PROVINCES = [
 
 // Distance matrix (simplified) - higher = further
 const DISTANCE_MATRIX: Record<string, Record<string, number>> = {
-  "Albay": { "Albay": 0, "Camarines Norte": 2, "Camarines Sur": 1, "Catanduanes": 2, "Masbate": 2, "Sorsogon": 1 },
-  "Camarines Norte": { "Albay": 2, "Camarines Norte": 0, "Camarines Sur": 1, "Catanduanes": 3, "Masbate": 3, "Sorsogon": 3 },
-  "Camarines Sur": { "Albay": 1, "Camarines Norte": 1, "Camarines Sur": 0, "Catanduanes": 2, "Masbate": 2, "Sorsogon": 2 },
-  "Catanduanes": { "Albay": 2, "Camarines Norte": 3, "Camarines Sur": 2, "Catanduanes": 0, "Masbate": 3, "Sorsogon": 3 },
-  "Masbate": { "Albay": 2, "Camarines Norte": 3, "Camarines Sur": 2, "Catanduanes": 3, "Masbate": 0, "Sorsogon": 2 },
-  "Sorsogon": { "Albay": 1, "Camarines Norte": 3, "Camarines Sur": 2, "Catanduanes": 3, "Masbate": 2, "Sorsogon": 0 },
+  Albay: {
+    Albay: 0,
+    "Camarines Norte": 2,
+    "Camarines Sur": 1,
+    Catanduanes: 2,
+    Masbate: 2,
+    Sorsogon: 1,
+  },
+  "Camarines Norte": {
+    Albay: 2,
+    "Camarines Norte": 0,
+    "Camarines Sur": 1,
+    Catanduanes: 3,
+    Masbate: 3,
+    Sorsogon: 3,
+  },
+  "Camarines Sur": {
+    Albay: 1,
+    "Camarines Norte": 1,
+    "Camarines Sur": 0,
+    Catanduanes: 2,
+    Masbate: 2,
+    Sorsogon: 2,
+  },
+  Catanduanes: {
+    Albay: 2,
+    "Camarines Norte": 3,
+    "Camarines Sur": 2,
+    Catanduanes: 0,
+    Masbate: 3,
+    Sorsogon: 3,
+  },
+  Masbate: {
+    Albay: 2,
+    "Camarines Norte": 3,
+    "Camarines Sur": 2,
+    Catanduanes: 3,
+    Masbate: 0,
+    Sorsogon: 2,
+  },
+  Sorsogon: {
+    Albay: 1,
+    "Camarines Norte": 3,
+    "Camarines Sur": 2,
+    Catanduanes: 3,
+    Masbate: 2,
+    Sorsogon: 0,
+  },
 };
 
 const extractProvince = (location: string): string => {
@@ -54,11 +96,11 @@ const calculateShippingFee = (
   const distanceMultipliers = [1.0, 1.3, 1.5, 1.8];
   const multiplier = distanceMultipliers[Math.min(distance, 3)];
 
-  const fee = baseFee + (itemCount * perItemFee * multiplier) + 20; // Added 20 pesos platform margin
+  const fee = baseFee + itemCount * perItemFee * multiplier + 20; // Added 20 pesos platform margin
 
   // Cap at ₱120 (was ₱100 + 20)
   return Math.min(120, Math.round(fee));
-}
+};
 
 const ShippingCalculator = ({
   sellerLocation,

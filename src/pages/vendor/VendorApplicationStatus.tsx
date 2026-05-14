@@ -21,7 +21,8 @@ const statusConfig = {
     color: "text-success",
     bgColor: "bg-success/10",
     title: "Application Approved!",
-    description: "Congratulations! Your application has been approved. You can now access your vendor dashboard.",
+    description:
+      "Congratulations! Your application has been approved. You can now access your vendor dashboard.",
   },
   needs_resubmission: {
     icon: AlertCircle,
@@ -190,9 +191,7 @@ const VendorApplicationStatus = () => {
     <PageLayout>
       <section className="py-8 md:py-12 border-b-2 border-foreground">
         <div className="section-container">
-          <h1 className="font-heading text-3xl md:text-5xl uppercase">
-            Application Status
-          </h1>
+          <h1 className="font-heading text-3xl md:text-5xl uppercase">Application Status</h1>
           <p className="text-muted-foreground mt-2 text-sm md:text-base">
             Track the status of your vendor application
           </p>
@@ -229,11 +228,11 @@ const VendorApplicationStatus = () => {
                 Update Your Documents
               </h3>
               <p className="text-sm text-muted-foreground mb-6">
-                Please re-upload or update the required documents based on the admin notes above, then resubmit.
+                Please re-upload or update the required documents based on the admin notes above,
+                then resubmit.
               </p>
 
               <div className="space-y-5">
-
                 <DocumentUpload
                   label="Valid ID"
                   description="Re-upload your government-issued ID if requested"
@@ -297,9 +296,7 @@ const VendorApplicationStatus = () => {
                 </div>
                 <div>
                   <span className="text-muted-foreground">Submitted</span>
-                  <p className="font-medium">
-                    {format(new Date(application.created_at), "PPP")}
-                  </p>
+                  <p className="font-medium">{format(new Date(application.created_at), "PPP")}</p>
                 </div>
               </div>
             </div>

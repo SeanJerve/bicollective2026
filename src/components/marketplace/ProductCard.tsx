@@ -55,7 +55,11 @@ const ProductCard = ({
     }).format(amount);
   };
 
-  const isStoreSaleActive = storeSalePercent && storeSalePercent > 0 && storeSaleEndsAt && new Date(storeSaleEndsAt) > new Date();
+  const isStoreSaleActive =
+    storeSalePercent &&
+    storeSalePercent > 0 &&
+    storeSaleEndsAt &&
+    new Date(storeSaleEndsAt) > new Date();
   const canAddToCart = inStock && listingType !== "teaser";
 
   return (
@@ -100,7 +104,7 @@ const ProductCard = ({
               )}
               {isBoosted && (
                 <div className="absolute bottom-2 left-2 md:bottom-3 md:left-3 px-1.5 py-0.5 md:px-2 md:py-1 bg-background/80 border border-foreground text-[8px] md:text-[10px] font-heading uppercase tracking-tighter flex items-center gap-1 z-10 backdrop-blur-sm">
-                   SPONSORED
+                  SPONSORED
                 </div>
               )}
 
@@ -134,9 +138,7 @@ const ProductCard = ({
                 <span className="text-[10px] md:text-xs uppercase tracking-wide text-muted-foreground group-hover/brand:text-foreground transition-colors">
                   {brandName}
                 </span>
-                {isVerifiedBrand && (
-                  <VerifiedBadge size="sm" />
-                )}
+                {isVerifiedBrand && <VerifiedBadge size="sm" />}
               </span>
 
               {/* Product Name */}
@@ -147,7 +149,9 @@ const ProductCard = ({
               {/* Price */}
               <div className="flex items-center gap-1.5 md:gap-2">
                 {listingType === "teaser" ? (
-                  <span className="font-heading text-sm md:text-lg text-muted-foreground">Price TBA</span>
+                  <span className="font-heading text-sm md:text-lg text-muted-foreground">
+                    Price TBA
+                  </span>
                 ) : (
                   <>
                     <span className="font-heading text-sm md:text-lg">{formatPrice(price)}</span>

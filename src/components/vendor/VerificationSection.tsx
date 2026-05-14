@@ -3,14 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import DocumentUpload from "@/components/vendor/DocumentUpload";
-import {
-  CheckCircle2,
-  Clock,
-  XCircle,
-  AlertTriangle,
-  ShieldCheck,
-  RotateCcw,
-} from "lucide-react";
+import { CheckCircle2, Clock, XCircle, AlertTriangle, ShieldCheck, RotateCcw } from "lucide-react";
 
 const STATUS_CONFIG: Record<
   string,
@@ -170,7 +163,7 @@ const VerificationSection = () => {
   }
 
   const statusInfo = verification
-    ? STATUS_CONFIG[verification.status] ?? STATUS_CONFIG.pending
+    ? (STATUS_CONFIG[verification.status] ?? STATUS_CONFIG.pending)
     : null;
   const StatusIcon = statusInfo?.icon;
 
@@ -188,9 +181,7 @@ const VerificationSection = () => {
       {/* Status Banner */}
       {statusInfo && StatusIcon && (
         <div className={`flex items-start gap-3 p-4 border-2 ${statusInfo.bg}`}>
-          <StatusIcon
-            className={`w-5 h-5 mt-0.5 flex-shrink-0 ${statusInfo.color}`}
-          />
+          <StatusIcon className={`w-5 h-5 mt-0.5 flex-shrink-0 ${statusInfo.color}`} />
           <div>
             <p className={`font-heading text-sm uppercase font-bold ${statusInfo.color}`}>
               {statusInfo.label}
@@ -237,15 +228,21 @@ const VerificationSection = () => {
         <ul className="space-y-1.5 text-xs text-muted-foreground">
           <li className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 bg-foreground rounded-full flex-shrink-0" />
-            <span><strong>DTI / SEC Registration</strong> — Proof of business registration</span>
+            <span>
+              <strong>DTI / SEC Registration</strong> — Proof of business registration
+            </span>
           </li>
           <li className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 bg-foreground rounded-full flex-shrink-0" />
-            <span><strong>BIR Certificate</strong> — Bureau of Internal Revenue registration</span>
+            <span>
+              <strong>BIR Certificate</strong> — Bureau of Internal Revenue registration
+            </span>
           </li>
           <li className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 bg-foreground rounded-full flex-shrink-0" />
-            <span><strong>Mayor's Permit</strong> — Local government business permit</span>
+            <span>
+              <strong>Mayor's Permit</strong> — Local government business permit
+            </span>
           </li>
         </ul>
         <p className="text-xs text-muted-foreground mt-2">

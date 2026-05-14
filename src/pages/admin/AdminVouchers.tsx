@@ -5,7 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format, formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface BulkVoucherForm {
   name: string;
@@ -20,10 +26,15 @@ interface BulkVoucherForm {
 }
 
 const defaultBulkForm: BulkVoucherForm = {
-  name: "Platform Reward", description: "",
-  type: "fixed_discount", discount_value: 50,
-  min_order_amount: 0, max_discount_amount: null,
-  expires_in: "1w", target_audience: "all", count: 10,
+  name: "Platform Reward",
+  description: "",
+  type: "fixed_discount",
+  discount_value: 50,
+  min_order_amount: 0,
+  max_discount_amount: null,
+  expires_in: "1w",
+  target_audience: "all",
+  count: 10,
 };
 
 const AdminVouchers = () => {
@@ -38,15 +49,16 @@ const AdminVouchers = () => {
   const { data: vouchers, isLoading } = useQuery({
     queryKey: ["admin-vouchers"],
     queryFn: async () => {
-      const { data, error } = await ((supabase
-        .from("user_discount_claims") as any)
-        .select(`
+      const { data, error } = await (supabase.from("user_discount_claims") as any)
+        .select(
+          `
           *,
           discounts:discounts(*),
           platform_promo:platform_promos(*)
-        `)
+        `
+        )
         .order("created_at", { ascending: false })
-        .limit(200));
+        .limit(200);
       if (error) throw error;
       return (data || []).map((v: any) => ({
         id: v.id,
@@ -56,11 +68,16 @@ const AdminVouchers = () => {
         created_at: v.created_at,
         name: v.discounts?.name,
         description: v.discounts?.description,
-        type: v.discounts?.discount_type === "percentage" ? "percentage_discount" : (v.discounts?.discount_type === "fixed" ? "fixed_discount" : "free_shipping"),
+        type:
+          v.discounts?.discount_type === "percentage"
+            ? "percentage_discount"
+            : v.discounts?.discount_type === "fixed"
+              ? "fixed_discount"
+              : "free_shipping",
         discount_value: v.discounts?.discount_value,
         expires_at: v.discounts?.ends_at,
         code: v.platform_promo?.code || "CLAIMED",
-        source: "admin_grant"
+        source: "admin_grant",
       }));
     },
   });
@@ -92,7 +109,7 @@ const AdminVouchers = () => {
       userIds = userIds.slice(0, form.count);
 
       const expiresAt = getExpiryDate(form.expires_in);
-      
+
       // Step 1: Create the Discount Template
       const { data: discount, error: dError } = await (supabase
         .from("discounts")
@@ -139,12 +156,15 @@ const AdminVouchers = () => {
       setShowBulkForm(false);
       setBulkForm(defaultBulkForm);
     },
-    onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    onError: (err: any) =>
+      toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
   const revokeMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase.from("user_discount_claims") as any).update({ status: "expired" }).eq("id", id);
+      const { error } = await (supabase.from("user_discount_claims") as any)
+        .update({ status: "expired" })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -167,17 +187,22 @@ const AdminVouchers = () => {
   const formatPrice = (amount: number) =>
     new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(amount);
 
-  const filteredVouchers = vouchers?.filter((v) => {
-    const matchesSearch = !searchTerm || v.code.toLowerCase().includes(searchTerm.toLowerCase()) || v.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || v.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  }) || [];
+  const filteredVouchers =
+    vouchers?.filter((v) => {
+      const matchesSearch =
+        !searchTerm ||
+        v.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === "all" || v.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    }) || [];
 
   const stats = {
     total: vouchers?.length || 0,
     active: vouchers?.filter((v) => v.status === "active").length || 0,
     used: vouchers?.filter((v) => v.status === "used").length || 0,
-    expired: vouchers?.filter((v) => v.status === "expired" || v.status === "cancelled").length || 0,
+    expired:
+      vouchers?.filter((v) => v.status === "expired" || v.status === "cancelled").length || 0,
   };
 
   return (
@@ -185,10 +210,13 @@ const AdminVouchers = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-heading text-2xl md:text-4xl uppercase">Voucher Governance</h1>
-          <p className="text-muted-foreground text-sm">Create, grant, and manage platform vouchers</p>
+          <p className="text-muted-foreground text-sm">
+            Create, grant, and manage platform vouchers
+          </p>
         </div>
         <button onClick={() => setShowBulkForm(!showBulkForm)} className="btn-brutal">
-          <Plus className="w-4 h-4 mr-2" />Bulk Create
+          <Plus className="w-4 h-4 mr-2" />
+          Bulk Create
         </button>
       </div>
 
@@ -213,13 +241,26 @@ const AdminVouchers = () => {
           <h2 className="font-heading text-xl uppercase mb-4">Bulk Create Vouchers</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="font-heading text-xs uppercase tracking-wide mb-1 block">Voucher Name</label>
-              <input className="input-brutal" value={bulkForm.name} onChange={(e) => setBulkForm({ ...bulkForm, name: e.target.value })} />
+              <label className="font-heading text-xs uppercase tracking-wide mb-1 block">
+                Voucher Name
+              </label>
+              <input
+                className="input-brutal"
+                value={bulkForm.name}
+                onChange={(e) => setBulkForm({ ...bulkForm, name: e.target.value })}
+              />
             </div>
             <div>
-              <label className="font-heading text-xs uppercase tracking-wide mb-1 block">Type</label>
-              <Select value={bulkForm.type} onValueChange={(v: any) => setBulkForm({ ...bulkForm, type: v })}>
-                <SelectTrigger className="input-brutal"><SelectValue /></SelectTrigger>
+              <label className="font-heading text-xs uppercase tracking-wide mb-1 block">
+                Type
+              </label>
+              <Select
+                value={bulkForm.type}
+                onValueChange={(v: any) => setBulkForm({ ...bulkForm, type: v })}
+              >
+                <SelectTrigger className="input-brutal">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="fixed_discount">Fixed Discount (₱)</SelectItem>
                   <SelectItem value="percentage_discount">Percentage (%)</SelectItem>
@@ -228,17 +269,42 @@ const AdminVouchers = () => {
               </Select>
             </div>
             <div>
-              <label className="font-heading text-xs uppercase tracking-wide mb-1 block">Discount Value</label>
-              <input type="number" className="input-brutal" value={bulkForm.discount_value} onChange={(e) => setBulkForm({ ...bulkForm, discount_value: Number(e.target.value) })} />
+              <label className="font-heading text-xs uppercase tracking-wide mb-1 block">
+                Discount Value
+              </label>
+              <input
+                type="number"
+                className="input-brutal"
+                value={bulkForm.discount_value}
+                onChange={(e) =>
+                  setBulkForm({ ...bulkForm, discount_value: Number(e.target.value) })
+                }
+              />
             </div>
             <div>
-              <label className="font-heading text-xs uppercase tracking-wide mb-1 block">Min Order (₱)</label>
-              <input type="number" className="input-brutal" value={bulkForm.min_order_amount} onChange={(e) => setBulkForm({ ...bulkForm, min_order_amount: Number(e.target.value) })} />
+              <label className="font-heading text-xs uppercase tracking-wide mb-1 block">
+                Min Order (₱)
+              </label>
+              <input
+                type="number"
+                className="input-brutal"
+                value={bulkForm.min_order_amount}
+                onChange={(e) =>
+                  setBulkForm({ ...bulkForm, min_order_amount: Number(e.target.value) })
+                }
+              />
             </div>
             <div>
-              <label className="font-heading text-xs uppercase tracking-wide mb-1 block">Expires In</label>
-              <Select value={bulkForm.expires_in} onValueChange={(v) => setBulkForm({ ...bulkForm, expires_in: v })}>
-                <SelectTrigger className="input-brutal"><SelectValue /></SelectTrigger>
+              <label className="font-heading text-xs uppercase tracking-wide mb-1 block">
+                Expires In
+              </label>
+              <Select
+                value={bulkForm.expires_in}
+                onValueChange={(v) => setBulkForm({ ...bulkForm, expires_in: v })}
+              >
+                <SelectTrigger className="input-brutal">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="1h">1 Hour</SelectItem>
                   <SelectItem value="1d">1 Day</SelectItem>
@@ -248,9 +314,16 @@ const AdminVouchers = () => {
               </Select>
             </div>
             <div>
-              <label className="font-heading text-xs uppercase tracking-wide mb-1 block">Target Audience</label>
-              <Select value={bulkForm.target_audience} onValueChange={(v) => setBulkForm({ ...bulkForm, target_audience: v })}>
-                <SelectTrigger className="input-brutal"><SelectValue /></SelectTrigger>
+              <label className="font-heading text-xs uppercase tracking-wide mb-1 block">
+                Target Audience
+              </label>
+              <Select
+                value={bulkForm.target_audience}
+                onValueChange={(v) => setBulkForm({ ...bulkForm, target_audience: v })}
+              >
+                <SelectTrigger className="input-brutal">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Users</SelectItem>
                   <SelectItem value="new">New Users</SelectItem>
@@ -260,19 +333,39 @@ const AdminVouchers = () => {
               </Select>
             </div>
             <div>
-              <label className="font-heading text-xs uppercase tracking-wide mb-1 block">Max Recipients</label>
-              <input type="number" className="input-brutal" value={bulkForm.count} onChange={(e) => setBulkForm({ ...bulkForm, count: Number(e.target.value) })} />
+              <label className="font-heading text-xs uppercase tracking-wide mb-1 block">
+                Max Recipients
+              </label>
+              <input
+                type="number"
+                className="input-brutal"
+                value={bulkForm.count}
+                onChange={(e) => setBulkForm({ ...bulkForm, count: Number(e.target.value) })}
+              />
             </div>
             <div>
-              <label className="font-heading text-xs uppercase tracking-wide mb-1 block">Description</label>
-              <input className="input-brutal" value={bulkForm.description} onChange={(e) => setBulkForm({ ...bulkForm, description: e.target.value })} placeholder="Special gift from admin" />
+              <label className="font-heading text-xs uppercase tracking-wide mb-1 block">
+                Description
+              </label>
+              <input
+                className="input-brutal"
+                value={bulkForm.description}
+                onChange={(e) => setBulkForm({ ...bulkForm, description: e.target.value })}
+                placeholder="Special gift from admin"
+              />
             </div>
           </div>
           <div className="flex gap-3 mt-6">
-            <button onClick={() => bulkCreateMutation.mutate(bulkForm)} disabled={bulkCreateMutation.isPending} className="btn-brutal">
+            <button
+              onClick={() => bulkCreateMutation.mutate(bulkForm)}
+              disabled={bulkCreateMutation.isPending}
+              className="btn-brutal"
+            >
               {bulkCreateMutation.isPending ? "Creating..." : `Create ${bulkForm.count} Vouchers`}
             </button>
-            <button onClick={() => setShowBulkForm(false)} className="btn-brutal-secondary">Cancel</button>
+            <button onClick={() => setShowBulkForm(false)} className="btn-brutal-secondary">
+              Cancel
+            </button>
           </div>
         </div>
       )}
@@ -281,10 +374,17 @@ const AdminVouchers = () => {
       <div className="flex gap-3 mb-4">
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input className="input-brutal pl-10 text-sm" placeholder="Search code or name..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <input
+            className="input-brutal pl-10 text-sm"
+            placeholder="Search code or name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="input-brutal w-[140px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="input-brutal w-[140px]">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="active">Active</SelectItem>
@@ -297,24 +397,37 @@ const AdminVouchers = () => {
 
       {/* Voucher List */}
       {isLoading ? (
-        <div className="space-y-3">{[1, 2, 3].map((i) => <div key={i} className="h-16 skeleton-brutal" />)}</div>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-16 skeleton-brutal" />
+          ))}
+        </div>
       ) : filteredVouchers.length > 0 ? (
         <div className="card-brutal divide-y divide-border-subtle">
           {filteredVouchers.slice(0, 50).map((v) => (
             <div key={v.id} className="p-3 flex items-center justify-between">
               <div className="flex items-center gap-3 min-w-0">
-                <div className={`w-8 h-8 flex items-center justify-center text-xs flex-shrink-0 ${v.status === "active" ? "bg-success/20" : v.status === "used" ? "bg-muted" : "bg-destructive/20"}`}>
+                <div
+                  className={`w-8 h-8 flex items-center justify-center text-xs flex-shrink-0 ${v.status === "active" ? "bg-success/20" : v.status === "used" ? "bg-muted" : "bg-destructive/20"}`}
+                >
                   <Ticket className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <code className="font-mono text-xs truncate">{v.code}</code>
-                    <span className={`px-1.5 py-0.5 text-[10px] uppercase ${v.status === "active" ? "bg-success text-success-foreground" : v.status === "used" ? "bg-muted text-muted-foreground" : "bg-destructive/20 text-destructive"}`}>
+                    <span
+                      className={`px-1.5 py-0.5 text-[10px] uppercase ${v.status === "active" ? "bg-success text-success-foreground" : v.status === "used" ? "bg-muted text-muted-foreground" : "bg-destructive/20 text-destructive"}`}
+                    >
                       {v.status}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground truncate">
-                    {v.name} · {v.type === "percentage_discount" ? `${v.discount_value}%` : v.type === "free_shipping" ? "Free Ship" : formatPrice(Number(v.discount_value))}
+                    {v.name} ·{" "}
+                    {v.type === "percentage_discount"
+                      ? `${v.discount_value}%`
+                      : v.type === "free_shipping"
+                        ? "Free Ship"
+                        : formatPrice(Number(v.discount_value))}
                     {v.source && ` · ${v.source}`}
                   </p>
                 </div>
@@ -324,18 +437,30 @@ const AdminVouchers = () => {
                   {format(new Date(v.expires_at), "MMM d")}
                 </span>
                 {v.status === "active" && (
-                  <button onClick={() => revokeMutation.mutate(v.id)} className="p-1 text-muted-foreground hover:text-destructive" title="Revoke">
+                  <button
+                    onClick={() => revokeMutation.mutate(v.id)}
+                    className="p-1 text-muted-foreground hover:text-destructive"
+                    title="Revoke"
+                  >
                     <Power className="w-3.5 h-3.5" />
                   </button>
                 )}
-                <button onClick={() => { if (confirm("Delete?")) deleteMutation.mutate(v.id); }} className="p-1 text-muted-foreground hover:text-destructive" title="Delete">
+                <button
+                  onClick={() => {
+                    if (confirm("Delete?")) deleteMutation.mutate(v.id);
+                  }}
+                  className="p-1 text-muted-foreground hover:text-destructive"
+                  title="Delete"
+                >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
           ))}
           {filteredVouchers.length > 50 && (
-            <p className="p-3 text-xs text-muted-foreground text-center">Showing 50 of {filteredVouchers.length}</p>
+            <p className="p-3 text-xs text-muted-foreground text-center">
+              Showing 50 of {filteredVouchers.length}
+            </p>
           )}
         </div>
       ) : (

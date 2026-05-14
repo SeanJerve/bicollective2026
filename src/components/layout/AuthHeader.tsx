@@ -13,8 +13,8 @@ const AuthHeader = () => {
         </Link>
 
         {/* Need Help link */}
-        <Link 
-          to="/help-center" 
+        <Link
+          to="/help-center"
           className="flex items-center gap-2 font-heading text-sm uppercase tracking-wide transition-opacity hover:opacity-60"
         >
           <HelpCircle className="w-4 h-4" />

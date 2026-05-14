@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Oswald:wght@500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Oswald:wght@500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -63,8 +63,8 @@
     --shadow-brutal-hover: 6px 6px 0px 0px hsl(0 0% 0%);
 
     /* Typography */
-    --font-heading: 'Oswald', sans-serif;
-    --font-body: 'Inter', sans-serif;
+    --font-heading: "Oswald", sans-serif;
+    --font-body: "Inter", sans-serif;
 
     /* Sidebar (keeping for compatibility) */
     --sidebar-background: 0 0% 98%;
@@ -132,7 +132,12 @@
     @apply bg-background text-foreground font-body antialiased;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-heading uppercase tracking-tight;
   }
 }
@@ -142,7 +147,9 @@
   .card-brutal {
     @apply bg-card border-2 border-foreground;
     box-shadow: var(--shadow-brutal);
-    transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+    transition:
+      transform 0.15s ease-out,
+      box-shadow 0.15s ease-out;
   }
 
   .card-brutal:hover {
@@ -154,7 +161,9 @@
   .btn-brutal {
     @apply flex inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-heading uppercase tracking-wide px-6 py-3 border-2 border-foreground whitespace-nowrap;
     box-shadow: var(--shadow-brutal);
-    transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+    transition:
+      transform 0.1s ease-out,
+      box-shadow 0.1s ease-out;
   }
 
   .btn-brutal:hover {
@@ -171,7 +180,9 @@
   .btn-brutal-secondary {
     @apply flex inline-flex items-center justify-center gap-2 bg-background text-foreground font-heading uppercase tracking-wide px-6 py-3 border-2 border-foreground whitespace-nowrap;
     box-shadow: var(--shadow-brutal);
-    transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+    transition:
+      transform 0.1s ease-out,
+      box-shadow 0.1s ease-out;
   }
 
   .btn-brutal-secondary:hover {

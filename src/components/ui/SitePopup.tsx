@@ -17,7 +17,7 @@ const SitePopup = () => {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle() as any);
-      
+
       if (error) {
         console.error("Error fetching site popup:", error);
         return null; // Fail silently for the user
@@ -51,9 +51,9 @@ const SitePopup = () => {
 
   const content = (
     <div className="relative w-full h-full">
-      <img 
-        src={popup.image_url} 
-        alt="Promotion" 
+      <img
+        src={popup.image_url}
+        alt="Promotion"
         className="w-full h-full object-cover rounded-sm"
       />
     </div>
@@ -61,20 +61,17 @@ const SitePopup = () => {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div 
-        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
-        onClick={handleClose}
-      />
-      
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={handleClose} />
+
       <div className="relative z-10 w-full max-w-lg bg-background p-1 border-2 border-foreground shadow-brutal animate-in zoom-in-95 duration-200">
-        <button 
+        <button
           onClick={handleClose}
           className="absolute -top-3 -right-3 z-20 w-8 h-8 bg-foreground text-background border-2 border-foreground rounded-full flex items-center justify-center hover:bg-background hover:text-foreground transition-colors"
           title="Close Dialog"
         >
           <X className="w-5 h-5" />
         </button>
-        
+
         {popup.redirect_url ? (
           <Link to={popup.redirect_url} onClick={handleClose} className="block w-full">
             {content}

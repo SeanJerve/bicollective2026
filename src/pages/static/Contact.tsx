@@ -34,9 +34,7 @@ const Contact = () => {
       <section className="py-8 md:py-12 border-b-2 border-foreground">
         <div className="section-container">
           <h1 className="font-heading text-3xl md:text-5xl uppercase">Contact Us</h1>
-          <p className="text-muted-foreground mt-2">
-            Have questions? We're here to help.
-          </p>
+          <p className="text-muted-foreground mt-2">Have questions? We're here to help.</p>
         </div>
       </section>
 

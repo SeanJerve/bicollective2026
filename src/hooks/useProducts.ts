@@ -14,8 +14,8 @@ export interface Product {
   price: number;
   originalPrice?: number;
   image: string;
-  galleryImages?: string[];       // from product_images table
-  variants?: ProductVariant[];    // from product_variants table
+  galleryImages?: string[]; // from product_images table
+  variants?: ProductVariant[]; // from product_variants table
   brandId: string;
   brandName: string;
   brandSlug: string;
@@ -62,57 +62,63 @@ export const useProducts = () => {
   return useQuery({
     queryKey: ["products"],
     queryFn: async (): Promise<Product[]> => {
-      const { data, error } = await (supabase
-        .from("products")
-        .select(`
+      const { data, error } = await (
+        supabase.from("products").select(`
           *,
           brand:brands!inner(id, name, slug, status, location, store_sale_percent, store_sale_ends_at, commission_rate, subscription_tier),
           category:categories(id, name, slug),
           ad_boosts(id, status, starts_at, ends_at),
           product_variants(id, size, stock_quantity),
           product_images(image_url, sort_order)
-        `) as any)
+        `) as any
+      )
         .eq("is_active", true)
+        .eq("brand.is_hidden", false)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       const products = (data as any[]) || [];
 
-      return products.map((p) => {
-        const variants = p.product_variants || [];
-        const hasStock = variants.some((v: any) => v.stock_quantity > 0);
-        
-        return {
-          id: p.id,
-          name: p.name,
-          slug: p.slug,
-          price: Number(p.price),
-          originalPrice: p.original_price ? Number(p.original_price) : undefined,
-          image: p.image_url || "/placeholder.svg",
-          galleryImages: (p.product_images || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => img.image_url),
-          variants: variants,
-          brandId: p.brand?.id || "",
-          brandName: p.brand?.name || "",
-          brandSlug: p.brand?.slug || "",
-          brandLocation: p.brand?.location || undefined,
-          isVerifiedBrand: p.brand?.status === "verified",
-          category: p.category?.name || "",
-          categorySlug: p.category?.slug || "",
-          description: p.description || "",
-          inStock: hasStock, // Calculated from variants
-          listingType: p.listing_type || "regular",
-          releaseDate: p.release_date || undefined,
-          preorderDiscountPercent: p.preorder_discount_percent || undefined,
-          storeSalePercent: p.brand?.store_sale_percent || undefined,
-          storeSaleEndsAt: p.brand?.store_sale_ends_at || undefined,
-          brandCommissionRate: p.brand?.commission_rate ? Number(p.brand.commission_rate) : 5,
-          isBoosted: (p.ad_boosts || []).some((b: any) => 
-            b.status === "active" && 
-            (!b.starts_at || new Date(b.starts_at) <= new Date()) && 
-            (!b.ends_at || new Date(b.ends_at) >= new Date())
-          ),
-        };
-      }).sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));
+      return products
+        .map((p) => {
+          const variants = p.product_variants || [];
+          const hasStock = variants.some((v: any) => v.stock_quantity > 0);
+
+          return {
+            id: p.id,
+            name: p.name,
+            slug: p.slug,
+            price: Number(p.price),
+            originalPrice: p.original_price ? Number(p.original_price) : undefined,
+            image: p.image_url || "/placeholder.svg",
+            galleryImages: (p.product_images || [])
+              .sort((a: any, b: any) => a.sort_order - b.sort_order)
+              .map((img: any) => img.image_url),
+            variants: variants,
+            brandId: p.brand?.id || "",
+            brandName: p.brand?.name || "",
+            brandSlug: p.brand?.slug || "",
+            brandLocation: p.brand?.location || undefined,
+            isVerifiedBrand: p.brand?.status === "verified",
+            category: p.category?.name || "",
+            categorySlug: p.category?.slug || "",
+            description: p.description || "",
+            inStock: hasStock, // Calculated from variants
+            listingType: p.listing_type || "regular",
+            releaseDate: p.release_date || undefined,
+            preorderDiscountPercent: p.preorder_discount_percent || undefined,
+            storeSalePercent: p.brand?.store_sale_percent || undefined,
+            storeSaleEndsAt: p.brand?.store_sale_ends_at || undefined,
+            brandCommissionRate: p.brand?.commission_rate ? Number(p.brand.commission_rate) : 5,
+            isBoosted: (p.ad_boosts || []).some(
+              (b: any) =>
+                b.status === "active" &&
+                (!b.starts_at || new Date(b.starts_at) <= new Date()) &&
+                (!b.ends_at || new Date(b.ends_at) >= new Date())
+            ),
+          };
+        })
+        .sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));
     },
   });
 };
@@ -122,17 +128,18 @@ export const useProduct = (slug: string) => {
   return useQuery({
     queryKey: ["product", slug],
     queryFn: async (): Promise<Product | null> => {
-      const { data, error } = await (supabase
-        .from("products")
-        .select(`
+      const { data, error } = await (
+        supabase.from("products").select(`
           *,
           brand:brands!inner(id, name, slug, status, location, store_sale_percent, store_sale_ends_at, commission_rate, subscription_tier),
           category:categories(id, name, slug),
           ad_boosts(id, status, starts_at, ends_at),
           product_variants(id, size, stock_quantity),
           product_images(image_url, sort_order)
-        `) as any)
+        `) as any
+      )
         .eq("slug", slug)
+        .eq("brand.is_hidden", false)
         .maybeSingle();
 
       if (error) throw error;
@@ -149,7 +156,9 @@ export const useProduct = (slug: string) => {
         price: Number(product.price),
         originalPrice: product.original_price ? Number(product.original_price) : undefined,
         image: product.image_url || "/placeholder.svg",
-        galleryImages: (product.product_images || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => img.image_url),
+        galleryImages: (product.product_images || [])
+          .sort((a: any, b: any) => a.sort_order - b.sort_order)
+          .map((img: any) => img.image_url),
         variants: variants,
         brandId: product.brand?.id || "",
         brandName: product.brand?.name || "",
@@ -165,11 +174,14 @@ export const useProduct = (slug: string) => {
         preorderDiscountPercent: product.preorder_discount_percent || undefined,
         storeSalePercent: product.brand?.store_sale_percent || undefined,
         storeSaleEndsAt: product.brand?.store_sale_ends_at || undefined,
-        brandCommissionRate: product.brand?.commission_rate ? Number(product.brand.commission_rate) : 5,
-        isBoosted: (product.ad_boosts || []).some((b: any) => 
-          b.status === "active" && 
-          (!b.starts_at || new Date(b.starts_at) <= new Date()) && 
-          (!b.ends_at || new Date(b.ends_at) >= new Date())
+        brandCommissionRate: product.brand?.commission_rate
+          ? Number(product.brand.commission_rate)
+          : 5,
+        isBoosted: (product.ad_boosts || []).some(
+          (b: any) =>
+            b.status === "active" &&
+            (!b.starts_at || new Date(b.starts_at) <= new Date()) &&
+            (!b.ends_at || new Date(b.ends_at) >= new Date())
         ),
       };
     },
@@ -182,10 +194,11 @@ export const useBrands = () => {
   return useQuery({
     queryKey: ["brands"],
     queryFn: async (): Promise<Brand[]> => {
-      const { data, error } = await (supabase
-        .from("brands")
-        .select("*, location, subscription_tier") as any)
+      const { data, error } = await (
+        supabase.from("brands").select("*, location, subscription_tier") as any
+      )
         .in("status", ["approved", "verified"])
+        .eq("is_hidden", false)
         .order("name");
 
       if (error) throw error;
@@ -204,13 +217,14 @@ export const useBrands = () => {
       });
 
       // Fetch live ratings from brand_aggregates view
-      const { data: aggregates } = await (supabase
-        .from("brand_aggregates") as any)
+      const { data: aggregates } = await (supabase.from("brand_aggregates") as any)
         .select("brand_id, average_rating, review_count")
         .in("brand_id", brandIds);
 
       const aggMap: Record<string, any> = {};
-      (aggregates || []).forEach((a: any) => { aggMap[a.brand_id] = a; });
+      (aggregates || []).forEach((a: any) => {
+        aggMap[a.brand_id] = a;
+      });
 
       return (data || []).map((b: any) => ({
         id: b.id,
@@ -235,10 +249,9 @@ export const useBrand = (slug: string) => {
   return useQuery({
     queryKey: ["brand", slug],
     queryFn: async (): Promise<Brand | null> => {
-      const { data, error } = await (supabase
-        .from("brands")
-        .select("*, subscription_tier") as any)
+      const { data, error } = await (supabase.from("brands").select("*, subscription_tier") as any)
         .eq("slug", slug)
+        .eq("is_hidden", false)
         .maybeSingle();
 
       if (error) throw error;
@@ -253,8 +266,7 @@ export const useBrand = (slug: string) => {
         .eq("is_active", true);
 
       // Get live rating from brand_aggregates view
-      const { data: agg } = await (supabase
-        .from("brand_aggregates") as any)
+      const { data: agg } = await (supabase.from("brand_aggregates") as any)
         .select("average_rating, review_count")
         .eq("brand_id", brand.id)
         .maybeSingle();
@@ -282,54 +294,60 @@ export const useProductsByBrand = (brandSlug: string) => {
   return useQuery({
     queryKey: ["products", "brand", brandSlug],
     queryFn: async (): Promise<Product[]> => {
-      const { data, error } = await (supabase
-        .from("products")
-        .select(`
+      const { data, error } = await (
+        supabase.from("products").select(`
           *,
           brand:brands!inner(id, name, slug, status, commission_rate, subscription_tier),
           category:categories(id, name, slug),
           ad_boosts(id, status, starts_at, ends_at),
           product_variants(id, size, stock_quantity),
           product_images(image_url, sort_order)
-        `) as any)
+        `) as any
+      )
         .eq("brand.slug", brandSlug)
         .eq("is_active", true)
+        .eq("brand.is_hidden", false)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      return (data || []).map((p: any) => {
-        const variants = p.product_variants || [];
-        const hasStock = variants.some((v: any) => v.stock_quantity > 0);
+      return (data || [])
+        .map((p: any) => {
+          const variants = p.product_variants || [];
+          const hasStock = variants.some((v: any) => v.stock_quantity > 0);
 
-        return {
-          id: p.id,
-          name: p.name,
-          slug: p.slug,
-          price: Number(p.price),
-          originalPrice: p.original_price ? Number(p.original_price) : undefined,
-          image: p.image_url || "/placeholder.svg",
-          galleryImages: (p.product_images || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => img.image_url),
-          variants: variants,
-          brandId: p.brand?.id || "",
-          brandName: p.brand?.name || "",
-          brandSlug: p.brand?.slug || "",
-          isVerifiedBrand: p.brand?.status === "verified",
-          category: p.category?.name || "",
-          categorySlug: p.category?.slug || "",
-          description: p.description || "",
-          inStock: hasStock, // Calculated from variants
-          listingType: p.listing_type || "regular",
-          releaseDate: p.release_date || undefined,
-          preorderDiscountPercent: p.preorder_discount_percent || undefined,
-          brandCommissionRate: p.brand?.commission_rate ? Number(p.brand.commission_rate) : 5,
-          isBoosted: (p.ad_boosts || []).some((b: any) => 
-            b.status === "active" && 
-            (!b.starts_at || new Date(b.starts_at) <= new Date()) && 
-            (!b.ends_at || new Date(b.ends_at) >= new Date())
-          ),
-        };
-      }).sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));
+          return {
+            id: p.id,
+            name: p.name,
+            slug: p.slug,
+            price: Number(p.price),
+            originalPrice: p.original_price ? Number(p.original_price) : undefined,
+            image: p.image_url || "/placeholder.svg",
+            galleryImages: (p.product_images || [])
+              .sort((a: any, b: any) => a.sort_order - b.sort_order)
+              .map((img: any) => img.image_url),
+            variants: variants,
+            brandId: p.brand?.id || "",
+            brandName: p.brand?.name || "",
+            brandSlug: p.brand?.slug || "",
+            isVerifiedBrand: p.brand?.status === "verified",
+            category: p.category?.name || "",
+            categorySlug: p.category?.slug || "",
+            description: p.description || "",
+            inStock: hasStock, // Calculated from variants
+            listingType: p.listing_type || "regular",
+            releaseDate: p.release_date || undefined,
+            preorderDiscountPercent: p.preorder_discount_percent || undefined,
+            brandCommissionRate: p.brand?.commission_rate ? Number(p.brand.commission_rate) : 5,
+            isBoosted: (p.ad_boosts || []).some(
+              (b: any) =>
+                b.status === "active" &&
+                (!b.starts_at || new Date(b.starts_at) <= new Date()) &&
+                (!b.ends_at || new Date(b.ends_at) >= new Date())
+            ),
+          };
+        })
+        .sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));
     },
     enabled: !!brandSlug,
   });
@@ -340,10 +358,7 @@ export const useCategories = () => {
   return useQuery({
     queryKey: ["categories"],
     queryFn: async (): Promise<Category[]> => {
-      const { data, error } = await supabase
-        .from("categories")
-        .select("*")
-        .order("name");
+      const { data, error } = await supabase.from("categories").select("*").order("name");
 
       if (error) throw error;
 
@@ -376,54 +391,60 @@ export const useProductsByCategory = (categorySlug: string) => {
   return useQuery({
     queryKey: ["products", "category", categorySlug],
     queryFn: async (): Promise<Product[]> => {
-      const { data, error } = await (supabase
-        .from("products")
-        .select(`
+      const { data, error } = await (
+        supabase.from("products").select(`
           *,
           brand:brands!inner(id, name, slug, status, commission_rate, subscription_tier),
           category:categories!inner(id, name, slug),
           ad_boosts(id, status, starts_at, ends_at),
           product_variants(id, size, stock_quantity),
           product_images(image_url, sort_order)
-        `) as any)
+        `) as any
+      )
         .eq("category.slug", categorySlug)
         .eq("is_active", true)
+        .eq("brand.is_hidden", false)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      return (data || []).map((p: any) => {
-        const variants = p.product_variants || [];
-        const hasStock = variants.some((v: any) => v.stock_quantity > 0);
+      return (data || [])
+        .map((p: any) => {
+          const variants = p.product_variants || [];
+          const hasStock = variants.some((v: any) => v.stock_quantity > 0);
 
-        return {
-          id: p.id,
-          name: p.name,
-          slug: p.slug,
-          price: Number(p.price),
-          originalPrice: p.original_price ? Number(p.original_price) : undefined,
-          image: p.image_url || "/placeholder.svg",
-          galleryImages: (p.product_images || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => img.image_url),
-          variants: variants,
-          brandId: p.brand?.id || "",
-          brandName: p.brand?.name || "",
-          brandSlug: p.brand?.slug || "",
-          isVerifiedBrand: p.brand?.status === "verified",
-          category: p.category?.name || "",
-          categorySlug: p.category?.slug || "",
-          description: p.description || "",
-          inStock: hasStock, // Calculated from variants
-          listingType: p.listing_type || "regular",
-          releaseDate: p.release_date || undefined,
-          preorderDiscountPercent: p.preorder_discount_percent || undefined,
-          brandCommissionRate: p.brand?.commission_rate ? Number(p.brand.commission_rate) : 5,
-          isBoosted: (p.ad_boosts || []).some((b: any) => 
-            b.status === "active" && 
-            (!b.starts_at || new Date(b.starts_at) <= new Date()) && 
-            (!b.ends_at || new Date(b.ends_at) >= new Date())
-          ),
-        };
-      }).sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));
+          return {
+            id: p.id,
+            name: p.name,
+            slug: p.slug,
+            price: Number(p.price),
+            originalPrice: p.original_price ? Number(p.original_price) : undefined,
+            image: p.image_url || "/placeholder.svg",
+            galleryImages: (p.product_images || [])
+              .sort((a: any, b: any) => a.sort_order - b.sort_order)
+              .map((img: any) => img.image_url),
+            variants: variants,
+            brandId: p.brand?.id || "",
+            brandName: p.brand?.name || "",
+            brandSlug: p.brand?.slug || "",
+            isVerifiedBrand: p.brand?.status === "verified",
+            category: p.category?.name || "",
+            categorySlug: p.category?.slug || "",
+            description: p.description || "",
+            inStock: hasStock, // Calculated from variants
+            listingType: p.listing_type || "regular",
+            releaseDate: p.release_date || undefined,
+            preorderDiscountPercent: p.preorder_discount_percent || undefined,
+            brandCommissionRate: p.brand?.commission_rate ? Number(p.brand.commission_rate) : 5,
+            isBoosted: (p.ad_boosts || []).some(
+              (b: any) =>
+                b.status === "active" &&
+                (!b.starts_at || new Date(b.starts_at) <= new Date()) &&
+                (!b.ends_at || new Date(b.ends_at) >= new Date())
+            ),
+          };
+        })
+        .sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));
     },
     enabled: !!categorySlug,
   });

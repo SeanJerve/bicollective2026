@@ -2,10 +2,17 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { CheckCircle, Ticket, ChevronDown, ChevronUp, MapPin, Upload, X } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
-import ShippingCalculator, { calculateShippingFee, BICOL_PROVINCES } from "@/components/checkout/ShippingCalculator";
+import ShippingCalculator, {
+  calculateShippingFee,
+  BICOL_PROVINCES,
+} from "@/components/checkout/ShippingCalculator";
 import PromoCodeInput from "@/components/checkout/PromoCodeInput";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,7 +40,14 @@ interface BuyNowItem {
   };
 }
 
-type GroupedItems = Record<string, { brand: { id: string; name: string; slug: string; location?: string }; items: any[]; subtotal: number }>;
+type GroupedItems = Record<
+  string,
+  {
+    brand: { id: string; name: string; slug: string; location?: string };
+    items: any[];
+    subtotal: number;
+  }
+>;
 
 const Checkout = () => {
   const { items, total, clearCart } = useCart();
@@ -115,32 +129,35 @@ const Checkout = () => {
   // Build checkout items
   const checkoutItems = useMemo(() => {
     let rawItems: any[] = [];
-    
+
     if (isBuyNow && buyNowItem) {
-      rawItems = [{
-        id: "buy-now",
-        variant_id: buyNowItem.variant_id,
-        product_id: buyNowItem.product_id,
-        quantity: buyNowItem.quantity,
-        size: buyNowItem.size,
-        variant: {
-          product: {
-            ...buyNowItem.product,
-            slug: "",
-          }
-        }
-      }];
+      rawItems = [
+        {
+          id: "buy-now",
+          variant_id: buyNowItem.variant_id,
+          product_id: buyNowItem.product_id,
+          quantity: buyNowItem.quantity,
+          size: buyNowItem.size,
+          variant: {
+            product: {
+              ...buyNowItem.product,
+              slug: "",
+            },
+          },
+        },
+      ];
     } else {
       // If selectedCartItemIds provided, filter cart items
-      rawItems = selectedCartItemIds && selectedCartItemIds.length > 0
-        ? items.filter((item) => selectedCartItemIds.includes(item.id))
-        : items;
+      rawItems =
+        selectedCartItemIds && selectedCartItemIds.length > 0
+          ? items.filter((item) => selectedCartItemIds.includes(item.id))
+          : items;
     }
 
     // Ensure all items have a variant.product structure for consistent access
-    return rawItems.map(item => ({
+    return rawItems.map((item) => ({
       ...item,
-      variant: item.variant || { product: item.product }
+      variant: item.variant || { product: item.product },
     }));
   }, [isBuyNow, buyNowItem, items, selectedCartItemIds]);
 
@@ -180,7 +197,7 @@ const Checkout = () => {
         .lte("starts_at", now)
         .gte("ends_at", now)
         .eq("platform_promos.deployment_target", "auto_apply");
-      
+
       if (error) console.error("Error fetching auto-promos:", error);
       return data || [];
     },
@@ -191,13 +208,12 @@ const Checkout = () => {
     queryKey: ["checkout-vouchers-claimed", user?.id],
     queryFn: async () => {
       // Query junction table user_discount_claims joined with discounts supertype
-      const { data, error } = await (supabase
-        .from("user_discount_claims") as any)
+      const { data, error } = await (supabase.from("user_discount_claims") as any)
         .select(`*, discounts!inner(*)`)
         .eq("user_id", user!.id)
         .eq("status", "active")
         .gte("discounts.ends_at", new Date().toISOString());
-      
+
       if (error) console.error("Error fetching claimed vouchers:", error);
       // Flatten the result to match expected discount structure
       return (data || []).map((claim: any) => {
@@ -207,7 +223,7 @@ const Checkout = () => {
           ...d,
           id: d?.id,
           discount_value: Number(d?.discount_value) || 0,
-          claim_id: claim.id
+          claim_id: claim.id,
         };
       });
     },
@@ -234,7 +250,7 @@ const Checkout = () => {
         if (promo.max_discount_amount) d = Math.min(d, Number(promo.max_discount_amount) || 0);
         discount += d;
       } else if (promo.discount_type === "fixed") {
-        discount += (Number(promo.discount_value) || 0);
+        discount += Number(promo.discount_value) || 0;
       }
     });
     return Math.min(discount || 0, productSubtotal);
@@ -254,9 +270,10 @@ const Checkout = () => {
     return fees;
   }, [groupedItems, buyerLocation]);
 
-  const totalShippingOriginal = useMemo(() =>
-    Object.values(shippingByBrand).reduce((sum, fee) => sum + fee.original, 0)
-  , [shippingByBrand]);
+  const totalShippingOriginal = useMemo(
+    () => Object.values(shippingByBrand).reduce((sum, fee) => sum + fee.original, 0),
+    [shippingByBrand]
+  );
 
   // Voucher deductions
   const pesoVoucherDeduction = useMemo(() => {
@@ -269,7 +286,11 @@ const Checkout = () => {
       }
       return sum + val;
     }, 0);
-    console.log("Peso Voucher Calculation:", { total, discountedSubtotal, deduction: Math.min(total, discountedSubtotal) });
+    console.log("Peso Voucher Calculation:", {
+      total,
+      discountedSubtotal,
+      deduction: Math.min(total, discountedSubtotal),
+    });
     return Math.min(total, discountedSubtotal);
   }, [selectedVouchers, discountedSubtotal]);
 
@@ -284,7 +305,8 @@ const Checkout = () => {
   const promoFreeShipping = useMemo(() => {
     if (appliedPromo?.discount_type === "free_shipping") return Math.min(50, totalShippingOriginal);
     const autoFreeShip = autoPromos?.find((p) => p.discount_type === "free_shipping");
-    if (autoFreeShip) return Math.min(Number(autoFreeShip.discount_value) || 50, totalShippingOriginal);
+    if (autoFreeShip)
+      return Math.min(Number(autoFreeShip.discount_value) || 50, totalShippingOriginal);
     return 0;
   }, [appliedPromo, autoPromos, totalShippingOriginal]);
 
@@ -308,7 +330,11 @@ const Checkout = () => {
       setSelectedVouchers(selectedVouchers.filter((v) => v.id !== voucher.id));
     } else {
       if (voucher.min_order_amount && productSubtotal < Number(voucher.min_order_amount)) {
-        toast({ title: "Minimum not met", description: `Min order ₱${Number(voucher.min_order_amount).toLocaleString()} required`, variant: "destructive" });
+        toast({
+          title: "Minimum not met",
+          description: `Min order ₱${Number(voucher.min_order_amount).toLocaleString()} required`,
+          variant: "destructive",
+        });
         return;
       }
       setSelectedVouchers([...selectedVouchers, voucher]);
@@ -325,11 +351,24 @@ const Checkout = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) { toast({ title: "Please sign in", variant: "destructive" }); return; }
-    if (checkoutItems.length === 0) { toast({ title: "No items to checkout", variant: "destructive" }); return; }
-    if (!selectedAddress) { toast({ title: "Please select an address", variant: "destructive" }); return; }
+    if (!user) {
+      toast({ title: "Please sign in", variant: "destructive" });
+      return;
+    }
+    if (checkoutItems.length === 0) {
+      toast({ title: "No items to checkout", variant: "destructive" });
+      return;
+    }
+    if (!selectedAddress) {
+      toast({ title: "Please select an address", variant: "destructive" });
+      return;
+    }
     if (paymentMethod !== "cod" && !paymentProofFile) {
-      toast({ title: "Payment proof required", description: "Please upload proof of payment for GCash/Bank Transfer", variant: "destructive" });
+      toast({
+        title: "Payment proof required",
+        description: "Please upload proof of payment for GCash/Bank Transfer",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -348,7 +387,9 @@ const Checkout = () => {
       if (stockError) throw stockError;
 
       if (outOfStock && Array.isArray(outOfStock) && outOfStock.length > 0) {
-        const names = outOfStock.map((i: any) => `${i.product_name} (${i.available} left)`).join(", ");
+        const names = outOfStock
+          .map((i: any) => `${i.product_name} (${i.available} left)`)
+          .join(", ");
         toast({
           title: "Some items are out of stock",
           description: `Insufficient stock: ${names}. Please update your cart.`,
@@ -363,7 +404,9 @@ const Checkout = () => {
         setUploadingProof(true);
         const ext = paymentProofFile.name.split(".").pop();
         const path = `${user.id}/${Date.now()}.${ext}`;
-        const { error: uploadErr } = await supabase.storage.from("payment-proofs").upload(path, paymentProofFile);
+        const { error: uploadErr } = await supabase.storage
+          .from("payment-proofs")
+          .upload(path, paymentProofFile);
         if (uploadErr) throw uploadErr;
         // Store the path directly — use signed URLs when viewing since bucket is private
         paymentProofUrl = path;
@@ -378,12 +421,16 @@ const Checkout = () => {
           customer_id: user.id,
           total_amount: grandTotal || 0,
           total_shipping: effectiveShipping || 0,
-          total_discount: (promoDiscount || 0) + (pesoVoucherDeduction || 0) + (shippingVoucherDeduction || 0) + (promoFreeShipping || 0),
+          total_discount:
+            (promoDiscount || 0) +
+            (pesoVoucherDeduction || 0) +
+            (shippingVoucherDeduction || 0) +
+            (promoFreeShipping || 0),
           discount_id: appliedPromo?.id || null, // Track the discount source
           shipping_name: selectedAddress.full_name,
           shipping_phone: selectedAddress.phone,
           shipping_address_id: selectedAddress.id, // Linked for management
-          shipping_address: shippingAddressStr,   // Snapshot for history (Restored via SQL)
+          shipping_address: shippingAddressStr, // Snapshot for history (Restored via SQL)
           notes: notes || null,
         })
         .select()
@@ -396,8 +443,8 @@ const Checkout = () => {
         .from("payments")
         .insert({
           order_id: order.id,
-          payment_method: paymentMethod === "cod" ? 0 : (paymentMethod === "gcash" ? 1 : 2),
-          amount: grandTotal, 
+          payment_method: paymentMethod === "cod" ? 0 : paymentMethod === "gcash" ? 1 : 2,
+          amount: grandTotal,
           status: paymentMethod === "cod" ? "pending" : "pending_verification",
         })
         .select()
@@ -417,14 +464,28 @@ const Checkout = () => {
       for (const [brandId, group] of Object.entries(groupedItems)) {
         const brandShipping = shippingByBrand[brandId]?.original || 0;
         const brandShippingAfterVoucher = shippingVoucher
-          ? Math.max(0, brandShipping - Math.round(shippingVoucherDeduction * brandShipping / totalShippingOriginal))
+          ? Math.max(
+              0,
+              brandShipping -
+                Math.round((shippingVoucherDeduction * brandShipping) / totalShippingOriginal)
+            )
           : brandShipping;
-        const brandShippingFinal = promoFreeShipping > 0
-          ? Math.max(0, brandShippingAfterVoucher - Math.round(promoFreeShipping * brandShipping / totalShippingOriginal))
-          : brandShippingAfterVoucher;
+        const brandShippingFinal =
+          promoFreeShipping > 0
+            ? Math.max(
+                0,
+                brandShippingAfterVoucher -
+                  Math.round((promoFreeShipping * brandShipping) / totalShippingOriginal)
+              )
+            : brandShippingAfterVoucher;
 
-        const initialStatus = paymentMethod === "cod" ? "confirmed" : (paymentProofUrl ? "payment_uploaded" : "pending_payment");
-        
+        const initialStatus =
+          paymentMethod === "cod"
+            ? "confirmed"
+            : paymentProofUrl
+              ? "payment_uploaded"
+              : "pending_payment";
+
         // Calculate Platform Fees
         const product = group.items[0]?.variant?.product;
         const commissionRate = product?.brand?.commission_rate || 5;
@@ -432,7 +493,9 @@ const Checkout = () => {
         const shippingMargin = 20; // Fixed 20 pesos margin
         const totalPlatformFee = platformCommission + shippingMargin;
 
-        const totalDeductionsForBrand = Math.round((promoDiscount + pesoVoucherDeduction) * group.subtotal / productSubtotal);
+        const totalDeductionsForBrand = Math.round(
+          ((promoDiscount + pesoVoucherDeduction) * group.subtotal) / productSubtotal
+        );
 
         const { data: vendorOrder, error: vendorOrderError } = await supabase
           .from("vendor_orders")
@@ -476,7 +539,7 @@ const Checkout = () => {
 
         // --- NEW RELATIONAL STOCK DECREMENT ---
         const { error: decrementError } = await (supabase.rpc as any)("decrement_stock_on_order", {
-          items: orderItems.map((i: any) => ({ variant_id: i.variant_id, quantity: i.quantity }))
+          items: orderItems.map((i: any) => ({ variant_id: i.variant_id, quantity: i.quantity })),
         });
         if (decrementError) console.error("Error decrementing stock:", decrementError);
         // --------------------------------------
@@ -524,7 +587,10 @@ const Checkout = () => {
     }
   };
 
-  if (!user) { navigate("/login"); return null; }
+  if (!user) {
+    navigate("/login");
+    return null;
+  }
 
   if (orderComplete && orderId) {
     return (
@@ -533,17 +599,28 @@ const Checkout = () => {
           <div className="section-container max-w-lg text-center">
             <CheckCircle className="w-20 h-20 mx-auto mb-6 text-success" />
             <h1 className="font-heading text-4xl uppercase mb-4">Order Placed!</h1>
-            <p className="text-muted-foreground mb-8">Your order has been placed. Upload payment proof from your order history.</p>
+            <p className="text-muted-foreground mb-8">
+              Your order has been placed. Upload payment proof from your order history.
+            </p>
             <div className="card-brutal p-6 mb-8 text-left">
               <p className="text-sm text-muted-foreground mb-2">Order ID</p>
               <p className="font-heading uppercase text-lg break-all">{orderId}</p>
             </div>
             <div className="space-y-4">
-              <button onClick={() => navigate("/account/orders")} className="btn-brutal w-full">View My Orders</button>
+              <button onClick={() => navigate("/account/orders")} className="btn-brutal w-full">
+                View My Orders
+              </button>
               {isBuyNow ? (
-                <button onClick={() => navigate(-1)} className="btn-brutal-secondary w-full">Back to Product</button>
+                <button onClick={() => navigate(-1)} className="btn-brutal-secondary w-full">
+                  Back to Product
+                </button>
               ) : (
-                <button onClick={() => navigate("/products")} className="btn-brutal-secondary w-full">Continue Shopping</button>
+                <button
+                  onClick={() => navigate("/products")}
+                  className="btn-brutal-secondary w-full"
+                >
+                  Continue Shopping
+                </button>
               )}
             </div>
           </div>
@@ -624,13 +701,18 @@ const Checkout = () => {
                               <div className="flex items-center gap-2 mb-1">
                                 <span className="font-heading text-sm">{addr.full_name}</span>
                                 {addr.is_default && (
-                                  <span className="text-xs bg-foreground text-background px-2 py-0.5">DEFAULT</span>
+                                  <span className="text-xs bg-foreground text-background px-2 py-0.5">
+                                    DEFAULT
+                                  </span>
                                 )}
-                                <span className="text-xs text-muted-foreground">({addr.label})</span>
+                                <span className="text-xs text-muted-foreground">
+                                  ({addr.label})
+                                </span>
                               </div>
                               <p className="text-xs text-muted-foreground">{addr.phone}</p>
                               <p className="text-xs text-muted-foreground">
-                                {addr.street}, {addr.barangay}, {addr.city}, {addr.province} {addr.zip_code}
+                                {addr.street}, {addr.barangay}, {addr.city}, {addr.province}{" "}
+                                {addr.zip_code}
                               </p>
                             </div>
                           </div>
@@ -644,13 +726,25 @@ const Checkout = () => {
 
                 {/* Payment Method */}
                 <div>
-                  <label className="font-heading text-sm uppercase tracking-wide mb-3 block">Payment Method</label>
+                  <label className="font-heading text-sm uppercase tracking-wide mb-3 block">
+                    Payment Method
+                  </label>
                   <div className="space-y-2">
-                    {([
-                      { value: "cod", label: "Cash on Delivery (COD)", desc: "Pay when you receive your order" },
-                      { value: "gcash", label: "GCash", desc: "Upload proof of payment" },
-                      { value: "bank_transfer", label: "Bank Transfer", desc: "Upload proof of payment" },
-                    ] as const).map((method) => (
+                    {(
+                      [
+                        {
+                          value: "cod",
+                          label: "Cash on Delivery (COD)",
+                          desc: "Pay when you receive your order",
+                        },
+                        { value: "gcash", label: "GCash", desc: "Upload proof of payment" },
+                        {
+                          value: "bank_transfer",
+                          label: "Bank Transfer",
+                          desc: "Upload proof of payment",
+                        },
+                      ] as const
+                    ).map((method) => (
                       <label
                         key={method.value}
                         className={`block p-3 border-2 cursor-pointer transition-colors ${
@@ -664,7 +758,10 @@ const Checkout = () => {
                             type="radio"
                             name="paymentMethod"
                             checked={paymentMethod === method.value}
-                            onChange={() => { setPaymentMethod(method.value); setPaymentProofFile(null); }}
+                            onChange={() => {
+                              setPaymentMethod(method.value);
+                              setPaymentProofFile(null);
+                            }}
                           />
                           <div>
                             <span className="font-heading text-sm">{method.label}</span>
@@ -682,7 +779,10 @@ const Checkout = () => {
                         Upload Proof of Payment <span className="text-destructive">*</span>
                       </label>
                       <div
-                        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setIsDragging(true);
+                        }}
                         onDragLeave={() => setIsDragging(false)}
                         onDrop={(e) => {
                           e.preventDefault();
@@ -693,7 +793,9 @@ const Checkout = () => {
                           }
                         }}
                         className={`relative border-2 border-dashed p-8 transition-all text-center ${
-                          isDragging ? "border-foreground bg-secondary" : "border-border-subtle hover:border-foreground/50"
+                          isDragging
+                            ? "border-foreground bg-secondary"
+                            : "border-border-subtle hover:border-foreground/50"
                         } ${paymentProofFile ? "bg-secondary/20" : ""}`}
                       >
                         {!paymentProofFile ? (
@@ -702,8 +804,12 @@ const Checkout = () => {
                               <Upload className="w-6 h-6 text-muted-foreground" />
                             </div>
                             <div className="space-y-1">
-                              <p className="font-heading text-sm uppercase">Drag & Drop Proof Here</p>
-                              <p className="text-xs text-muted-foreground">or click to browse from device</p>
+                              <p className="font-heading text-sm uppercase">
+                                Drag & Drop Proof Here
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                or click to browse from device
+                              </p>
                             </div>
                             <input
                               id="payment-upload"
@@ -713,7 +819,9 @@ const Checkout = () => {
                               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                             />
                             <div className="pt-2">
-                              <span className="btn-brutal py-1.5 px-4 text-[10px]">Select File</span>
+                              <span className="btn-brutal py-1.5 px-4 text-[10px]">
+                                Select File
+                              </span>
                             </div>
                           </div>
                         ) : (
@@ -730,12 +838,15 @@ const Checkout = () => {
                             >
                               <X className="w-4 h-4" />
                             </button>
-                            <p className="mt-3 text-[10px] font-heading uppercase truncate">{paymentProofFile.name}</p>
+                            <p className="mt-3 text-[10px] font-heading uppercase truncate">
+                              {paymentProofFile.name}
+                            </p>
                           </div>
                         )}
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-3 italic">
-                        Upload a clear screenshot of your {paymentMethod === "gcash" ? "GCash" : "bank"} transaction.
+                        Upload a clear screenshot of your{" "}
+                        {paymentMethod === "gcash" ? "GCash" : "bank"} transaction.
                       </p>
                     </div>
                   )}
@@ -743,7 +854,9 @@ const Checkout = () => {
 
                 {/* Notes */}
                 <div>
-                  <label className="font-heading text-sm uppercase tracking-wide mb-2 block">Order Notes (Optional)</label>
+                  <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
+                    Order Notes (Optional)
+                  </label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
@@ -754,10 +867,19 @@ const Checkout = () => {
 
                 <button
                   type="submit"
-                  disabled={loading || checkoutItems.length === 0 || !selectedAddress || (paymentMethod !== "cod" && !paymentProofFile)}
+                  disabled={
+                    loading ||
+                    checkoutItems.length === 0 ||
+                    !selectedAddress ||
+                    (paymentMethod !== "cod" && !paymentProofFile)
+                  }
                   className="btn-brutal w-full"
                 >
-                  {loading ? (uploadingProof ? "Uploading payment proof..." : "Placing Order...") : "Place Order"}
+                  {loading
+                    ? uploadingProof
+                      ? "Uploading payment proof..."
+                      : "Placing Order..."
+                    : "Place Order"}
                 </button>
               </form>
             </div>
@@ -768,8 +890,13 @@ const Checkout = () => {
               <div className="card-brutal p-6">
                 {/* Items by brand */}
                 {Object.entries(groupedItems).map(([brandId, group]) => (
-                  <div key={brandId} className="pb-6 mb-6 border-b border-border-subtle last:border-0 last:pb-0 last:mb-0">
-                    <h3 className="font-heading uppercase mb-4">{group.brand?.name || "Unknown Brand"}</h3>
+                  <div
+                    key={brandId}
+                    className="pb-6 mb-6 border-b border-border-subtle last:border-0 last:pb-0 last:mb-0"
+                  >
+                    <h3 className="font-heading uppercase mb-4">
+                      {group.brand?.name || "Unknown Brand"}
+                    </h3>
                     <div className="space-y-3">
                       {group.items.map((item: any) => {
                         const product = item.variant?.product;
@@ -777,19 +904,25 @@ const Checkout = () => {
                           <div key={item.id} className="flex gap-4">
                             <div className="w-14 h-18 bg-muted flex-shrink-0 border border-border-subtle overflow-hidden">
                               {product?.image_url && (
-                                <img 
-                                  src={product.image_url} 
-                                  alt={product.name} 
-                                  className="w-full h-full object-cover" 
+                                <img
+                                  src={product.image_url}
+                                  alt={product.name}
+                                  className="w-full h-full object-cover"
                                 />
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">{product?.name || "Unknown Product"}</p>
-                              {item.size && <p className="text-xs text-muted-foreground">Size: {item.size}</p>}
+                              <p className="text-sm font-medium truncate">
+                                {product?.name || "Unknown Product"}
+                              </p>
+                              {item.size && (
+                                <p className="text-xs text-muted-foreground">Size: {item.size}</p>
+                              )}
                               <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
                             </div>
-                            <div className="text-sm font-mono">{formatPrice(Number(product?.price || 0) * item.quantity)}</div>
+                            <div className="text-sm font-mono">
+                              {formatPrice(Number(product?.price || 0) * item.quantity)}
+                            </div>
                           </div>
                         );
                       })}
@@ -803,7 +936,9 @@ const Checkout = () => {
                         sellerLocation={group.brand?.location || "Albay"}
                         buyerLocation={buyerLocation}
                         itemCount={group.items.reduce((sum, i) => sum + i.quantity, 0)}
-                        hasFreeShipping={!!shippingVoucher || appliedPromo?.type === "free_shipping"}
+                        hasFreeShipping={
+                          !!shippingVoucher || appliedPromo?.type === "free_shipping"
+                        }
                       />
                     </div>
                   </div>
@@ -812,7 +947,9 @@ const Checkout = () => {
                 {/* Promo Code */}
                 <div className="pt-4 border-t-2 border-foreground space-y-4">
                   <div>
-                    <label className="font-heading text-xs uppercase tracking-wide mb-2 block">Promo Code</label>
+                    <label className="font-heading text-xs uppercase tracking-wide mb-2 block">
+                      Promo Code
+                    </label>
                     <PromoCodeInput
                       onApply={(promo: any) => setAppliedPromo(promo)}
                       appliedCode={appliedPromo?.code || null}
@@ -835,42 +972,62 @@ const Checkout = () => {
                           </span>
                         )}
                       </span>
-                      {showVouchers ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      {showVouchers ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
                     </button>
 
                     {showVouchers && (
                       <div className="border-2 border-t-0 border-foreground max-h-64 overflow-y-auto">
                         {pesoVouchers.length > 0 && (
                           <div>
-                            <div className="px-3 py-2 bg-muted text-xs font-heading uppercase">Discount Vouchers (stackable)</div>
+                            <div className="px-3 py-2 bg-muted text-xs font-heading uppercase">
+                              Discount Vouchers (stackable)
+                            </div>
                             {pesoVouchers.map((v) => {
                               const isSelected = selectedVouchers.some((sv) => sv.id === v.id);
-                              const meetsMin = !v.min_order_amount || productSubtotal >= Number(v.min_order_amount);
+                              const meetsMin =
+                                !v.min_order_amount ||
+                                productSubtotal >= Number(v.min_order_amount);
                               return (
-                                  <button
-                                    key={v.id}
-                                    onClick={() => meetsMin && togglePesoVoucher(v)}
-                                    disabled={!meetsMin}
-                                    className={`w-full p-3 text-left border-t border-border-subtle transition-colors ${isSelected ? "bg-success/10" : "hover:bg-secondary/50"} ${!meetsMin ? "opacity-40" : ""}`}
-                                  >
-                                    <div className="flex justify-between items-center">
-                                      <div>
-                                        <span className="font-heading text-sm">
-                                          {v.discount_type === "percentage" ? `${v.discount_value}% OFF` : formatPrice(Number(v.discount_value))}
-                                        </span>
-                                        <p className="text-xs text-muted-foreground">{v.name}</p>
-                                        {!meetsMin && <p className="text-xs text-destructive">Min: {formatPrice(Number(v.min_order_amount))}</p>}
-                                      </div>
-                                      {isSelected && <span className="text-success text-xs font-heading">✓ APPLIED</span>}
+                                <button
+                                  key={v.id}
+                                  onClick={() => meetsMin && togglePesoVoucher(v)}
+                                  disabled={!meetsMin}
+                                  className={`w-full p-3 text-left border-t border-border-subtle transition-colors ${isSelected ? "bg-success/10" : "hover:bg-secondary/50"} ${!meetsMin ? "opacity-40" : ""}`}
+                                >
+                                  <div className="flex justify-between items-center">
+                                    <div>
+                                      <span className="font-heading text-sm">
+                                        {v.discount_type === "percentage"
+                                          ? `${v.discount_value}% OFF`
+                                          : formatPrice(Number(v.discount_value))}
+                                      </span>
+                                      <p className="text-xs text-muted-foreground">{v.name}</p>
+                                      {!meetsMin && (
+                                        <p className="text-xs text-destructive">
+                                          Min: {formatPrice(Number(v.min_order_amount))}
+                                        </p>
+                                      )}
                                     </div>
-                                  </button>
+                                    {isSelected && (
+                                      <span className="text-success text-xs font-heading">
+                                        ✓ APPLIED
+                                      </span>
+                                    )}
+                                  </div>
+                                </button>
                               );
                             })}
                           </div>
                         )}
                         {shippingVouchers.length > 0 && (
                           <div>
-                            <div className="px-3 py-2 bg-muted text-xs font-heading uppercase">Shipping Vouchers (max 1)</div>
+                            <div className="px-3 py-2 bg-muted text-xs font-heading uppercase">
+                              Shipping Vouchers (max 1)
+                            </div>
                             {shippingVouchers.map((v) => {
                               const isSelected = shippingVoucher?.id === v.id;
                               return (
@@ -882,9 +1039,15 @@ const Checkout = () => {
                                   <div className="flex justify-between items-center">
                                     <div>
                                       <span className="font-heading text-sm">FREE SHIPPING</span>
-                                      <p className="text-xs text-muted-foreground">{v.name} · ₱{v.discount_value} off shipping</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {v.name} · ₱{v.discount_value} off shipping
+                                      </p>
                                     </div>
-                                    {isSelected && <span className="text-success text-xs font-heading">✓ APPLIED</span>}
+                                    {isSelected && (
+                                      <span className="text-success text-xs font-heading">
+                                        ✓ APPLIED
+                                      </span>
+                                    )}
                                   </div>
                                 </button>
                               );
@@ -892,7 +1055,9 @@ const Checkout = () => {
                           </div>
                         )}
                         {pesoVouchers.length === 0 && shippingVouchers.length === 0 && (
-                          <div className="p-4 text-center text-sm text-muted-foreground">No vouchers available</div>
+                          <div className="p-4 text-center text-sm text-muted-foreground">
+                            No vouchers available
+                          </div>
                         )}
                       </div>
                     )}
@@ -935,7 +1100,10 @@ const Checkout = () => {
                   )}
                   {pesoVoucherDeduction > 0 && (
                     <div className="flex justify-between text-sm text-success">
-                      <span>Voucher Discount{selectedVouchers.length > 1 ? `s (${selectedVouchers.length})` : ""}</span>
+                      <span>
+                        Voucher Discount
+                        {selectedVouchers.length > 1 ? `s (${selectedVouchers.length})` : ""}
+                      </span>
                       <span>-{formatPrice(pesoVoucherDeduction)}</span>
                     </div>
                   )}
@@ -951,8 +1119,8 @@ const Checkout = () => {
                     {paymentMethod === "cod"
                       ? "Cash on Delivery — pay when you receive your order."
                       : paymentMethod === "gcash"
-                      ? "GCash — your payment proof will be sent to the vendor for verification."
-                      : "Bank Transfer — your payment proof will be sent to the vendor for verification."}
+                        ? "GCash — your payment proof will be sent to the vendor for verification."
+                        : "Bank Transfer — your payment proof will be sent to the vendor for verification."}
                   </p>
                 </div>
               </div>

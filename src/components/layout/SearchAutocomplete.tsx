@@ -150,7 +150,7 @@ const SearchAutocomplete = ({ onClose, className = "", autoFocus = false }: Prop
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
-    
+
     // If we're still loading and no results yet, just do a generic search
     if (loading && results.length === 0) {
       setIsOpen(false);
@@ -161,13 +161,11 @@ const SearchAutocomplete = ({ onClose, className = "", autoFocus = false }: Prop
 
     setIsOpen(false);
     onClose?.();
-    
+
     if (results.length > 0) {
       // Find an exact match by name
-      const exactMatch = results.find(
-        (r) => r.name.toLowerCase() === query.trim().toLowerCase()
-      );
-      
+      const exactMatch = results.find((r) => r.name.toLowerCase() === query.trim().toLowerCase());
+
       const target = exactMatch || results[0];
       handleSelect(target);
     } else {

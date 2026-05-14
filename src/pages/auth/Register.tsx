@@ -62,11 +62,11 @@ const Register = () => {
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
-    
+
     if (result.redirected) {
       return;
     }
-    
+
     if (result.error) {
       toast({
         title: "Sign in failed",
@@ -86,7 +86,7 @@ const Register = () => {
     <PageLayout header={<AuthHeader />} hideSaleBanner minimalHeader>
       <div className="flex-1 relative flex items-center justify-center min-h-[calc(100vh-80px)] overflow-hidden">
         {/* Background Image Container - Ready for future image */}
-        <div 
+        <div
           className="absolute inset-0 z-0 bg-secondary/30"
           style={{
             backgroundImage: "none", // User will add image here
@@ -191,11 +191,7 @@ const Register = () => {
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-brutal w-full text-sm"
-                >
+                <button type="submit" disabled={loading} className="btn-brutal w-full text-sm">
                   {loading ? "Creating account..." : "Create Account"}
                 </button>
               </form>
@@ -205,9 +201,7 @@ const Register = () => {
                   <div className="w-full border-t border-border-subtle" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="bg-background px-4 text-muted-foreground">
-                    Or continue with
-                  </span>
+                  <span className="bg-background px-4 text-muted-foreground">Or continue with</span>
                 </div>
               </div>
 
@@ -239,8 +233,13 @@ const Register = () => {
               <div className="mt-6 text-center">
                 <p className="text-[10px] md:text-xs text-muted-foreground leading-relaxed">
                   By signing up, you agree to Bicollective's{" "}
-                  <Link to="/terms" className="text-foreground font-medium hover:underline">Terms of Service</Link> &{" "}
-                  <Link to="/privacy" className="text-foreground font-medium hover:underline">Privacy Policy</Link>
+                  <Link to="/terms" className="text-foreground font-medium hover:underline">
+                    Terms of Service
+                  </Link>{" "}
+                  &{" "}
+                  <Link to="/privacy" className="text-foreground font-medium hover:underline">
+                    Privacy Policy
+                  </Link>
                 </p>
               </div>
 

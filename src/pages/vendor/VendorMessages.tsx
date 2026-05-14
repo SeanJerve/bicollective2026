@@ -18,21 +18,28 @@ const VendorMessages = () => {
         Messages
       </h1>
 
-      <div className="border-2 border-foreground shadow-brutal flex flex-col md:flex-row" style={{ height: "calc(100vh - 200px)", minHeight: "500px" }}>
+      <div
+        className="border-2 border-foreground shadow-brutal flex flex-col md:flex-row"
+        style={{ height: "calc(100vh - 200px)", minHeight: "500px" }}
+      >
         {/* Conversation List */}
-        <div className={`w-full md:w-80 lg:w-96 border-r-0 md:border-r-2 border-foreground flex-shrink-0 ${selected ? "hidden md:flex md:flex-col" : "flex flex-col"}`}>
+        <div
+          className={`w-full md:w-80 lg:w-96 border-r-0 md:border-r-2 border-foreground flex-shrink-0 ${selected ? "hidden md:flex md:flex-col" : "flex flex-col"}`}
+        >
           <div className="p-3 border-b-2 border-foreground bg-secondary/30">
             <h2 className="font-heading text-sm uppercase">Conversations</h2>
           </div>
           <div className="flex-1 overflow-hidden">
             <ConversationList
               selectedConversation={selected?.vendorOrderId || null}
-              onSelect={(conv) => setSelected({
-                vendorOrderId: conv.vendorOrderId,
-                otherUserId: conv.otherUserId,
-                otherUserName: conv.otherUserName,
-                orderId: conv.orderId,
-              })}
+              onSelect={(conv) =>
+                setSelected({
+                  vendorOrderId: conv.vendorOrderId,
+                  otherUserId: conv.otherUserId,
+                  otherUserName: conv.otherUserName,
+                  orderId: conv.orderId,
+                })
+              }
               role="vendor"
             />
           </div>

@@ -47,7 +47,12 @@ const LowStockAlert = ({ brandId }: { brandId: string }) => {
             </span>
             <div className="flex items-center gap-3 flex-shrink-0 ml-3">
               <span className="font-heading text-destructive">{v.stock_quantity} left</span>
-              <Link to="/vendor/products" className="text-xs underline text-muted-foreground hover:text-foreground">Edit</Link>
+              <Link
+                to="/vendor/products"
+                className="text-xs underline text-muted-foreground hover:text-foreground"
+              >
+                Edit
+              </Link>
             </div>
           </div>
         ))}

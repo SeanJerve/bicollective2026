@@ -1,7 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { DollarSign, AlertCircle, TrendingUp, History, Upload, Info, CheckCircle2 } from "lucide-react";
+import {
+  DollarSign,
+  AlertCircle,
+  TrendingUp,
+  History,
+  Upload,
+  Info,
+  CheckCircle2,
+} from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import DocumentUpload from "@/components/vendor/DocumentUpload";
@@ -17,9 +25,11 @@ const VendorFinances = () => {
   const { data: brand, refetch: refetchBrand } = useQuery({
     queryKey: ["vendor-brand-finances", user?.id],
     queryFn: async () => {
-      const { data, error } = await ((supabase as any)
-        .from("brands")
-        .select("id, name, platform_debt, commission_rate, subscription_tier") as any)
+      const { data, error } = await (
+        (supabase as any)
+          .from("brands")
+          .select("id, name, platform_debt, commission_rate, subscription_tier") as any
+      )
         .eq("owner_id", user!.id)
         .single();
       if (error) throw error;
@@ -33,7 +43,8 @@ const VendorFinances = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vendor_orders")
-        .select(`
+        .select(
+          `
           order_id, 
           created_at, 
           subtotal, 
@@ -44,7 +55,8 @@ const VendorFinances = () => {
           order:orders(
             payments(payment_method)
           )
-        `)
+        `
+        )
         .eq("brand_id", brand!.id)
         .order("created_at", { ascending: false })
         .limit(20);
@@ -57,9 +69,9 @@ const VendorFinances = () => {
   const { data: transactions, refetch: refetchTransactions } = useQuery({
     queryKey: ["vendor-transactions", brand?.id],
     queryFn: async () => {
-      const { data, error } = await ((supabase as any)
-        .from("platform_transactions")
-        .select("*") as any)
+      const { data, error } = await (
+        (supabase as any).from("platform_transactions").select("*") as any
+      )
         .eq("brand_id", brand!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -71,12 +83,16 @@ const VendorFinances = () => {
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!paymentProofUrl || !amount || Number(amount) <= 0) {
-      toast({ title: "Invalid input", description: "Please provide an amount and payment proof.", variant: "destructive" });
+      toast({
+        title: "Invalid input",
+        description: "Please provide an amount and payment proof.",
+        variant: "destructive",
+      });
       return;
     }
 
     try {
-      const { error: transError } = await ((supabase as any).from("platform_transactions")).insert({
+      const { error: transError } = await (supabase as any).from("platform_transactions").insert({
         brand_id: brand!.id,
         amount: Number(amount),
         transaction_type: "debt_payment",
@@ -84,8 +100,11 @@ const VendorFinances = () => {
         status: "pending",
       });
       if (transError) throw transError;
- 
-      toast({ title: "Payment submitted", description: "Our admin will verify your payment shortly." });
+
+      toast({
+        title: "Payment submitted",
+        description: "Our admin will verify your payment shortly.",
+      });
       setPaymentProofUrl(null);
       setAmount("");
       refetchTransactions();
@@ -108,10 +127,16 @@ const VendorFinances = () => {
 
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className={`card-brutal p-6 ${Number(brand?.platform_debt) > 0 ? "bg-destructive/10" : "bg-success/5"}`}>
+        <div
+          className={`card-brutal p-6 ${Number(brand?.platform_debt) > 0 ? "bg-destructive/10" : "bg-success/5"}`}
+        >
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-heading uppercase text-muted-foreground">Current Platform Debt</span>
-            <AlertCircle className={`w-5 h-5 ${Number(brand?.platform_debt) > 0 ? "text-destructive" : "text-success"}`} />
+            <span className="text-sm font-heading uppercase text-muted-foreground">
+              Current Platform Debt
+            </span>
+            <AlertCircle
+              className={`w-5 h-5 ${Number(brand?.platform_debt) > 0 ? "text-destructive" : "text-success"}`}
+            />
           </div>
           <p className="text-3xl font-heading">{formatPrice(Number(brand?.platform_debt || 0))}</p>
           <p className="text-xs text-muted-foreground mt-2 font-medium">
@@ -130,22 +155,30 @@ const VendorFinances = () => {
 
         <div className="card-brutal p-6">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-heading uppercase text-muted-foreground">Your Commission Rate</span>
+            <span className="text-sm font-heading uppercase text-muted-foreground">
+              Your Commission Rate
+            </span>
             <TrendingUp className="w-5 h-5 text-secondary-foreground" />
           </div>
           <p className="text-3xl font-heading">{brand?.commission_rate || 5}%</p>
           <p className="text-xs text-muted-foreground mt-2">
-            {brand?.subscription_tier === "premium" ? "Premium rate applied!" : "Upgrade to Premium for 3% rate."}
+            {brand?.subscription_tier === "premium"
+              ? "Premium rate applied!"
+              : "Upgrade to Premium for 3% rate."}
           </p>
         </div>
 
         <div className="card-brutal p-6">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-heading uppercase text-muted-foreground">Fixed Shipping Margin</span>
+            <span className="text-sm font-heading uppercase text-muted-foreground">
+              Fixed Shipping Margin
+            </span>
             <Info className="w-5 h-5 text-secondary-foreground" />
           </div>
           <p className="text-3xl font-heading">₱20.00</p>
-          <p className="text-xs text-muted-foreground mt-2">Platform fee per successful order shipment.</p>
+          <p className="text-xs text-muted-foreground mt-2">
+            Platform fee per successful order shipment.
+          </p>
         </div>
       </div>
 
@@ -164,11 +197,11 @@ const VendorFinances = () => {
           <form onSubmit={handlePaymentSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-heading uppercase mb-1">Amount Sent (₱)</label>
-              <input 
-                type="number" 
-                value={amount} 
+              <input
+                type="number"
+                value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="input-brutal w-full" 
+                className="input-brutal w-full"
                 placeholder="0.00"
                 required
               />
@@ -182,8 +215,8 @@ const VendorFinances = () => {
               onChange={(url) => setPaymentProofUrl(url)}
               required
             />
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={uploading}
               className="btn-brutal w-full flex items-center justify-center gap-2"
             >
@@ -219,20 +252,24 @@ const VendorFinances = () => {
                       </td>
                       <td className="p-4 font-heading">{formatPrice(t.amount)}</td>
                       <td className="p-4">
-                        <span className={`px-2 py-1 text-[10px] font-heading uppercase ${
-                          t.status === "approved" ? "bg-success text-success-foreground" :
-                          t.status === "rejected" ? "bg-destructive text-destructive-foreground" :
-                          "bg-muted text-muted-foreground"
-                        }`}>
+                        <span
+                          className={`px-2 py-1 text-[10px] font-heading uppercase ${
+                            t.status === "approved"
+                              ? "bg-success text-success-foreground"
+                              : t.status === "rejected"
+                                ? "bg-destructive text-destructive-foreground"
+                                : "bg-muted text-muted-foreground"
+                          }`}
+                        >
                           {t.status}
                         </span>
                       </td>
                       <td className="p-4">
                         {t.payment_proof_url ? (
-                          <a 
-                            href={t.payment_proof_url} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
+                          <a
+                            href={t.payment_proof_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="text-accent hover:underline flex items-center gap-1 font-heading text-[10px]"
                           >
                             <Upload className="w-3 h-3" /> View
@@ -273,18 +310,36 @@ const VendorFinances = () => {
               {orderFees?.map((o) => (
                 <tr key={o.order_id} className="hover:bg-secondary/30 transition-colors">
                   <td className="p-4">
-                    <p className="font-heading text-xs uppercase truncate max-w-[120px]">{o.order_id}</p>
-                    <p className="text-[10px] text-muted-foreground">{new Date(o.created_at).toLocaleDateString()}</p>
+                    <p className="font-heading text-xs uppercase truncate max-w-[120px]">
+                      {o.order_id}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {new Date(o.created_at).toLocaleDateString()}
+                    </p>
                   </td>
                   <td className="p-4 text-right">{formatPrice(Number(o.subtotal))}</td>
-                  <td className="p-4 text-right text-destructive">{o.platform_commission ? `-${formatPrice(Number(o.platform_commission))}` : "₱0.00"}</td>
-                  <td className="p-4 text-right text-destructive">{o.platform_shipping_margin ? `-${formatPrice(Number(o.platform_shipping_margin))}` : "₱0.00"}</td>
+                  <td className="p-4 text-right text-destructive">
+                    {o.platform_commission
+                      ? `-${formatPrice(Number(o.platform_commission))}`
+                      : "₱0.00"}
+                  </td>
+                  <td className="p-4 text-right text-destructive">
+                    {o.platform_shipping_margin
+                      ? `-${formatPrice(Number(o.platform_shipping_margin))}`
+                      : "₱0.00"}
+                  </td>
                   <td className="p-4 text-right font-heading">
                     {formatPrice(Number(o.total_platform_fee || 0))}
                   </td>
                   <td className="p-4">
                     <span className="text-[10px] font-heading uppercase opacity-60">
-                      {o.order?.payments?.[0]?.payment_method === 0 ? "COD" : (o.order?.payments?.[0]?.payment_method === 1 ? "GCash" : (o.order?.payments?.[0]?.payment_method === 2 ? "Bank Transfer" : "N/A"))}
+                      {o.order?.payments?.[0]?.payment_method === 0
+                        ? "COD"
+                        : o.order?.payments?.[0]?.payment_method === 1
+                          ? "GCash"
+                          : o.order?.payments?.[0]?.payment_method === 2
+                            ? "Bank Transfer"
+                            : "N/A"}
                     </span>
                   </td>
                 </tr>

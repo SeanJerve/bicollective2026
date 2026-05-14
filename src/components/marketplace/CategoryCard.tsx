@@ -21,21 +21,17 @@ const CategoryCard = ({ name, slug, image, productCount }: CategoryCardProps) =>
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-secondary to-muted flex items-center justify-center">
-              <span className="font-heading text-4xl uppercase opacity-20">
-                {name.charAt(0)}
-              </span>
+              <span className="font-heading text-4xl uppercase opacity-20">{name.charAt(0)}</span>
             </div>
           )}
-          
+
           {/* Overlay */}
           <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors" />
         </div>
 
         {/* Content */}
         <div className="p-4">
-          <h3 className="font-heading text-xl uppercase tracking-tight">
-            {name}
-          </h3>
+          <h3 className="font-heading text-xl uppercase tracking-tight">{name}</h3>
           {productCount !== undefined && (
             <p className="text-sm text-muted-foreground mt-1">
               {productCount} {productCount === 1 ? "product" : "products"}

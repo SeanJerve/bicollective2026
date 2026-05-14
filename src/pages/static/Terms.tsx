@@ -4,32 +4,39 @@ const Terms = () => {
   const sections = [
     {
       title: "1. Introduction",
-      content: "Welcome to Bicollective. These Terms of Service govern your use of our platform. By accessing or using Bicollective, you agree to comply with these terms. This is a community-driven marketplace project designed to support Bicolano entrepreneurs."
+      content:
+        "Welcome to Bicollective. These Terms of Service govern your use of our platform. By accessing or using Bicollective, you agree to comply with these terms. This is a community-driven marketplace project designed to support Bicolano entrepreneurs.",
     },
     {
       title: "2. User Accounts",
-      content: "You are responsible for maintaining the confidentiality of your account and password. You agree to provide accurate, current, and complete information during the registration process. High-trust interaction is the core of our community."
+      content:
+        "You are responsible for maintaining the confidentiality of your account and password. You agree to provide accurate, current, and complete information during the registration process. High-trust interaction is the core of our community.",
     },
     {
       title: "3. Buying and Selling",
-      content: "Bicollective provides a platform for vendors to list products and customers to purchase them. We are not a party to the actual contract of sale between buyers and sellers. Sellers are responsible for the quality and delivery of their goods."
+      content:
+        "Bicollective provides a platform for vendors to list products and customers to purchase them. We are not a party to the actual contract of sale between buyers and sellers. Sellers are responsible for the quality and delivery of their goods.",
     },
     {
       title: "4. Intellectual Property",
-      content: "Users must respect the intellectual property rights of others. Do not upload photos, logos, or descriptions that you do not have the rights to use. Reported violations may lead to account suspension."
+      content:
+        "Users must respect the intellectual property rights of others. Do not upload photos, logos, or descriptions that you do not have the rights to use. Reported violations may lead to account suspension.",
     },
     {
       title: "5. Platform Fees",
-      content: "Bicollective may charge a nominal commission fee on successful transactions to support platform maintenance. Current rates are displayed in the Vendor Portal. All fees are non-refundable unless otherwise stated."
+      content:
+        "Bicollective may charge a nominal commission fee on successful transactions to support platform maintenance. Current rates are displayed in the Vendor Portal. All fees are non-refundable unless otherwise stated.",
     },
     {
       title: "6. Vouchers and Promotions",
-      content: "Mega Discount Vouchers and other platform-wide promos are subject to specific availability and expiration dates. Vouchers cannot be exchanged for cash and are valid for one-time use per customer unless specified."
+      content:
+        "Mega Discount Vouchers and other platform-wide promos are subject to specific availability and expiration dates. Vouchers cannot be exchanged for cash and are valid for one-time use per customer unless specified.",
     },
     {
       title: "7. Prohibited Conduct",
-      content: "Users may not engage in fraudulent activities, price manipulation, or off-platform transactions that circumvent Bicollective's ecosystem. Respectful communication is required at all times."
-    }
+      content:
+        "Users may not engage in fraudulent activities, price manipulation, or off-platform transactions that circumvent Bicollective's ecosystem. Respectful communication is required at all times.",
+    },
   ];
 
   return (
@@ -56,7 +63,7 @@ const Terms = () => {
                 </div>
               </div>
             ))}
-            
+
             <div className="p-6 bg-secondary border-2 border-foreground mt-12">
               <p className="text-xs text-center uppercase font-heading tracking-widest">
                 Thank you for being part of the Bicollective community.

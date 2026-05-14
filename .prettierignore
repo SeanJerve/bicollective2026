@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+bun.lockb
+bun.lock
+package-lock.json
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.webp
+types_utf8.ts
+src/integrations/supabase/types.ts

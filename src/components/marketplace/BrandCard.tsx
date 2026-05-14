@@ -41,7 +41,7 @@ const BrandCard = ({
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-muted to-accent" />
           )}
-          
+
           {/* Logo */}
           <div className="absolute -bottom-8 left-4 w-16 h-16 bg-background border-2 border-foreground overflow-hidden aspect-square relative group-hover:shadow-brutal transition-shadow">
             <img
@@ -51,14 +51,26 @@ const BrandCard = ({
               className="w-full h-full object-cover"
             />
             {isVerified && (
-              <VerifiedBadge 
-                size="sm" 
-                className="absolute -top-1 -right-1 z-10 scale-110" 
-              />
+              <VerifiedBadge size="sm" className="absolute -top-1 -right-1 z-10 scale-110" />
             )}
             {subscriptionTier === "premium" && (
-              <div className="absolute top-0 left-0 bg-foreground text-background p-0.5 z-20" title="Premium Store">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-crown"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
+              <div
+                className="absolute top-0 left-0 bg-foreground text-background p-0.5 z-20"
+                title="Premium Store"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="lucide lucide-crown"
+                >
+                  <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14" />
+                </svg>
               </div>
             )}
           </div>
@@ -74,9 +86,7 @@ const BrandCard = ({
 
           {/* Description */}
           {description && (
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-              {description}
-            </p>
+            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{description}</p>
           )}
 
           {/* Stats */}

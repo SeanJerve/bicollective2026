@@ -1,5 +1,15 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, Loader2, ArrowLeft, Package, Paperclip, X, Image, FileText, Download } from "lucide-react";
+import {
+  Send,
+  Loader2,
+  ArrowLeft,
+  Package,
+  Paperclip,
+  X,
+  Image,
+  FileText,
+  Download,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, isToday, isYesterday } from "date-fns";
@@ -45,7 +55,14 @@ const AttachmentPreview = ({ url, type, name }: { url: string; type: string; nam
   );
 };
 
-const MessageThread = ({ vendorOrderId, otherUserId, otherUserName, orderId, onBack, role }: MessageThreadProps) => {
+const MessageThread = ({
+  vendorOrderId,
+  otherUserId,
+  otherUserName,
+  orderId,
+  onBack,
+  role,
+}: MessageThreadProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [messages, setMessages] = useState<any[]>([]);
@@ -70,8 +87,12 @@ const MessageThread = ({ vendorOrderId, otherUserId, otherUserName, orderId, onB
         // Direct messages mode
         const { data, error } = await supabase
           .from("direct_messages")
-          .select("id, sender_id, receiver_id, content, created_at, read_at, product_id, product_name, product_image")
-          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`)
+          .select(
+            "id, sender_id, receiver_id, content, created_at, read_at, product_id, product_name, product_image"
+          )
+          .or(
+            `and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`
+          )
           .order("created_at", { ascending: true });
 
         if (!error) setMessages(data || []);
@@ -109,40 +130,46 @@ const MessageThread = ({ vendorOrderId, otherUserId, otherUserName, orderId, onB
     const tableName = isDM ? "direct_messages" : "messages";
     const channel = supabase
       .channel(`thread-${vendorOrderId}`)
-      .on("postgres_changes", {
-        event: "INSERT",
-        schema: "public",
-        table: tableName,
-        ...(isDM ? {} : { filter: `vendor_order_id=eq.${vendorOrderId}` }),
-      }, (payload) => {
-        const msg = payload.new as any;
-        if (isDM) {
-          // Only add if it's part of this conversation
-          if (
-            (msg.sender_id === user.id && msg.receiver_id === otherUserId) ||
-            (msg.sender_id === otherUserId && msg.receiver_id === user.id)
-          ) {
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: tableName,
+          ...(isDM ? {} : { filter: `vendor_order_id=eq.${vendorOrderId}` }),
+        },
+        (payload) => {
+          const msg = payload.new as any;
+          if (isDM) {
+            // Only add if it's part of this conversation
+            if (
+              (msg.sender_id === user.id && msg.receiver_id === otherUserId) ||
+              (msg.sender_id === otherUserId && msg.receiver_id === user.id)
+            ) {
+              setMessages((prev) => [...prev, msg]);
+              if (msg.receiver_id === user.id) {
+                supabase
+                  .from("direct_messages")
+                  .update({ read_at: new Date().toISOString() })
+                  .eq("id", msg.id);
+              }
+            }
+          } else {
             setMessages((prev) => [...prev, msg]);
             if (msg.receiver_id === user.id) {
               supabase
-                .from("direct_messages")
+                .from("messages")
                 .update({ read_at: new Date().toISOString() })
                 .eq("id", msg.id);
             }
           }
-        } else {
-          setMessages((prev) => [...prev, msg]);
-          if (msg.receiver_id === user.id) {
-            supabase
-              .from("messages")
-              .update({ read_at: new Date().toISOString() })
-              .eq("id", msg.id);
-          }
         }
-      })
+      )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user, vendorOrderId, otherUserId, isDM]);
 
   useEffect(() => {
@@ -154,7 +181,11 @@ const MessageThread = ({ vendorOrderId, otherUserId, otherUserName, orderId, onB
     if (!file) return;
 
     if (file.size > MAX_FILE_MB * 1024 * 1024) {
-      toast({ title: "File too large", description: `Max file size is ${MAX_FILE_MB}MB`, variant: "destructive" });
+      toast({
+        title: "File too large",
+        description: `Max file size is ${MAX_FILE_MB}MB`,
+        variant: "destructive",
+      });
       return;
     }
 
@@ -266,12 +297,17 @@ const MessageThread = ({ vendorOrderId, otherUserId, otherUserName, orderId, onB
         <div className="min-w-0 flex-1">
           <h3 className="font-heading text-sm uppercase truncate">{otherUserName}</h3>
           {isDM ? (
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Direct Message</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
+              Direct Message
+            </p>
           ) : orderId ? (
             <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
               Order #{orderId.slice(0, 8)}
               {orderLink && (
-                <Link to={orderLink} className="ml-2 underline hover:text-foreground inline-flex items-center gap-1">
+                <Link
+                  to={orderLink}
+                  className="ml-2 underline hover:text-foreground inline-flex items-center gap-1"
+                >
                   <Package className="w-3 h-3" />
                   View
                 </Link>
@@ -306,57 +342,65 @@ const MessageThread = ({ vendorOrderId, otherUserId, otherUserName, orderId, onB
                 <div key={msg.id}>
                   {/* Product context card for DMs */}
                   {msg.product_name && msg.product_image && (
-                    <div className={`flex mb-1 ${msg.sender_id === user?.id ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={`flex mb-1 ${msg.sender_id === user?.id ? "justify-end" : "justify-start"}`}
+                    >
                       <div className="flex items-center gap-2 px-2.5 py-1.5 bg-accent/30 border border-border-subtle max-w-[80%]">
-                        <img src={msg.product_image} alt={msg.product_name} className="w-8 h-8 object-cover border border-border-subtle flex-shrink-0" />
+                        <img
+                          src={msg.product_image}
+                          alt={msg.product_name}
+                          className="w-8 h-8 object-cover border border-border-subtle flex-shrink-0"
+                        />
                         <div className="min-w-0">
-                          <p className="text-[10px] text-muted-foreground uppercase">Re: Product Inquiry</p>
+                          <p className="text-[10px] text-muted-foreground uppercase">
+                            Re: Product Inquiry
+                          </p>
                           <p className="text-xs font-medium truncate">{msg.product_name}</p>
                         </div>
                       </div>
                     </div>
                   )}
-                <div
-                  className={`flex mb-2 ${
-                    msg.is_system_message
-                      ? "justify-center"
-                      : msg.sender_id === user?.id
-                      ? "justify-end"
-                      : "justify-start"
-                  }`}
-                >
                   <div
-                    className={`max-w-[80%] px-3 py-2 ${
+                    className={`flex mb-2 ${
                       msg.is_system_message
-                        ? "bg-muted text-muted-foreground italic text-center text-xs px-6 max-w-full w-full"
+                        ? "justify-center"
                         : msg.sender_id === user?.id
-                        ? "bg-foreground text-background"
-                        : "bg-secondary border border-border-subtle"
+                          ? "justify-end"
+                          : "justify-start"
                     }`}
                   >
-                    {msg.content && (
-                      <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
-                    )}
-                    {msg.attachment_url && (
-                      <AttachmentPreview
-                        url={msg.attachment_url}
-                        type={msg.attachment_type || "file"}
-                        name={msg.attachment_name}
-                      />
-                    )}
-                    <p
-                      className={`text-[10px] mt-1 ${
+                    <div
+                      className={`max-w-[80%] px-3 py-2 ${
                         msg.is_system_message
-                          ? "text-muted-foreground"
+                          ? "bg-muted text-muted-foreground italic text-center text-xs px-6 max-w-full w-full"
                           : msg.sender_id === user?.id
-                          ? "text-background/60"
-                          : "text-muted-foreground"
+                            ? "bg-foreground text-background"
+                            : "bg-secondary border border-border-subtle"
                       }`}
                     >
-                      {format(new Date(msg.created_at), "h:mm a")}
-                    </p>
+                      {msg.content && (
+                        <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                      )}
+                      {msg.attachment_url && (
+                        <AttachmentPreview
+                          url={msg.attachment_url}
+                          type={msg.attachment_type || "file"}
+                          name={msg.attachment_name}
+                        />
+                      )}
+                      <p
+                        className={`text-[10px] mt-1 ${
+                          msg.is_system_message
+                            ? "text-muted-foreground"
+                            : msg.sender_id === user?.id
+                              ? "text-background/60"
+                              : "text-muted-foreground"
+                        }`}
+                      >
+                        {format(new Date(msg.created_at), "h:mm a")}
+                      </p>
+                    </div>
                   </div>
-                </div>
                 </div>
               ))}
             </div>
@@ -370,7 +414,11 @@ const MessageThread = ({ vendorOrderId, otherUserId, otherUserName, orderId, onB
         <div className="px-3 pt-2 border-t border-border-subtle bg-secondary/20">
           <div className="flex items-center gap-2 p-2 bg-background border border-border-subtle">
             {pendingPreview ? (
-              <img src={pendingPreview} alt="preview" className="w-12 h-12 object-cover border border-border-subtle" />
+              <img
+                src={pendingPreview}
+                alt="preview"
+                className="w-12 h-12 object-cover border border-border-subtle"
+              />
             ) : (
               <div className="w-12 h-12 flex items-center justify-center bg-secondary">
                 <FileText className="w-5 h-5 text-muted-foreground" />

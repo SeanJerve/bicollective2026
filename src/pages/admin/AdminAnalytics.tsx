@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { BarChart3, TrendingUp, Package, ShoppingCart, DollarSign, Ticket, Users } from "lucide-react";
+import {
+  BarChart3,
+  TrendingUp,
+  Package,
+  ShoppingCart,
+  DollarSign,
+  Ticket,
+  Users,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AnalyticsData {
@@ -61,25 +69,27 @@ const AdminAnalytics = () => {
           .eq("is_active", true);
 
         // Get vouchers stats
-        const { count: totalVouchers } = await (supabase
-          .from("user_discount_claims") as any)
-          .select("*", { count: "exact", head: true });
+        const { count: totalVouchers } = await (
+          supabase.from("user_discount_claims") as any
+        ).select("*", { count: "exact", head: true });
 
-        const { count: usedVouchers } = await (supabase
-          .from("user_discount_claims") as any)
+        const { count: usedVouchers } = await (supabase.from("user_discount_claims") as any)
           .select("*", { count: "exact", head: true })
           .eq("status", "used");
 
         // Get promotions stats
-        const { count: totalPromotions } = await (supabase
-          .from("platform_promos") as any)
-          .select("*", { count: "exact", head: true });
+        const { count: totalPromotions } = await (supabase.from("platform_promos") as any).select(
+          "*",
+          { count: "exact", head: true }
+        );
 
-        const { data: promoData } = await ((supabase
-          .from("platform_promos") as any)
-          .select("discounts(is_active)"));
-        
-        const activePromotions = (promoData || []).filter((p: any) => p.discounts?.is_active).length;
+        const { data: promoData } = await (supabase.from("platform_promos") as any).select(
+          "discounts(is_active)"
+        );
+
+        const activePromotions = (promoData || []).filter(
+          (p: any) => p.discounts?.is_active
+        ).length;
 
         // Get top products
         const { data: orderItems } = await supabase
@@ -88,7 +98,8 @@ const AdminAnalytics = () => {
 
         const productCounts: Record<string, number> = {};
         orderItems?.forEach((item) => {
-          productCounts[item.product_name] = (productCounts[item.product_name] || 0) + item.quantity;
+          productCounts[item.product_name] =
+            (productCounts[item.product_name] || 0) + item.quantity;
         });
 
         const topProducts = Object.entries(productCounts)
@@ -177,7 +188,9 @@ const AdminAnalytics = () => {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Products</p>
-              <p className="font-heading text-xl">{data?.activeProducts}/{data?.totalProducts}</p>
+              <p className="font-heading text-xl">
+                {data?.activeProducts}/{data?.totalProducts}
+              </p>
             </div>
           </div>
         </div>
@@ -189,7 +202,9 @@ const AdminAnalytics = () => {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Vouchers Used</p>
-              <p className="font-heading text-xl">{data?.usedVouchers}/{data?.totalVouchers}</p>
+              <p className="font-heading text-xl">
+                {data?.usedVouchers}/{data?.totalVouchers}
+              </p>
             </div>
           </div>
         </div>

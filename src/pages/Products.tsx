@@ -35,13 +35,12 @@ const Products = () => {
 
   usePageSEO({
     title: "Products",
-    description: "Browse curated Bicolano fashion products from verified local brands. Filter by category, brand, and location.",
+    description:
+      "Browse curated Bicolano fashion products from verified local brands. Filter by category, brand, and location.",
   });
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedLocation, setSelectedLocation] = useState<string | null>(
-    locationParam || null
-  );
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(locationParam || null);
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [minPrice, setMinPrice] = useState<string>("");
@@ -111,11 +110,16 @@ const Products = () => {
     setMaxPrice("");
   };
 
-  const hasActiveFilters = selectedCategory || selectedLocation || selectedBrand || selectedRating || minPrice || maxPrice || searchQuery;
+  const hasActiveFilters =
+    selectedCategory ||
+    selectedLocation ||
+    selectedBrand ||
+    selectedRating ||
+    minPrice ||
+    maxPrice ||
+    searchQuery;
 
-  const displayedBrands = showAllBrands
-    ? brands
-    : brands?.slice(0, INITIAL_SHOW_COUNT);
+  const displayedBrands = showAllBrands ? brands : brands?.slice(0, INITIAL_SHOW_COUNT);
 
   const displayedCategories = showAllCategories
     ? categories
@@ -164,7 +168,11 @@ const Products = () => {
               Filters
               {hasActiveFilters && (
                 <span className="w-5 h-5 bg-foreground text-background text-xs flex items-center justify-center">
-                  {(selectedCategory ? 1 : 0) + (selectedLocation ? 1 : 0) + (selectedBrand ? 1 : 0) + (selectedRating ? 1 : 0) + ((minPrice || maxPrice) ? 1 : 0)}
+                  {(selectedCategory ? 1 : 0) +
+                    (selectedLocation ? 1 : 0) +
+                    (selectedBrand ? 1 : 0) +
+                    (selectedRating ? 1 : 0) +
+                    (minPrice || maxPrice ? 1 : 0)}
                 </span>
               )}
             </button>
@@ -198,9 +206,11 @@ const Products = () => {
                   {(categories?.length || 0) > INITIAL_SHOW_COUNT && (
                     <button
                       onClick={() => setShowAllCategories(!showAllCategories)}
-                        className="text-xs text-muted-foreground hover:text-foreground mt-2 py-2 w-full text-left bg-transparent border-none cursor-pointer"
+                      className="text-xs text-muted-foreground hover:text-foreground mt-2 py-2 w-full text-left bg-transparent border-none cursor-pointer"
                     >
-                      {showAllCategories ? "View less" : `View more (${(categories?.length || 0) - INITIAL_SHOW_COUNT})`}
+                      {showAllCategories
+                        ? "View less"
+                        : `View more (${(categories?.length || 0) - INITIAL_SHOW_COUNT})`}
                     </button>
                   )}
                 </div>
@@ -238,9 +248,11 @@ const Products = () => {
                   {allLocations.length > INITIAL_SHOW_COUNT && (
                     <button
                       onClick={() => setShowAllLocations(!showAllLocations)}
-                        className="text-xs text-muted-foreground hover:text-foreground mt-2 py-2 w-full text-left bg-transparent border-none cursor-pointer"
+                      className="text-xs text-muted-foreground hover:text-foreground mt-2 py-2 w-full text-left bg-transparent border-none cursor-pointer"
                     >
-                      {showAllLocations ? "View less" : `View more (${allLocations.length - INITIAL_SHOW_COUNT})`}
+                      {showAllLocations
+                        ? "View less"
+                        : `View more (${allLocations.length - INITIAL_SHOW_COUNT})`}
                     </button>
                   )}
                 </div>
@@ -275,9 +287,11 @@ const Products = () => {
                   {(brands?.length || 0) > INITIAL_SHOW_COUNT && (
                     <button
                       onClick={() => setShowAllBrands(!showAllBrands)}
-                        className="text-xs text-muted-foreground hover:text-foreground mt-2 py-2 w-full text-left bg-transparent border-none cursor-pointer"
+                      className="text-xs text-muted-foreground hover:text-foreground mt-2 py-2 w-full text-left bg-transparent border-none cursor-pointer"
                     >
-                      {showAllBrands ? "View less" : `View more (${(brands?.length || 0) - INITIAL_SHOW_COUNT})`}
+                      {showAllBrands
+                        ? "View less"
+                        : `View more (${(brands?.length || 0) - INITIAL_SHOW_COUNT})`}
                     </button>
                   )}
                 </div>
@@ -304,39 +318,41 @@ const Products = () => {
                       min="0"
                     />
                   </div>
-                  </div>
+                </div>
 
-                  {/* Rating */}
-                  <div>
-                    <h3 className="font-heading uppercase text-sm tracking-wide mb-4">Rating</h3>
-                    <ul className="space-y-2">
-                      <li>
+                {/* Rating */}
+                <div>
+                  <h3 className="font-heading uppercase text-sm tracking-wide mb-4">Rating</h3>
+                  <ul className="space-y-2">
+                    <li>
+                      <button
+                        onClick={() => setSelectedRating(null)}
+                        className={`text-sm flex items-center gap-2 ${!selectedRating ? "font-medium border-b-2 border-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                      >
+                        All Ratings
+                      </button>
+                    </li>
+                    {[5, 4, 3, 2, 1].map((rating) => (
+                      <li key={rating}>
                         <button
-                          onClick={() => setSelectedRating(null)}
-                          className={`text-sm flex items-center gap-2 ${!selectedRating ? "font-medium border-b-2 border-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                          onClick={() => setSelectedRating(rating)}
+                          className={`text-sm flex items-center gap-2 ${selectedRating === rating ? "font-medium border-b-2 border-foreground text-foreground" : "text-muted-foreground hover:text-foreground"}`}
                         >
-                          All Ratings
+                          <div className="flex text-foreground">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <span key={i} className="text-sm leading-none">
+                                {i < rating ? "★" : "☆"}
+                              </span>
+                            ))}
+                          </div>
+                          <span>& Up</span>
                         </button>
                       </li>
-                      {[5, 4, 3, 2, 1].map((rating) => (
-                        <li key={rating}>
-                          <button
-                            onClick={() => setSelectedRating(rating)}
-                            className={`text-sm flex items-center gap-2 ${selectedRating === rating ? "font-medium border-b-2 border-foreground text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                          >
-                            <div className="flex text-foreground">
-                              {Array.from({ length: 5 }).map((_, i) => (
-                                <span key={i} className="text-sm leading-none">{i < rating ? "★" : "☆"}</span>
-                              ))}
-                            </div>
-                            <span>& Up</span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                    ))}
+                  </ul>
+                </div>
 
-                  {hasActiveFilters && (
+                {hasActiveFilters && (
                   <button
                     onClick={clearFilters}
                     className="text-sm text-muted-foreground hover:text-foreground underline"
@@ -350,7 +366,10 @@ const Products = () => {
             {/* Mobile Filter Drawer */}
             {isFilterOpen && (
               <div className="fixed inset-0 z-50 lg:hidden">
-                <div className="absolute inset-0 bg-foreground/50" onClick={() => setIsFilterOpen(false)} />
+                <div
+                  className="absolute inset-0 bg-foreground/50"
+                  onClick={() => setIsFilterOpen(false)}
+                />
                 <div className="absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] bg-background border-l-2 border-foreground p-6 overflow-y-auto animate-slide-in-right">
                   <div className="flex items-center justify-between mb-8">
                     <h2 className="font-heading text-xl uppercase">Filters</h2>
@@ -362,7 +381,9 @@ const Products = () => {
                   <div className="space-y-8">
                     {/* Categories */}
                     <div>
-                      <h3 className="font-heading uppercase text-sm tracking-wide mb-4">Categories</h3>
+                      <h3 className="font-heading uppercase text-sm tracking-wide mb-4">
+                        Categories
+                      </h3>
                       <ul className="space-y-3">
                         <li>
                           <button
@@ -386,9 +407,11 @@ const Products = () => {
                       {(categories?.length || 0) > INITIAL_SHOW_COUNT && (
                         <button
                           onClick={() => setShowAllCategories(!showAllCategories)}
-                            className="text-xs text-muted-foreground hover:text-foreground mt-2 py-2 w-full text-left bg-transparent border-none cursor-pointer"
+                          className="text-xs text-muted-foreground hover:text-foreground mt-2 py-2 w-full text-left bg-transparent border-none cursor-pointer"
                         >
-                          {showAllCategories ? "View less" : `View more (${(categories?.length || 0) - INITIAL_SHOW_COUNT})`}
+                          {showAllCategories
+                            ? "View less"
+                            : `View more (${(categories?.length || 0) - INITIAL_SHOW_COUNT})`}
                         </button>
                       )}
                     </div>
@@ -424,9 +447,11 @@ const Products = () => {
                       {allLocations.length > INITIAL_SHOW_COUNT && (
                         <button
                           onClick={() => setShowAllLocations(!showAllLocations)}
-                            className="text-xs text-muted-foreground hover:text-foreground mt-2 py-2 w-full text-left bg-transparent border-none cursor-pointer"
+                          className="text-xs text-muted-foreground hover:text-foreground mt-2 py-2 w-full text-left bg-transparent border-none cursor-pointer"
                         >
-                          {showAllLocations ? "View less" : `View more (${allLocations.length - INITIAL_SHOW_COUNT})`}
+                          {showAllLocations
+                            ? "View less"
+                            : `View more (${allLocations.length - INITIAL_SHOW_COUNT})`}
                         </button>
                       )}
                     </div>
@@ -448,7 +473,9 @@ const Products = () => {
                             <button
                               onClick={() => setSelectedBrand(brand.slug)}
                               className={`text-sm ${
-                                selectedBrand === brand.slug ? "font-medium" : "text-muted-foreground"
+                                selectedBrand === brand.slug
+                                  ? "font-medium"
+                                  : "text-muted-foreground"
                               }`}
                             >
                               {brand.name}
@@ -461,14 +488,18 @@ const Products = () => {
                           onClick={() => setShowAllBrands(!showAllBrands)}
                           className="text-xs text-muted-foreground hover:text-foreground mt-2 bg-transparent border-none p-0 cursor-pointer"
                         >
-                          {showAllBrands ? "View less" : `View more (${(brands?.length || 0) - INITIAL_SHOW_COUNT})`}
+                          {showAllBrands
+                            ? "View less"
+                            : `View more (${(brands?.length || 0) - INITIAL_SHOW_COUNT})`}
                         </button>
                       )}
                     </div>
 
                     {/* Price Range */}
                     <div>
-                      <h3 className="font-heading uppercase text-sm tracking-wide mb-4">Price Range</h3>
+                      <h3 className="font-heading uppercase text-sm tracking-wide mb-4">
+                        Price Range
+                      </h3>
                       <div className="flex items-center gap-2">
                         <input
                           type="number"
@@ -510,7 +541,9 @@ const Products = () => {
                             >
                               <div className="flex text-foreground">
                                 {Array.from({ length: 5 }).map((_, i) => (
-                                  <span key={i} className="text-sm leading-none">{i < rating ? "★" : "☆"}</span>
+                                  <span key={i} className="text-sm leading-none">
+                                    {i < rating ? "★" : "☆"}
+                                  </span>
                                 ))}
                               </div>
                               <span>& Up</span>
@@ -576,7 +609,12 @@ const Products = () => {
                   {(minPrice || maxPrice) && (
                     <span className="inline-flex items-center gap-1 px-2 md:px-3 py-1 bg-secondary text-xs md:text-sm border border-border-subtle">
                       ₱{minPrice || "0"} - ₱{maxPrice || "Any"}
-                      <button onClick={() => { setMinPrice(""); setMaxPrice(""); }}>
+                      <button
+                        onClick={() => {
+                          setMinPrice("");
+                          setMaxPrice("");
+                        }}
+                      >
                         <X className="w-3 h-3" />
                       </button>
                     </span>
@@ -586,7 +624,9 @@ const Products = () => {
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   {/* Sort By */}
                   <div className="flex items-center gap-2 flex-1 sm:flex-initial">
-                    <span className="text-xs text-muted-foreground font-heading uppercase whitespace-nowrap">Sort by:</span>
+                    <span className="text-xs text-muted-foreground font-heading uppercase whitespace-nowrap">
+                      Sort by:
+                    </span>
                     <div className="relative flex-1 sm:flex-initial">
                       <select
                         value={sortBy}
@@ -659,14 +699,20 @@ const Products = () => {
                             {product.name}
                           </h3>
                           {product.category && (
-                            <span className="text-xs text-muted-foreground">{product.category}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {product.category}
+                            </span>
                           )}
                           <div className="flex items-center gap-2 mt-2">
                             {product.listingType === "teaser" ? (
-                              <span className="font-heading text-sm md:text-base text-muted-foreground">Price TBA</span>
+                              <span className="font-heading text-sm md:text-base text-muted-foreground">
+                                Price TBA
+                              </span>
                             ) : (
                               <>
-                                <span className="font-heading text-sm md:text-base">{formatPrice(product.price)}</span>
+                                <span className="font-heading text-sm md:text-base">
+                                  {formatPrice(product.price)}
+                                </span>
                                 {product.originalPrice && product.originalPrice > product.price && (
                                   <span className="text-xs text-muted-foreground line-through">
                                     {formatPrice(product.originalPrice)}
@@ -676,7 +722,9 @@ const Products = () => {
                             )}
                           </div>
                           {!product.inStock && product.listingType === "regular" && (
-                            <span className="text-xs text-destructive mt-1 inline-block">Out of Stock</span>
+                            <span className="text-xs text-destructive mt-1 inline-block">
+                              Out of Stock
+                            </span>
                           )}
                         </div>
                       </Link>
@@ -689,10 +737,17 @@ const Products = () => {
                     <X className="w-8 h-8 text-foreground" />
                   </div>
                   <div>
-                    <h2 className="text-xl md:text-2xl font-heading uppercase font-bold tracking-widest mb-2">0 Results Found</h2>
-                    <p className="text-muted-foreground font-body text-sm md:text-base">Your filters yielded exactly zero matches.</p>
+                    <h2 className="text-xl md:text-2xl font-heading uppercase font-bold tracking-widest mb-2">
+                      0 Results Found
+                    </h2>
+                    <p className="text-muted-foreground font-body text-sm md:text-base">
+                      Your filters yielded exactly zero matches.
+                    </p>
                   </div>
-                  <button onClick={clearFilters} className="btn-brutal bg-destructive text-destructive-foreground hover:bg-destructive/90 !border-destructive-foreground">
+                  <button
+                    onClick={clearFilters}
+                    className="btn-brutal bg-destructive text-destructive-foreground hover:bg-destructive/90 !border-destructive-foreground"
+                  >
                     Purge Filters
                   </button>
                 </div>

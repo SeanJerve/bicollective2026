@@ -65,12 +65,15 @@ const Orders = () => {
       for (const vo of vendorOrders) {
         if (cancellableStatuses.includes(vo.status)) {
           const { error } = await (supabase.rpc as any)("cancel_vendor_order_customer", {
-            vo_id: vo.id
+            vo_id: vo.id,
           });
           if (error) throw error;
         }
       }
-      toast({ title: "Order cancelled", description: "Your order has been cancelled successfully." });
+      toast({
+        title: "Order cancelled",
+        description: "Your order has been cancelled successfully.",
+      });
       queryClient.invalidateQueries({ queryKey: ["customer-orders"] });
       setShowConfirmId(null);
     } catch (err) {
@@ -96,9 +99,16 @@ const Orders = () => {
         }
       }
       if (added > 0) {
-        toast({ title: "Items added to cart", description: `Added ${added} item(s) to your cart.` });
+        toast({
+          title: "Items added to cart",
+          description: `Added ${added} item(s) to your cart.`,
+        });
       } else {
-        toast({ title: "Notice", description: "No items could be ordered again.", variant: "destructive" });
+        toast({
+          title: "Notice",
+          description: "No items could be ordered again.",
+          variant: "destructive",
+        });
       }
     } catch (err) {
       toast({ title: "Error", description: "Failed to add items to cart." });
@@ -112,7 +122,8 @@ const Orders = () => {
     queryFn: async () => {
       let supabaseQuery = supabase
         .from("orders")
-        .select(`
+        .select(
+          `
           *,
           shipping_address:addresses(*),
           vendor_orders!inner(
@@ -123,32 +134,48 @@ const Orders = () => {
             brand:brands(name, logo_url),
             order_items(product_id, variant_id, product_name, product_price, size, quantity)
           )
-        `)
+        `
+        )
         .eq("customer_id", user!.id);
 
       if (filter !== "all") {
         if (filter === "paid_confirmed") {
-          supabaseQuery = supabaseQuery.filter("vendor_orders.status", "in", '("paid","confirmed","processing")');
+          supabaseQuery = supabaseQuery.filter(
+            "vendor_orders.status",
+            "in",
+            '("paid","confirmed","processing")'
+          );
         } else if (filter === "to_receive") {
-          supabaseQuery = supabaseQuery.filter("vendor_orders.status", "in", '("handed_to_courier","for_delivery","shipped")');
+          supabaseQuery = supabaseQuery.filter(
+            "vendor_orders.status",
+            "in",
+            '("handed_to_courier","for_delivery","shipped")'
+          );
         } else {
           supabaseQuery = supabaseQuery.eq("vendor_orders.status", filter as any);
         }
       }
 
-      const { data, error } = await supabaseQuery
-        .order("created_at", { ascending: false });
+      const { data, error } = await supabaseQuery.order("created_at", { ascending: false });
 
       if (error) throw error;
-      
+
       // Secondary filter in JS for categories that match multiple raw statuses
       let filteredData = data || [];
       if (filter === "paid_confirmed") {
-        filteredData = filteredData.filter(o => o.vendor_orders.some((vo: any) => ["paid", "confirmed", "processing"].includes(vo.status)));
+        filteredData = filteredData.filter((o) =>
+          o.vendor_orders.some((vo: any) => ["paid", "confirmed", "processing"].includes(vo.status))
+        );
       } else if (filter === "to_receive") {
-        filteredData = filteredData.filter(o => o.vendor_orders.some((vo: any) => ["handed_to_courier", "for_delivery", "shipped"].includes(vo.status)));
+        filteredData = filteredData.filter((o) =>
+          o.vendor_orders.some((vo: any) =>
+            ["handed_to_courier", "for_delivery", "shipped"].includes(vo.status)
+          )
+        );
       } else if (filter !== "all") {
-        filteredData = filteredData.filter(o => o.vendor_orders.some((vo: any) => (vo.status as string) === filter));
+        filteredData = filteredData.filter((o) =>
+          o.vendor_orders.some((vo: any) => (vo.status as string) === filter)
+        );
       }
 
       return filteredData;
@@ -192,9 +219,14 @@ const Orders = () => {
           {filters.map((f) => (
             <button
               key={f.value}
-              onClick={() => { setFilter(f.value); setLimit(5); }}
+              onClick={() => {
+                setFilter(f.value);
+                setLimit(5);
+              }}
               className={`px-4 py-2 text-xs md:text-sm font-heading uppercase whitespace-nowrap border-2 transition-colors ${
-                filter === f.value ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground border-transparent hover:border-foreground/20"
+                filter === f.value
+                  ? "bg-foreground text-background border-foreground"
+                  : "bg-background text-muted-foreground border-transparent hover:border-foreground/20"
               }`}
             >
               {f.label}
@@ -214,13 +246,15 @@ const Orders = () => {
           ) : orders && orders.length > 0 ? (
             <div className="space-y-4">
               {orders.slice(0, limit).map((order) => {
-                const overallStatus =
-                  order.vendor_orders?.[0]?.status || "pending_payment";
+                const overallStatus = order.vendor_orders?.[0]?.status || "pending_payment";
                 const canCancel = order.vendor_orders?.some((vo: any) =>
                   cancellableStatuses.includes(vo.status)
                 );
                 return (
-                  <div key={order.id} className="card-brutal hover:shadow-brutal-hover transition-shadow">
+                  <div
+                    key={order.id}
+                    className="card-brutal hover:shadow-brutal-hover transition-shadow"
+                  >
                     <Link
                       to={`/account/orders/${order.id}`}
                       className="p-4 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 block"
@@ -241,10 +275,7 @@ const Orders = () => {
                           </p>
                           <div className="flex flex-wrap gap-2 mt-2">
                             {order.vendor_orders?.map((vo: any) => (
-                              <span
-                                key={vo.id}
-                                className="text-xs bg-secondary px-2 py-0.5"
-                              >
+                              <span key={vo.id} className="text-xs bg-secondary px-2 py-0.5">
                                 {vo.brand?.name}
                               </span>
                             ))}
@@ -269,20 +300,24 @@ const Orders = () => {
                       <div className="px-4 md:px-6 pb-4 md:pb-6 pt-0 border-t border-border-subtle pt-4">
                         {showConfirmId === order.id ? (
                           <div className="space-y-3 animate-fade-in p-3 bg-destructive/10 border-2 border-destructive">
-                             <p className="text-sm font-heading uppercase text-center text-destructive">
+                            <p className="text-sm font-heading uppercase text-center text-destructive">
                               Cancel this entire order? This cannot be undone.
                             </p>
                             <div className="flex gap-2">
                               <button
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowConfirmId(null); }}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setShowConfirmId(null);
+                                }}
                                 className="btn-brutal-secondary flex-1"
                               >
                                 Keep Order
                               </button>
                               <button
-                                onClick={(e) => { 
-                                  e.preventDefault(); 
-                                  e.stopPropagation(); 
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
                                   handleCancelOrder(order.id, order.vendor_orders || []);
                                 }}
                                 disabled={cancellingOrder === order.id}
@@ -298,7 +333,11 @@ const Orders = () => {
                           </div>
                         ) : (
                           <button
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowConfirmId(order.id); }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setShowConfirmId(order.id);
+                            }}
                             className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm border-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors font-heading uppercase"
                           >
                             <XCircle className="w-4 h-4" />
@@ -326,11 +365,11 @@ const Orders = () => {
                   </div>
                 );
               })}
-              
+
               {orders.length > limit && (
                 <div className="pt-6 text-center">
-                  <button 
-                    onClick={() => setLimit(prev => prev + 5)}
+                  <button
+                    onClick={() => setLimit((prev) => prev + 5)}
                     className="btn-brutal px-8 py-3 text-sm"
                   >
                     See More Orders

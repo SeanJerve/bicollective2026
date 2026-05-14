@@ -53,12 +53,10 @@ const PaymentProofUpload = ({
       if (uploadError) throw uploadError;
 
       // Update/Insert verification
-      const { error: verError } = await (supabase
-        .from("payment_verifications")
-        .upsert({
-          payment_id: paymentId,
-          proof_image_url: filePath,
-        } as any) as any);
+      const { error: verError } = await (supabase.from("payment_verifications").upsert({
+        payment_id: paymentId,
+        proof_image_url: filePath,
+      } as any) as any);
 
       if (verError) throw verError;
 
@@ -126,7 +124,9 @@ const PaymentProofUpload = ({
         <p className="text-xs text-muted-foreground">Payment proof uploaded</p>
         <div className="flex items-center gap-3 p-3 border-2 border-success bg-success/10">
           <Image className="w-5 h-5 flex-shrink-0 text-success" />
-          <span className="flex-1 text-sm text-success">Proof submitted — awaiting verification</span>
+          <span className="flex-1 text-sm text-success">
+            Proof submitted — awaiting verification
+          </span>
         </div>
       </div>
     );
@@ -152,7 +152,9 @@ const PaymentProofUpload = ({
         {uploading ? (
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-            <span className="text-xs text-muted-foreground font-heading uppercase">Uploading...</span>
+            <span className="text-xs text-muted-foreground font-heading uppercase">
+              Uploading...
+            </span>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-3">
@@ -163,9 +165,7 @@ const PaymentProofUpload = ({
               <p className="text-sm font-heading uppercase font-medium">
                 {isDragging ? "Drop file here" : "Drag & Drop your screenshot"}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                JPG, PNG, WEBP — max 5MB
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">JPG, PNG, WEBP — max 5MB</p>
             </div>
 
             {/* Divider */}

@@ -17,21 +17,33 @@ const AdminPromotions = () => {
 
       <Tabs defaultValue="campaigns" className="space-y-6">
         <TabsList className="bg-secondary p-1 h-auto flex flex-wrap gap-1 justify-start">
-          <TabsTrigger value="campaigns" className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-foreground data-[state=active]:text-background">
+          <TabsTrigger
+            value="campaigns"
+            className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-foreground data-[state=active]:text-background"
+          >
             <Tag className="w-4 h-4" />
             <span className="hidden sm:inline">Discount Campaigns</span>
             <span className="inline sm:hidden">Campaigns</span>
           </TabsTrigger>
-          <TabsTrigger value="vouchers" className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-foreground data-[state=active]:text-background">
+          <TabsTrigger
+            value="vouchers"
+            className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-foreground data-[state=active]:text-background"
+          >
             <Ticket className="w-4 h-4" />
             Vouchers
           </TabsTrigger>
-          <TabsTrigger value="lucky-promo" className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-foreground data-[state=active]:text-background">
+          <TabsTrigger
+            value="lucky-promo"
+            className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-foreground data-[state=active]:text-background"
+          >
             <Gift className="w-4 h-4" />
             <span className="hidden sm:inline">Lucky Promo</span>
             <span className="inline sm:hidden">Lucky</span>
           </TabsTrigger>
-          <TabsTrigger value="popups" className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-foreground data-[state=active]:text-background">
+          <TabsTrigger
+            value="popups"
+            className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-foreground data-[state=active]:text-background"
+          >
             <Globe className="w-4 h-4" />
             <span className="hidden sm:inline">Site Popups</span>
             <span className="inline sm:hidden">Popups</span>
@@ -41,7 +53,7 @@ const AdminPromotions = () => {
         <TabsContent value="campaigns" className="mt-6 outline-none">
           <AdminPromotionsContent />
         </TabsContent>
-        
+
         <TabsContent value="vouchers" className="mt-6 outline-none">
           <AdminVouchers />
         </TabsContent>

@@ -1,6 +1,23 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, ShoppingCart, Store, Star, LogOut, Tag, Menu, X, BarChart3, MessageSquare, ChevronLeft, DollarSign, Zap, Award, Calendar } from "lucide-react";
+import {
+  LayoutDashboard,
+  Package,
+  ShoppingCart,
+  Store,
+  Star,
+  LogOut,
+  Tag,
+  Menu,
+  X,
+  BarChart3,
+  MessageSquare,
+  ChevronLeft,
+  DollarSign,
+  Zap,
+  Award,
+  Calendar,
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
 import Breadcrumbs from "./Breadcrumbs";
@@ -15,7 +32,12 @@ const VendorLayout = () => {
     { href: "/vendor", label: "Dashboard", icon: LayoutDashboard, exact: true },
     { href: "/vendor/products", label: "Products", icon: Package, badge: counts.lowStockProducts },
     { href: "/vendor/orders", label: "Orders", icon: ShoppingCart, badge: counts.pendingOrders },
-    { href: "/vendor/messages", label: "Messages", icon: MessageSquare, badge: counts.unreadMessages },
+    {
+      href: "/vendor/messages",
+      label: "Messages",
+      icon: MessageSquare,
+      badge: counts.unreadMessages,
+    },
     { href: "/vendor/drops", label: "Drops & Trailers", icon: Calendar },
     { href: "/vendor/promotions", label: "Promotions", icon: Tag },
     { href: "/vendor/store", label: "Store Settings", icon: Store },
@@ -31,9 +53,12 @@ const VendorLayout = () => {
     return location.pathname.startsWith(path);
   };
 
-  const currentPage = navItems.find((item) =>
-    item.exact ? location.pathname === item.href : location.pathname.startsWith(item.href) && item.href !== "/vendor"
-  ) || navItems[0];
+  const currentPage =
+    navItems.find((item) =>
+      item.exact
+        ? location.pathname === item.href
+        : location.pathname.startsWith(item.href) && item.href !== "/vendor"
+    ) || navItems[0];
 
   return (
     <div className="min-h-screen flex">

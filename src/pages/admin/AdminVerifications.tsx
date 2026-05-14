@@ -1,5 +1,15 @@
 import { useEffect, useState } from "react";
-import { Settings2, Check, X, RotateCcw, Loader2, FileText, BadgeCheck, Image, ExternalLink } from "lucide-react";
+import {
+  Settings2,
+  Check,
+  X,
+  RotateCcw,
+  Loader2,
+  FileText,
+  BadgeCheck,
+  Image,
+  ExternalLink,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -31,14 +41,14 @@ const AdminVerifications = () => {
       // Find the bucket name by looking at the part after 'public/'
       const parts = publicUrl.split("/storage/v1/object/public/");
       if (parts.length < 2) return publicUrl;
-      
+
       const rest = parts[1];
       const bucketEndIndex = rest.indexOf("/");
       if (bucketEndIndex === -1) return publicUrl;
-      
+
       const bucketName = rest.substring(0, bucketEndIndex);
       const filePath = rest.substring(bucketEndIndex + 1);
-      
+
       const { data, error } = await supabase.storage
         .from(bucketName)
         .createSignedUrl(filePath, 3600);
@@ -47,8 +57,8 @@ const AdminVerifications = () => {
         console.error("Error creating signed URL:", error);
         return publicUrl;
       }
-      
-      setSignedUrls(prev => ({ ...prev, [publicUrl]: data.signedUrl }));
+
+      setSignedUrls((prev) => ({ ...prev, [publicUrl]: data.signedUrl }));
       return data.signedUrl;
     } catch (e) {
       console.error("Failed to parse URL for signing:", e);
@@ -59,9 +69,13 @@ const AdminVerifications = () => {
   // Load signed URLs when selecting a verification
   useEffect(() => {
     if (!selectedVerification) return;
-    
+
     const loadUrls = async () => {
-      const urls = [selectedVerification.dti_registration_url, selectedVerification.bir_certificate_url, selectedVerification.mayor_permit_url].filter(Boolean);
+      const urls = [
+        selectedVerification.dti_registration_url,
+        selectedVerification.bir_certificate_url,
+        selectedVerification.mayor_permit_url,
+      ].filter(Boolean);
       for (const url of urls) {
         await getSignedUrl(url);
       }
@@ -81,11 +95,21 @@ const AdminVerifications = () => {
         </div>
         {isImage ? (
           <a href={signedUrl} target="_blank" rel="noopener noreferrer">
-            <img src={signedUrl} alt={label} className="max-w-full max-h-64 border-2 border-border-subtle object-contain bg-muted" />
+            <img
+              src={signedUrl}
+              alt={label}
+              className="max-w-full max-h-64 border-2 border-border-subtle object-contain bg-muted"
+            />
           </a>
         ) : (
-          <a href={signedUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm hover:underline text-primary">
-            <FileText className="w-4 h-4" />View Document
+          <a
+            href={signedUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-sm hover:underline text-primary"
+          >
+            <FileText className="w-4 h-4" />
+            View Document
           </a>
         )}
       </div>
@@ -102,14 +126,19 @@ const AdminVerifications = () => {
       const validStatuses = ["pending", "verified", "needs_resubmission", "rejected"] as const;
       let query = supabase
         .from("vendor_verifications")
-        .select(`
+        .select(
+          `
           *,
           brand:brands(id, name, slug, status)
-        `)
+        `
+        )
         .order("submitted_at", { ascending: false });
 
       if (filter !== "all" && validStatuses.includes(filter as any)) {
-        query = query.eq("status", filter as "pending" | "verified" | "needs_resubmission" | "rejected");
+        query = query.eq(
+          "status",
+          filter as "pending" | "verified" | "needs_resubmission" | "rejected"
+        );
       }
 
       const { data, error } = await query;
@@ -151,10 +180,16 @@ const AdminVerifications = () => {
       }
 
       toast({
-        title: action === "verified" ? "Brand Verified" : action === "rejected" ? "Verification Rejected" : "Resubmission Requested",
-        description: action === "verified" 
-          ? "Brand is now verified with badge" 
-          : "Verification status updated",
+        title:
+          action === "verified"
+            ? "Brand Verified"
+            : action === "rejected"
+              ? "Verification Rejected"
+              : "Resubmission Requested",
+        description:
+          action === "verified"
+            ? "Brand is now verified with badge"
+            : "Verification status updated",
       });
 
       setSelectedVerification(null);
@@ -219,17 +254,19 @@ const AdminVerifications = () => {
                       {format(new Date(v.submitted_at), "PP")}
                     </p>
                   </div>
-                  <span className={`px-2 py-0.5 text-xs uppercase ${statusColors[v.status as keyof typeof statusColors]}`}>
+                  <span
+                    className={`px-2 py-0.5 text-xs uppercase ${statusColors[v.status as keyof typeof statusColors]}`}
+                  >
                     {v.status.replace("_", " ")}
                   </span>
                 </div>
                 <div className="flex justify-end">
-                    <button
-                      onClick={() => setSelectedVerification(v)}
-                      className="p-2 hover:bg-secondary rounded-full border-2 border-transparent hover:border-foreground"
-                    >
-                      <Settings2 className="w-4 h-4" />
-                    </button>
+                  <button
+                    onClick={() => setSelectedVerification(v)}
+                    className="p-2 hover:bg-secondary rounded-full border-2 border-transparent hover:border-foreground"
+                  >
+                    <Settings2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             ))}
@@ -265,7 +302,9 @@ const AdminVerifications = () => {
                           .join(", ") || "None"}
                       </td>
                       <td className="p-4">
-                        <span className={`px-2 py-1 text-xs uppercase ${statusColors[v.status as keyof typeof statusColors]}`}>
+                        <span
+                          className={`px-2 py-1 text-xs uppercase ${statusColors[v.status as keyof typeof statusColors]}`}
+                        >
                           {v.status.replace("_", " ")}
                         </span>
                       </td>
@@ -295,7 +334,10 @@ const AdminVerifications = () => {
             <div className="p-4 md:p-6 border-b border-border-subtle">
               <div className="flex items-center justify-between">
                 <h2 className="font-heading text-xl uppercase">Verification Details</h2>
-                <button onClick={() => setSelectedVerification(null)} className="p-2 hover:bg-secondary">
+                <button
+                  onClick={() => setSelectedVerification(null)}
+                  className="p-2 hover:bg-secondary"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -309,7 +351,9 @@ const AdminVerifications = () => {
                 </div>
                 <div>
                   <span className="text-muted-foreground">Submitted</span>
-                  <p className="font-medium">{format(new Date(selectedVerification.submitted_at), "PPP")}</p>
+                  <p className="font-medium">
+                    {format(new Date(selectedVerification.submitted_at), "PPP")}
+                  </p>
                 </div>
               </div>
 
@@ -317,13 +361,22 @@ const AdminVerifications = () => {
                 <span className="text-muted-foreground text-sm">Documents</span>
                 <div className="mt-2 space-y-4">
                   {selectedVerification.dti_registration_url && (
-                    <DocumentViewer url={selectedVerification.dti_registration_url} label="DTI/SEC Registration" />
+                    <DocumentViewer
+                      url={selectedVerification.dti_registration_url}
+                      label="DTI/SEC Registration"
+                    />
                   )}
                   {selectedVerification.bir_certificate_url && (
-                    <DocumentViewer url={selectedVerification.bir_certificate_url} label="BIR Certificate" />
+                    <DocumentViewer
+                      url={selectedVerification.bir_certificate_url}
+                      label="BIR Certificate"
+                    />
                   )}
                   {selectedVerification.mayor_permit_url && (
-                    <DocumentViewer url={selectedVerification.mayor_permit_url} label="Mayor's/Business Permit" />
+                    <DocumentViewer
+                      url={selectedVerification.mayor_permit_url}
+                      label="Mayor's/Business Permit"
+                    />
                   )}
                 </div>
               </div>
@@ -348,7 +401,11 @@ const AdminVerifications = () => {
                       disabled={processing}
                       className="btn-brutal flex items-center justify-center gap-2 flex-1"
                     >
-                      {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <BadgeCheck className="w-4 h-4" />}
+                      {processing ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <BadgeCheck className="w-4 h-4" />
+                      )}
                       Verify
                     </button>
                     <button

@@ -49,23 +49,29 @@ const OrderChat = ({ vendorOrderId, otherUserId, otherUserName }: OrderChatProps
     // Subscribe to realtime
     const channel = supabase
       .channel(`chat-${vendorOrderId}`)
-      .on("postgres_changes", {
-        event: "INSERT",
-        schema: "public",
-        table: "messages",
-        filter: `vendor_order_id=eq.${vendorOrderId}`,
-      }, (payload) => {
-        setMessages((prev) => [...prev, payload.new]);
-        if (payload.new.receiver_id === user.id) {
-          supabase
-            .from("messages")
-            .update({ read_at: new Date().toISOString() })
-            .eq("id", payload.new.id);
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `vendor_order_id=eq.${vendorOrderId}`,
+        },
+        (payload) => {
+          setMessages((prev) => [...prev, payload.new]);
+          if (payload.new.receiver_id === user.id) {
+            supabase
+              .from("messages")
+              .update({ read_at: new Date().toISOString() })
+              .eq("id", payload.new.id);
+          }
         }
-      })
+      )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [isOpen, user, vendorOrderId]);
 
   // Count unread when closed
@@ -87,7 +93,11 @@ const OrderChat = ({ vendorOrderId, otherUserId, otherUserName }: OrderChatProps
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const sendMessage = async (attachmentUrl?: string, attachmentName?: string, attachmentType?: string) => {
+  const sendMessage = async (
+    attachmentUrl?: string,
+    attachmentName?: string,
+    attachmentType?: string
+  ) => {
     if ((!newMessage.trim() && !attachmentUrl) || !user) return;
     setSending(true);
     try {
@@ -127,9 +137,9 @@ const OrderChat = ({ vendorOrderId, otherUserId, otherUserName }: OrderChatProps
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("message-attachments")
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("message-attachments").getPublicUrl(filePath);
 
       await sendMessage(publicUrl, file.name, file.type);
     } catch (err: any) {
@@ -188,27 +198,43 @@ const OrderChat = ({ vendorOrderId, otherUserId, otherUserName }: OrderChatProps
                       msg.is_system_message
                         ? "bg-muted text-muted-foreground italic w-full text-center"
                         : msg.sender_id === user?.id
-                        ? "bg-foreground text-background"
-                        : "bg-background"
+                          ? "bg-foreground text-background"
+                          : "bg-background"
                     }`}
                   >
                     {msg.attachment_url && (
                       <div className="mb-2 border border-foreground/20 overflow-hidden bg-muted/20">
                         {msg.attachment_type?.startsWith("image/") ? (
                           <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer">
-                            <img src={msg.attachment_url} alt={msg.attachment_name || "Attachment"} className="w-full max-h-48 object-cover" />
+                            <img
+                              src={msg.attachment_url}
+                              alt={msg.attachment_name || "Attachment"}
+                              className="w-full max-h-48 object-cover"
+                            />
                           </a>
                         ) : (
-                          <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 hover:underline">
+                          <a
+                            href={msg.attachment_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 p-2 hover:underline"
+                          >
                             <Paperclip className="w-3 h-3" />
-                            <span className="truncate max-w-[150px]">{msg.attachment_name || "File"}</span>
+                            <span className="truncate max-w-[150px]">
+                              {msg.attachment_name || "File"}
+                            </span>
                           </a>
                         )}
                       </div>
                     )}
                     <p>{msg.content}</p>
-                    <p className={`text-[10px] mt-1 ${msg.sender_id === user?.id ? "text-background/60" : "text-muted-foreground"}`}>
-                      {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    <p
+                      className={`text-[10px] mt-1 ${msg.sender_id === user?.id ? "text-background/60" : "text-muted-foreground"}`}
+                    >
+                      {new Date(msg.created_at).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </p>
                   </div>
                 </div>

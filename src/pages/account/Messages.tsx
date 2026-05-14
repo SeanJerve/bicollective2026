@@ -8,7 +8,7 @@ import usePageSEO from "@/hooks/usePageSEO";
 
 const Messages = () => {
   usePageSEO({ title: "Messages | BICOLLECTIVE", description: "Your conversations with vendors." });
-  
+
   const [selected, setSelected] = useState<{
     vendorOrderId: string;
     otherUserId: string;
@@ -21,7 +21,9 @@ const Messages = () => {
       <section className="py-6 md:py-8 border-b-2 border-foreground">
         <div className="section-container">
           <nav className="text-xs md:text-sm mb-2">
-            <Link to="/" className="text-muted-foreground hover:text-foreground">Home</Link>
+            <Link to="/" className="text-muted-foreground hover:text-foreground">
+              Home
+            </Link>
             <span className="mx-2 text-muted-foreground">/</span>
             <span>Messages</span>
           </nav>
@@ -33,21 +35,28 @@ const Messages = () => {
       </section>
 
       <section className="section-container py-6 md:py-8">
-        <div className="border-2 border-foreground shadow-brutal flex flex-col md:flex-row" style={{ height: "calc(100vh - 260px)", minHeight: "500px" }}>
+        <div
+          className="border-2 border-foreground shadow-brutal flex flex-col md:flex-row"
+          style={{ height: "calc(100vh - 260px)", minHeight: "500px" }}
+        >
           {/* Conversation List - hide on mobile when thread is open */}
-          <div className={`w-full md:w-80 lg:w-96 border-r-0 md:border-r-2 border-foreground flex-shrink-0 ${selected ? "hidden md:flex md:flex-col" : "flex flex-col"}`}>
+          <div
+            className={`w-full md:w-80 lg:w-96 border-r-0 md:border-r-2 border-foreground flex-shrink-0 ${selected ? "hidden md:flex md:flex-col" : "flex flex-col"}`}
+          >
             <div className="p-3 border-b-2 border-foreground bg-secondary/30">
               <h2 className="font-heading text-sm uppercase">Conversations</h2>
             </div>
             <div className="flex-1 overflow-hidden">
               <ConversationList
                 selectedConversation={selected?.vendorOrderId || null}
-                onSelect={(conv) => setSelected({
-                  vendorOrderId: conv.vendorOrderId,
-                  otherUserId: conv.otherUserId,
-                  otherUserName: conv.otherUserName,
-                  orderId: conv.orderId,
-                })}
+                onSelect={(conv) =>
+                  setSelected({
+                    vendorOrderId: conv.vendorOrderId,
+                    otherUserId: conv.otherUserId,
+                    otherUserName: conv.otherUserName,
+                    orderId: conv.orderId,
+                  })
+                }
                 role="customer"
               />
             </div>
@@ -68,7 +77,9 @@ const Messages = () => {
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                 <MessageSquare className="w-12 h-12 mb-3 opacity-30" />
                 <p className="font-heading text-sm uppercase">Select a conversation</p>
-                <p className="text-xs mt-1">Choose a conversation from the list to start chatting</p>
+                <p className="text-xs mt-1">
+                  Choose a conversation from the list to start chatting
+                </p>
               </div>
             )}
           </div>

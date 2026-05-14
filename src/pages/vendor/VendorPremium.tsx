@@ -1,7 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Award, CheckCircle2, Crown, Zap, TrendingUp, Info, Upload, AlertCircle } from "lucide-react";
+import {
+  Award,
+  CheckCircle2,
+  Crown,
+  Zap,
+  TrendingUp,
+  Info,
+  Upload,
+  AlertCircle,
+} from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import DocumentUpload from "@/components/vendor/DocumentUpload";
@@ -15,9 +24,11 @@ const VendorPremium = () => {
   const { data: brand, refetch: refetchBrand } = useQuery({
     queryKey: ["vendor-brand-premium", user?.id],
     queryFn: async () => {
-      const { data, error } = await ((supabase as any)
-        .from("brands")
-        .select("id, name, subscription_tier, subscription_expires_at") as any)
+      const { data, error } = await (
+        (supabase as any)
+          .from("brands")
+          .select("id, name, subscription_tier, subscription_expires_at") as any
+      )
         .eq("owner_id", user!.id)
         .single();
       if (error) throw error;
@@ -29,9 +40,9 @@ const VendorPremium = () => {
   const { data: subscriptions, refetch: refetchSubs } = useQuery({
     queryKey: ["vendor-subscriptions", brand?.id],
     queryFn: async () => {
-      const { data, error } = await ((supabase as any)
-        .from("platform_transactions")
-        .select("*") as any)
+      const { data, error } = await (
+        (supabase as any).from("platform_transactions").select("*") as any
+      )
         .eq("brand_id", brand!.id)
         .eq("transaction_type", "subscription_purchase")
         .order("created_at", { ascending: false });
@@ -44,12 +55,16 @@ const VendorPremium = () => {
   const handleUpgradeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!paymentProofUrl) {
-      toast({ title: "Error", description: "Please upload proof of payment.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Please upload proof of payment.",
+        variant: "destructive",
+      });
       return;
     }
 
     try {
-      const { error: transError } = await ((supabase as any).from("platform_transactions")).insert({
+      const { error: transError } = await (supabase as any).from("platform_transactions").insert({
         brand_id: brand!.id,
         amount: 499,
         transaction_type: "subscription_purchase",
@@ -57,8 +72,11 @@ const VendorPremium = () => {
         status: "pending",
       });
       if (transError) throw transError;
- 
-      toast({ title: "Upgrade Request Sent!", description: "Admin will activate your Premium status soon." });
+
+      toast({
+        title: "Upgrade Request Sent!",
+        description: "Admin will activate your Premium status soon.",
+      });
       setPaymentProofUrl(null);
       refetchSubs();
     } catch (err: any) {
@@ -70,9 +88,21 @@ const VendorPremium = () => {
 
   const benefits = [
     { icon: TrendingUp, label: "3% Commission", desc: "Lower platform fees from 5% to 3%." },
-    { icon: Award, label: "Premium Badge", desc: "Showcase your credibility with a premium store badge." },
-    { icon: Zap, label: "Priority Listing", desc: "Appear at the top of brand and category results." },
-    { icon: CheckCircle2, label: "1 Free Monthly Boost", desc: "One 24hr ad boost included every month." },
+    {
+      icon: Award,
+      label: "Premium Badge",
+      desc: "Showcase your credibility with a premium store badge.",
+    },
+    {
+      icon: Zap,
+      label: "Priority Listing",
+      desc: "Appear at the top of brand and category results.",
+    },
+    {
+      icon: CheckCircle2,
+      label: "1 Free Monthly Boost",
+      desc: "One 24hr ad boost included every month.",
+    },
   ];
 
   const formatPrice = (amount: number) =>
@@ -89,12 +119,18 @@ const VendorPremium = () => {
           <Crown className="w-10 h-10" />
         </div>
         <h1 className="font-heading text-3xl md:text-5xl uppercase">Bicollective Premium</h1>
-        <p className="text-muted-foreground max-w-lg mx-auto">Scale your business across the Bicol region with exclusive tools and lower fees.</p>
-        
+        <p className="text-muted-foreground max-w-lg mx-auto">
+          Scale your business across the Bicol region with exclusive tools and lower fees.
+        </p>
+
         {isPremium && !isExpired ? (
           <div className="badge-premium inline-block px-4 py-2 text-lg">
             Active Premium Vendor
-            {expiresAt && <span className="block text-xs font-normal opacity-70">Renews: {expiresAt.toLocaleDateString()}</span>}
+            {expiresAt && (
+              <span className="block text-xs font-normal opacity-70">
+                Renews: {expiresAt.toLocaleDateString()}
+              </span>
+            )}
           </div>
         ) : (
           <div className="flex justify-center gap-4 pt-4">
@@ -145,12 +181,16 @@ const VendorPremium = () => {
                   required
                 />
               </div>
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={uploading || (isPremium && !isExpired)}
                 className="btn-brutal w-full py-4 text-lg"
               >
-                {uploading ? "Uploading..." : isPremium && !isExpired ? "Premium Active" : "Go Premium Now"}
+                {uploading
+                  ? "Uploading..."
+                  : isPremium && !isExpired
+                    ? "Premium Active"
+                    : "Go Premium Now"}
               </button>
             </form>
           </div>
@@ -169,18 +209,24 @@ const VendorPremium = () => {
                         <p className="font-heading uppercase">₱{s.amount} Monthly Plan</p>
                         <p className="opacity-60">{new Date(s.created_at).toLocaleDateString()}</p>
                       </div>
-                      <span className={`px-2 py-0.5 text-[10px] font-heading uppercase ${
-                        s.status === "approved" ? "bg-success text-success-foreground" :
-                        s.status === "rejected" ? "bg-destructive text-destructive-foreground" :
-                        "bg-muted text-muted-foreground"
-                      }`}>
+                      <span
+                        className={`px-2 py-0.5 text-[10px] font-heading uppercase ${
+                          s.status === "approved"
+                            ? "bg-success text-success-foreground"
+                            : s.status === "rejected"
+                              ? "bg-destructive text-destructive-foreground"
+                              : "bg-muted text-muted-foreground"
+                        }`}
+                      >
                         {s.status}
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="p-8 text-center text-sm text-muted-foreground">No subscription records found.</div>
+                <div className="p-8 text-center text-sm text-muted-foreground">
+                  No subscription records found.
+                </div>
               )}
             </div>
           </div>

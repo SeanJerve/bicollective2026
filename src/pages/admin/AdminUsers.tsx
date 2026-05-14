@@ -133,7 +133,10 @@ const AdminUsers = () => {
                     </p>
                     <div className="flex gap-1 mt-2 flex-wrap">
                       {user.roles.map((role) => (
-                        <span key={role} className={`px-2 py-0.5 text-xs uppercase ${roleColors[role] || "bg-muted"}`}>
+                        <span
+                          key={role}
+                          className={`px-2 py-0.5 text-xs uppercase ${roleColors[role] || "bg-muted"}`}
+                        >
                           {role}
                         </span>
                       ))}
@@ -172,7 +175,10 @@ const AdminUsers = () => {
                       <td className="p-4">
                         <div className="flex gap-1 flex-wrap">
                           {user.roles.map((role) => (
-                            <span key={role} className={`px-2 py-0.5 text-xs uppercase ${roleColors[role] || "bg-muted"}`}>
+                            <span
+                              key={role}
+                              className={`px-2 py-0.5 text-xs uppercase ${roleColors[role] || "bg-muted"}`}
+                            >
                               {role}
                             </span>
                           ))}
@@ -193,7 +199,11 @@ const AdminUsers = () => {
             </div>
           </div>
 
-          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </>
       )}
     </div>

@@ -4,14 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface PromoCodeInputProps {
-  onApply: (promo: {
-    id: string;
-    code: string;
-    discount_type: string;
-    discount_value: number;
-    max_discount_amount: number | null;
-    scope: string;
-  } | null) => void;
+  onApply: (
+    promo: {
+      id: string;
+      code: string;
+      discount_type: string;
+      discount_value: number;
+      max_discount_amount: number | null;
+      scope: string;
+    } | null
+  ) => void;
   appliedCode: string | null;
   orderTotal: number;
 }
@@ -32,28 +34,30 @@ const PromoCodeInput = ({ onApply, appliedCode, orderTotal }: PromoCodeInputProp
       const now = new Date().toISOString();
 
       // Check platform_promos first
-      let { data: platformPromo } = await ((supabase
-        .from("platform_promos") as any)
-        .select(`
+      let { data: platformPromo } = await (supabase.from("platform_promos") as any)
+        .select(
+          `
           *,
           discounts:discounts(*)
-        `)
+        `
+        )
         .eq("code", code.toUpperCase().trim())
-        .maybeSingle());
+        .maybeSingle();
 
       let promoData: any = platformPromo;
 
       // If not found in platform, check vendor_vouchers
       if (!promoData) {
-        const { data: vendorVoucher } = await ((supabase
-          .from("vendor_vouchers") as any)
-          .select(`
+        const { data: vendorVoucher } = await (supabase.from("vendor_vouchers") as any)
+          .select(
+            `
             *,
             discounts:discounts(*)
-          `)
+          `
+          )
           .eq("code", code.toUpperCase().trim())
-          .maybeSingle());
-        
+          .maybeSingle();
+
         promoData = vendorVoucher;
       }
 
@@ -78,7 +82,9 @@ const PromoCodeInput = ({ onApply, appliedCode, orderTotal }: PromoCodeInputProp
 
       // Check minimum order amount
       if (discount.min_order_amount && orderTotal < Number(discount.min_order_amount)) {
-        setError(`Minimum order of ₱${Number(discount.min_order_amount).toLocaleString()} required`);
+        setError(
+          `Minimum order of ₱${Number(discount.min_order_amount).toLocaleString()} required`
+        );
         return;
       }
 
@@ -87,7 +93,9 @@ const PromoCodeInput = ({ onApply, appliedCode, orderTotal }: PromoCodeInputProp
         code: code.toUpperCase().trim(),
         discount_type: discount.discount_type,
         discount_value: Number(discount.discount_value),
-        max_discount_amount: discount.max_discount_amount ? Number(discount.max_discount_amount) : null,
+        max_discount_amount: discount.max_discount_amount
+          ? Number(discount.max_discount_amount)
+          : null,
         scope: (promoData as any).scope || "vendor",
       });
 

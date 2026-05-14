@@ -83,16 +83,26 @@ export const useNotifications = () => {
         .is("read_at", null);
 
       const allUnreads = unreadAlerts || [];
-      
+
       // Reset counts based on all unread alerts
-      newCounts.newReviews = allUnreads.filter(n => n.type === 'review').length;
-      newCounts.pendingOrders = allUnreads.filter(n => n.type === 'order' && (n.link?.includes('/vendor') || n.link?.includes('/orders'))).length;
-      newCounts.orderUpdates = allUnreads.filter(n => n.type === 'order' && n.link?.includes('/account')).length;
-      newCounts.pendingApplications = allUnreads.filter(n => n.type === 'admin' && n.link?.includes('applications')).length;
-      newCounts.pendingVerifications = allUnreads.filter(n => n.type === 'admin' && n.link?.includes('verifications')).length;
-      newCounts.pendingReports = allUnreads.filter(n => n.type === 'admin' && n.link?.includes('reports')).length;
-      newCounts.needsResubmission = allUnreads.filter(n => n.type === 'status').length;
-      newCounts.lowStockProducts = allUnreads.filter(n => n.type === 'inventory').length;
+      newCounts.newReviews = allUnreads.filter((n) => n.type === "review").length;
+      newCounts.pendingOrders = allUnreads.filter(
+        (n) => n.type === "order" && (n.link?.includes("/vendor") || n.link?.includes("/orders"))
+      ).length;
+      newCounts.orderUpdates = allUnreads.filter(
+        (n) => n.type === "order" && n.link?.includes("/account")
+      ).length;
+      newCounts.pendingApplications = allUnreads.filter(
+        (n) => n.type === "admin" && n.link?.includes("applications")
+      ).length;
+      newCounts.pendingVerifications = allUnreads.filter(
+        (n) => n.type === "admin" && n.link?.includes("verifications")
+      ).length;
+      newCounts.pendingReports = allUnreads.filter(
+        (n) => n.type === "admin" && n.link?.includes("reports")
+      ).length;
+      newCounts.needsResubmission = allUnreads.filter((n) => n.type === "status").length;
+      newCounts.lowStockProducts = allUnreads.filter((n) => n.type === "inventory").length;
 
       // 6. Messaging (Already head-count based, but we can unify if needed)
       const { count: unreadMessages } = await supabase
@@ -144,16 +154,32 @@ export const useNotifications = () => {
     // Notifications history channel
     const historyChannel = supabase
       .channel("history-notifications")
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, debouncedFetchCounts)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        debouncedFetchCounts
+      )
       .subscribe();
     channels.push(historyChannel);
 
     if (isAdmin) {
       const adminChannel = supabase
         .channel("admin-notifications")
-        .on("postgres_changes", { event: "*", schema: "public", table: "vendor_applications" }, debouncedFetchCounts)
-        .on("postgres_changes", { event: "*", schema: "public", table: "vendor_verifications" }, debouncedFetchCounts)
-        .on("postgres_changes", { event: "*", schema: "public", table: "reports" }, debouncedFetchCounts)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "vendor_applications" },
+          debouncedFetchCounts
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "vendor_verifications" },
+          debouncedFetchCounts
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "reports" },
+          debouncedFetchCounts
+        )
         .subscribe();
       channels.push(adminChannel);
     }
@@ -161,9 +187,21 @@ export const useNotifications = () => {
     if (isVendor) {
       const vendorChannel = supabase
         .channel("vendor-notifications")
-        .on("postgres_changes", { event: "*", schema: "public", table: "vendor_orders" }, debouncedFetchCounts)
-        .on("postgres_changes", { event: "*", schema: "public", table: "reviews" }, debouncedFetchCounts)
-        .on("postgres_changes", { event: "*", schema: "public", table: "products" }, debouncedFetchCounts)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "vendor_orders" },
+          debouncedFetchCounts
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "reviews" },
+          debouncedFetchCounts
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "products" },
+          debouncedFetchCounts
+        )
         .subscribe();
       channels.push(vendorChannel);
     }
@@ -171,7 +209,11 @@ export const useNotifications = () => {
     if (!isAdmin) {
       const customerChannel = supabase
         .channel("customer-notifications")
-        .on("postgres_changes", { event: "*", schema: "public", table: "vendor_orders" }, debouncedFetchCounts)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "vendor_orders" },
+          debouncedFetchCounts
+        )
         .subscribe();
       channels.push(customerChannel);
     }
@@ -179,12 +221,12 @@ export const useNotifications = () => {
     // Listen to new messages for unread badge — all authenticated users
     const handleMessageChange = (payload: any) => {
       // Simple check if we are involved
-      const isParticipant = 
-        payload.new?.receiver_id === user.id || 
-        payload.new?.sender_id === user.id || 
-        payload.old?.receiver_id === user.id || 
+      const isParticipant =
+        payload.new?.receiver_id === user.id ||
+        payload.new?.sender_id === user.id ||
+        payload.old?.receiver_id === user.id ||
         payload.old?.sender_id === user.id;
-        
+
       if (isParticipant) {
         fetchCounts(); // Call directly for messages
       }
@@ -192,16 +234,24 @@ export const useNotifications = () => {
 
     const messagesChannel = supabase
       .channel("messages-notifications")
-      .on("postgres_changes", {
-        event: "*",
-        schema: "public",
-        table: "messages",
-      }, handleMessageChange)
-      .on("postgres_changes", {
-        event: "*",
-        schema: "public",
-        table: "direct_messages",
-      }, handleMessageChange)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "messages",
+        },
+        handleMessageChange
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "direct_messages",
+        },
+        handleMessageChange
+      )
       .subscribe();
     channels.push(messagesChannel);
 
@@ -214,7 +264,7 @@ export const useNotifications = () => {
   const dismiss = async (key: keyof NotificationCounts) => {
     // Immediate UI feedback
     setCounts((prev) => ({ ...prev, [key]: 0 }));
-    
+
     // Persist session-level dismissal to avoid flicker on re-fetches
     const newDismissed = new Set(dismissedKeys);
     newDismissed.add(key);
@@ -226,25 +276,45 @@ export const useNotifications = () => {
     try {
       // Specialized dismissal logic for each key
       if (key === "unreadMessages") {
-        await supabase.from("messages").update({ read_at: new Date().toISOString() }).eq("receiver_id", user.id).is("read_at", null);
-        await supabase.from("direct_messages").update({ read_at: new Date().toISOString() }).eq("receiver_id", user.id).is("read_at", null);
-        await (supabase as any).from("notifications").update({ read_at: new Date().toISOString() }).eq("user_id", user.id).eq("type", "message").is("read_at", null);
+        await supabase
+          .from("messages")
+          .update({ read_at: new Date().toISOString() })
+          .eq("receiver_id", user.id)
+          .is("read_at", null);
+        await supabase
+          .from("direct_messages")
+          .update({ read_at: new Date().toISOString() })
+          .eq("receiver_id", user.id)
+          .is("read_at", null);
+        await (supabase as any)
+          .from("notifications")
+          .update({ read_at: new Date().toISOString() })
+          .eq("user_id", user.id)
+          .eq("type", "message")
+          .is("read_at", null);
       } else {
         // Map keys to notification types/links for database-level "read" status
-        let query: any = (supabase as any).from("notifications").update({ read_at: new Date().toISOString() }).eq("user_id", user.id).is("read_at", null);
-        
-        if (key === "pendingApplications") query = query.eq("type", "admin").ilike("link", "%applications%");
-        if (key === "pendingVerifications") query = query.eq("type", "admin").ilike("link", "%verifications%");
+        let query: any = (supabase as any)
+          .from("notifications")
+          .update({ read_at: new Date().toISOString() })
+          .eq("user_id", user.id)
+          .is("read_at", null);
+
+        if (key === "pendingApplications")
+          query = query.eq("type", "admin").ilike("link", "%applications%");
+        if (key === "pendingVerifications")
+          query = query.eq("type", "admin").ilike("link", "%verifications%");
         if (key === "pendingReports") query = query.eq("type", "admin").ilike("link", "%reports%");
         if (key === "newReviews") query = query.eq("type", "review");
-        if (key === "pendingOrders") query = query.filter("type", "eq", "order").or("link.ilike.%vendor%,link.ilike.%orders%");
+        if (key === "pendingOrders")
+          query = query.filter("type", "eq", "order").or("link.ilike.%vendor%,link.ilike.%orders%");
         if (key === "orderUpdates") query = query.eq("type", "order").ilike("link", "%account%");
         if (key === "needsResubmission") query = query.eq("type", "status");
         if (key === "lowStockProducts") query = query.eq("type", "inventory");
 
         await query;
       }
-      
+
       // Refresh to ensure database state and local count match
       fetchCounts();
     } catch (e) {
@@ -252,19 +322,24 @@ export const useNotifications = () => {
     }
   };
 
-  const totalAdmin = counts.pendingApplications + counts.pendingVerifications + counts.pendingReports;
-  const totalVendor = counts.pendingOrders + counts.lowStockProducts + counts.verificationResubmission + counts.newReviews;
+  const totalAdmin =
+    counts.pendingApplications + counts.pendingVerifications + counts.pendingReports;
+  const totalVendor =
+    counts.pendingOrders +
+    counts.lowStockProducts +
+    counts.verificationResubmission +
+    counts.newReviews;
   const totalCustomer = counts.orderUpdates + counts.needsResubmission;
 
-  return { 
-    counts, 
-    loading, 
-    dismiss, 
-    totalAdmin, 
-    totalVendor, 
-    totalCustomer, 
+  return {
+    counts,
+    loading,
+    dismiss,
+    totalAdmin,
+    totalVendor,
+    totalCustomer,
     refetch: fetchCounts,
     recentNotifications,
-    markAsRead
+    markAsRead,
   };
 };

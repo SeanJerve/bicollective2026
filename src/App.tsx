@@ -87,7 +87,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes  
+      gcTime: 10 * 60 * 1000, // 10 minutes
       refetchOnWindowFocus: false,
     },
   },
@@ -211,11 +211,46 @@ const App = () => (
                 </Route>
 
                 {/* Customer Account Routes */}
-                <Route path="/account/vouchers" element={<ProtectedRoute><Vouchers /></ProtectedRoute>} />
-                <Route path="/account/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                <Route path="/account/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
-                <Route path="/account/add-address" element={<ProtectedRoute><AddAddress /></ProtectedRoute>} />
-                <Route path="/account/to-review" element={<ProtectedRoute><ToReview /></ProtectedRoute>} />
+                <Route
+                  path="/account/vouchers"
+                  element={
+                    <ProtectedRoute>
+                      <Vouchers />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/account/profile"
+                  element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/account/wishlist"
+                  element={
+                    <ProtectedRoute>
+                      <Wishlist />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/account/add-address"
+                  element={
+                    <ProtectedRoute>
+                      <AddAddress />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/account/to-review"
+                  element={
+                    <ProtectedRoute>
+                      <ToReview />
+                    </ProtectedRoute>
+                  }
+                />
 
                 {/* Static Pages */}
                 <Route path="/help" element={<HelpCenter />} />

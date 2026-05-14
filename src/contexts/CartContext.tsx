@@ -54,32 +54,29 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   // ── Step 1: Get or create a carts row for this user ──────────────────────
-  const getOrCreateCart = useCallback(
-    async (userId: string): Promise<string | null> => {
-      // Try to find existing cart
-      const { data: existing } = await supabase
-        .from("carts")
-        .select("id")
-        .eq("user_id", userId)
-        .maybeSingle();
+  const getOrCreateCart = useCallback(async (userId: string): Promise<string | null> => {
+    // Try to find existing cart
+    const { data: existing } = await supabase
+      .from("carts")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
 
-      if (existing) return existing.id;
+    if (existing) return existing.id;
 
-      // No cart yet — create one
-      const { data: created, error } = await supabase
-        .from("carts")
-        .insert({ user_id: userId })
-        .select("id")
-        .single();
+    // No cart yet — create one
+    const { data: created, error } = await supabase
+      .from("carts")
+      .insert({ user_id: userId })
+      .select("id")
+      .single();
 
-      if (error) {
-        console.error("Error creating cart:", error);
-        return null;
-      }
-      return created.id;
-    },
-    []
-  );
+    if (error) {
+      console.error("Error creating cart:", error);
+      return null;
+    }
+    return created.id;
+  }, []);
 
   // ── Step 2: Fetch items using cart_id → variant → product → brand ────────
   const fetchCart = useCallback(async () => {
@@ -96,7 +93,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
       const { data, error } = await supabase
         .from("cart_items")
-        .select(`
+        .select(
+          `
           id,
           variant_id,
           quantity,
@@ -118,7 +116,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
               )
             )
           )
-        `)
+        `
+        )
         .eq("cart_id", id);
 
       if (error) throw error;
@@ -179,14 +178,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         await removeItem(itemId);
         return;
       }
-      const { error } = await supabase
-        .from("cart_items")
-        .update({ quantity })
-        .eq("id", itemId);
+      const { error } = await supabase.from("cart_items").update({ quantity }).eq("id", itemId);
       if (error) throw error;
-      setItems((prev) =>
-        prev.map((item) => (item.id === itemId ? { ...item, quantity } : item))
-      );
+      setItems((prev) => prev.map((item) => (item.id === itemId ? { ...item, quantity } : item)));
     } catch (error) {
       console.error("Error updating quantity:", error);
       toast({ title: "Error", description: "Failed to update quantity", variant: "destructive" });
