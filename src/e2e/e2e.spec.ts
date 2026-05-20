@@ -1,12 +1,18 @@
 import { test, expect } from "@playwright/test";
 import * as fs from "fs";
 import * as path from "path";
+import { fileURLToPath } from "url";
 
-// Ensure screenshot directory exists
-const screenshotDir = "C:/Users/seanjerve/OneDrive/Desktop/bicollective2026/bicollective2026/Laboratory Activity on Automated Test/screenshots";
+// Resolve __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname_esm = path.dirname(__filename);
+
+// Ensure screenshot directory exists (relative path so it works on any machine)
+const screenshotDir = path.resolve(__dirname_esm, "../../Laboratory Activity on Automated Test/screenshots");
 if (!fs.existsSync(screenshotDir)) {
   fs.mkdirSync(screenshotDir, { recursive: true });
 }
+
 
 test.describe("ADET E2E Testing Suite", () => {
   // Test 1: User Login & Session Management (Kiel)
