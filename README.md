@@ -1,6 +1,3 @@
-<div align="center">
-  <img src="https://lovable.dev/opengraph-image-p98pqg.png" alt="Bicollective Cover Image" width="100%" />
-
 # Bicollective — Multi-Vendor Marketplace 🛒✨
 
 _A modern multi-vendor e-commerce marketplace built specifically for Bicolano clothing brands, empowering local communities through commerce._
