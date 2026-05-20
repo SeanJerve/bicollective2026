@@ -3,7 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 
 // Ensure screenshot directory exists
-const screenshotDir = "C:/Users/seanjerve/OneDrive/Desktop/bicollective2026/ADET/screenshots";
+const screenshotDir = "C:/Users/seanjerve/OneDrive/Desktop/bicollective2026/bicollective2026/Laboratory Activity on Automated Test/screenshots";
 if (!fs.existsSync(screenshotDir)) {
   fs.mkdirSync(screenshotDir, { recursive: true });
 }

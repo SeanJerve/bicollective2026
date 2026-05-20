@@ -4,16 +4,16 @@
 * **Group Name:** Team Bicollective
 * **Project Title:** Bicollective — E-Commerce and Vendor Hub for Bicol's Local Clothing Brands
 * **Group Members & Assigned Contributions:**
-  1. **Kiel** - Authentication & Registration (Test 1: E2E, Test 2: Component)
-  2. **Eljohn** - Product Discovery & Detail (Test 3: Component, Test 4: E2E)
-  3. **Vince** - Shopping Cart & Wishlist (Test 5: Component, Test 6: E2E)
-  4. **Lloyd** - Checkout & Orders (Test 7: Component, Test 8: E2E)
-  5. **Jerve** (Group Leader) - Vendor Dashboard & Operations (Test 9: E2E, Test 10: Component)
+  1. **Relos, Kiel Hedrix V.** - Authentication & Registration (Test 1: E2E, Test 2: Component)
+  2. **Loterte, Eljohn Paulo C.** - Product Discovery & Detail (Test 3: Component, Test 4: E2E)
+  3. **Napay, Victor Noel A.** - Shopping Cart & Wishlist (Test 5: Component, Test 6: E2E)
+  4. **Cuario, John Lloyd M.** - Checkout & Orders (Test 7: Component, Test 8: E2E)
+  5. **Rebancos, Sean Jerve Ll.** (Group Leader) - Vendor Dashboard & Operations (Test 9: E2E, Test 10: Component)
 
 ---
 
 ## 2. Testing Details for Vince
-* **Member Name:** Vince
+* **Member Name:** Napay, Victor Noel A.
 * **Assigned Feature:** Shopping Cart Management (Variant Selection & Dynamic Quantity Calc)
 * **Type of Tests:**
   1. **Component/Unit Test** (Vitest + React Testing Library)
