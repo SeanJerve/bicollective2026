@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, BadgeCheck, Shield, Tag, Sparkles } from "lucide-react";
+import { ArrowRight, BadgeCheck, Shield, Tag, Sparkles, Heart } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import ProductCard from "@/components/marketplace/ProductCard";
 import ProductCardSkeleton from "@/components/marketplace/ProductCardSkeleton";
@@ -111,7 +111,7 @@ const Index = () => {
               </span>
             </div>
             <div className="flex items-center justify-center gap-2 md:gap-3">
-              <span className="text-xl md:text-2xl">🇵🇭</span>
+              <Heart className="w-5 h-5 md:w-6 md:h-6 fill-destructive text-destructive" />
               <span className="font-heading text-sm md:text-base uppercase tracking-wide">
                 Supporting Bicol
               </span>

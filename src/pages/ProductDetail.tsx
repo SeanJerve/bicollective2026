@@ -10,6 +10,7 @@ import {
   Zap,
   Clock,
   MessageSquare,
+  MapPin,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import PageLayout from "@/components/layout/PageLayout";
@@ -22,7 +23,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import usePageSEO from "@/hooks/usePageSEO";
-import DirectMessageDialog from "@/components/chat/DirectMessageDialog";
 
 const ProductDetail = () => {
   const { slug } = useParams();
@@ -36,6 +36,7 @@ const ProductDetail = () => {
   const { addToCart } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [selectedMediaUrl, setSelectedMediaUrl] = useState<string | null>(null);
 
   // Fetch the vendor's own brand to block self-purchasing
   const [vendorBrandId, setVendorBrandId] = useState<string | null>(null);
@@ -52,7 +53,6 @@ const ProductDetail = () => {
   }, [isVendor, user]);
 
   // Chat with seller state
-  const [chatOpen, setChatOpen] = useState(false);
   const [brandOwnerId, setBrandOwnerId] = useState<string | null>(null);
   useEffect(() => {
     if (!product?.brandId) return;
@@ -513,7 +513,13 @@ const ProductDetail = () => {
                       navigate("/auth");
                       return;
                     }
-                    setChatOpen(true);
+                    navigate(
+                      `/account/messages?vendorOrderId=dm-${brandOwnerId}&otherUserId=${brandOwnerId}&otherUserName=${encodeURIComponent(
+                        product.brandName
+                      )}&productId=${product.id}&productName=${encodeURIComponent(
+                        product.name
+                      )}&productImage=${encodeURIComponent(product.image || "")}&role=customer`
+                    );
                   }}
                   className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 border-2 border-foreground text-sm font-heading uppercase tracking-wide hover:bg-secondary transition-colors"
                 >
@@ -530,7 +536,7 @@ const ProductDetail = () => {
                     <span>Buyer Protection</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span>🇵🇭</span>
+                    <MapPin className="w-4 h-4 md:w-5 md:h-5 text-foreground" />
                     <span>Ships from Bicol</span>
                   </div>
                 </div>
@@ -583,6 +589,26 @@ const ProductDetail = () => {
                       {review.comment && (
                         <p className="text-sm text-muted-foreground">{review.comment}</p>
                       )}
+                      {review.media_urls && review.media_urls.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {review.media_urls.map((url: string, index: number) => {
+                            const isVideo = url.match(/\.(mp4|webm|ogg|mov)$/i) || url.includes("/video");
+                            return (
+                              <div
+                                key={index}
+                                onClick={() => setSelectedMediaUrl(url)}
+                                className="w-16 h-16 border-2 border-foreground bg-secondary cursor-pointer hover:opacity-80 transition-all overflow-hidden flex items-center justify-center"
+                              >
+                                {isVideo ? (
+                                  <video src={url} className="w-full h-full object-cover" muted />
+                                ) : (
+                                  <img src={url} alt="" className="w-full h-full object-cover" />
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -625,21 +651,29 @@ const ProductDetail = () => {
         </section>
       )}
 
-      {/* Direct Message Dialog */}
-      {brandOwnerId && product && (
-        <DirectMessageDialog
-          open={chatOpen}
-          onClose={() => setChatOpen(false)}
-          brandOwnerId={brandOwnerId}
-          brandName={product.brandName}
-          product={{
-            id: product.id,
-            name: product.name,
-            image: product.image,
-            price: product.price,
-            slug: product.slug,
-          }}
-        />
+      {/* Media Lightbox Modal */}
+      {selectedMediaUrl && (
+        <div
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedMediaUrl(null)}
+        >
+          <div
+            className="relative bg-background border-4 border-foreground p-2 max-w-3xl max-h-[80vh] flex items-center justify-center shadow-brutal animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setSelectedMediaUrl(null)}
+              className="absolute -top-3 -right-3 w-8 h-8 bg-background border-2 border-foreground rounded-full flex items-center justify-center font-heading hover:bg-secondary transition-colors"
+            >
+              ✕
+            </button>
+            {selectedMediaUrl.match(/\.(mp4|webm|ogg|mov)$/i) || selectedMediaUrl.includes("/video") ? (
+              <video src={selectedMediaUrl} className="max-w-full max-h-[75vh]" controls autoPlay />
+            ) : (
+              <img src={selectedMediaUrl} alt="" className="max-w-full max-h-[75vh] object-contain" />
+            )}
+          </div>
+        </div>
       )}
     </PageLayout>
   );

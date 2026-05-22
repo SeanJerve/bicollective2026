@@ -1,0 +1,65 @@
+### E-Commerce Project Evaluation Rubric
+
+**User Account Management**
+
+* **1 (Poor):** No working account system
+* **2 (Needs Improvement):** Incomplete authentication; major issues
+* **3 (Satisfactory):** Basic login/register; lacks security/validation
+* **4 (Very Good):** Functional login/register with basic validation and profile features
+* **5 (Excellent):** Secure system with encryption, validation, password recovery, and role-based access
+
+**Product Browsing**
+
+* **1 (Poor):** No usable browsing
+* **2 (Needs Improvement):** Poor navigation; missing key features
+* **3 (Satisfactory):** Basic product listing; limited filtering
+* **4 (Very Good):** Functional browsing with search and category filtering
+* **5 (Excellent):** Advanced search, filters, sorting, responsive UI, complete product details
+
+**Shopping Cart**
+
+* **1 (Poor):** No cart functionality
+* **2 (Needs Improvement):** Partial/inconsistent cart behavior
+* **3 (Satisfactory):** Basic add/remove only
+* **4 (Very Good):** Functional cart with update/remove features
+* **5 (Excellent):** Dynamic cart with persistent data, subtotal calculation, and UI feedback
+
+**Checkout & Order Processing**
+
+* **1 (Poor):** No checkout process
+* **2 (Needs Improvement):** Incomplete checkout flow
+* **3 (Satisfactory):** Basic checkout; lacks validation
+* **4 (Very Good):** Functional checkout with minor issues
+* **5 (Excellent):** Complete flow with validation, order creation, and confirmation/invoice
+
+**Payment Management**
+
+* **1 (Poor):** No payment system
+* **2 (Needs Improvement):** Partial or unclear payment process
+* **3 (Satisfactory):** Single payment option; limited validation
+* **4 (Very Good):** Functional payment method(s) with validation
+* **5 (Excellent):** Multiple payment options with secure handling and transaction status
+
+**Order Tracking**
+
+* **1 (Poor):** No tracking feature
+* **2 (Needs Improvement):** Incomplete/inconsistent tracking
+* **3 (Satisfactory):** Basic status display only
+* **4 (Very Good):** Functional tracking with limited updates
+* **5 (Excellent):** Real-time status updates, history logs, and user notifications
+
+**Admin/Vendor Management**
+
+* **1 (Poor):** No admin features
+* **2 (Needs Improvement):** Partial/poor admin panel
+* **3 (Satisfactory):** Basic admin CRUD features
+* **4 (Very Good):** Functional admin for products and orders
+* **5 (Excellent):** Full dashboard with user, product, order management, analytics, and vendor roles
+
+**Promos / Vouchers (Bonus)**
+
+* **1 (Poor):** No promo feature
+* **2 (Needs Improvement):** Partial/inconsistent implementation
+* **3 (Satisfactory):** Basic/manual discount feature
+* **4 (Very Good):** Functional voucher system with basic rules
+* **5 (Excellent):** Dynamic promo system with conditions, expiration, and automatic calculation

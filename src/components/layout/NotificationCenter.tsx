@@ -118,7 +118,7 @@ const NotificationCenter = () => {
       count: counts.unreadMessages,
       key: "unreadMessages",
       icon: MessageSquare,
-      href: isVendor && !isAdmin ? "/vendor/messages" : "/account/messages",
+      href: "/account/messages",
     },
   ];
 
@@ -177,7 +177,7 @@ const NotificationCenter = () => {
                       <item.icon className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold tracking-tight">{item.label}</p>
+                      <p className="text-sm font-semibold tracking-tight">{item.label}</p>
                     </div>
                     <span className="min-w-[20px] h-[20px] bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 rounded-full border border-foreground">
                       {item.count}
@@ -221,7 +221,7 @@ const NotificationCenter = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1 mb-0.5">
                         <p
-                          className={`text-xs uppercase leading-none truncate ${!notif.read_at ? "font-bold" : "font-medium"}`}
+                          className="text-xs uppercase leading-none truncate font-medium"
                         >
                           {notif.title}
                         </p>

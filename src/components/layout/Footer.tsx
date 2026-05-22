@@ -132,7 +132,7 @@ const Footer = () => {
               </select>
             </div>
           </div>
-          <p className="text-sm opacity-60">Supporting local Bicolano fashion 🇵🇭</p>
+          <p className="text-sm opacity-60">Supporting local Bicolano fashion</p>
         </div>
       </div>
     </footer>

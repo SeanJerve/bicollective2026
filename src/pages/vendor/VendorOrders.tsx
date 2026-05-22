@@ -14,8 +14,8 @@ import {
   Image,
   ExternalLink,
   X,
+  MessageSquare,
 } from "lucide-react";
-import OrderChat from "@/components/chat/OrderChat";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -53,14 +53,6 @@ const VendorPaymentProofImage = ({
           <Image className="w-4 h-4" />
           Proof of Payment ({paymentMethod.replace(/_/g, " ")})
         </h4>
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[10px] md:text-xs font-heading uppercase text-foreground hover:underline flex items-center gap-1 bg-background px-2 py-1 border border-foreground"
-        >
-          View Full Image <ExternalLink className="w-3 h-3" />
-        </a>
       </div>
       <div
         className="relative aspect-video md:aspect-auto md:h-48 overflow-hidden border border-border-subtle cursor-pointer group"
@@ -72,7 +64,7 @@ const VendorPaymentProofImage = ({
           className="w-full h-full object-contain bg-background transition-transform duration-300 group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-          <span className="bg-background px-3 py-1.5 border border-foreground font-heading text-[10px] uppercase shadow-brutal">
+          <span className="bg-background px-3 py-1.5 border border-foreground font-heading text-[10px] uppercase shadow-brutal hidden md:inline-block">
             Click to focus
           </span>
         </div>
@@ -96,11 +88,6 @@ const VendorPaymentProofImage = ({
               alt="Full Proof"
               className="max-w-full max-h-full object-contain"
             />
-          </div>
-          <div className="mt-6 flex justify-center">
-            <button onClick={() => setViewingImage(null)} className="btn-brutal px-12">
-              CLOSE PREVIEW
-            </button>
           </div>
         </div>
       )}
@@ -350,12 +337,12 @@ const VendorOrders = () => {
       const order = orders.find((o) => o.id === orderId);
       if (order && user) {
         const statusMessages: Record<string, string> = {
-          paid: "✅ Your payment has been verified. We're preparing your order!",
-          processing: "📦 Your order is now being processed.",
-          confirmed: "✅ Your order has been confirmed!",
-          handed_to_courier: "📦 Your order has been handed to the courier.",
-          shipped: "🚚 Your order is on its way!",
-          delivered: "✅ Your order has been delivered. Thank you for shopping!",
+          paid: "Your payment has been verified. We're preparing your order!",
+          processing: "Your order is now being processed.",
+          confirmed: "Your order has been confirmed!",
+          handed_to_courier: "Your order has been handed to the courier.",
+          shipped: "Your order is on its way!",
+          delivered: "Your order has been delivered. Thank you for shopping!",
         };
         const msg = statusMessages[status];
         if (msg) {
@@ -416,7 +403,7 @@ const VendorOrders = () => {
             receiver_id: parentOrder.customer_id,
             vendor_order_id: orderId,
             content:
-              "❌ Your payment proof was not accepted. Please re-upload a clear screenshot of your payment and try again.",
+              "Your payment proof was not accepted. Please re-upload a clear screenshot of your payment and try again.",
             is_system_message: true,
           });
         }
@@ -983,11 +970,15 @@ const VendorOrders = () => {
 
                     {/* Chat with buyer */}
                     <div className="mt-4 pt-4 border-t border-border-subtle flex justify-end">
-                      <OrderChat
-                        vendorOrderId={order.id}
-                        otherUserId={order.order?.customer_id || ""}
-                        otherUserName={order.order?.shipping_name || "Customer"}
-                      />
+                      <Link
+                        to={`/account/messages?vendorOrderId=${order.id}&otherUserId=${order.order?.customer_id || ""}&otherUserName=${encodeURIComponent(
+                          order.order?.shipping_name || "Customer"
+                        )}&orderId=${order.order_id}&role=vendor`}
+                        className="inline-flex items-center gap-1.5 text-xs font-heading uppercase py-2 px-3 border-2 border-foreground hover:bg-secondary transition-colors"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        Chat about Order
+                      </Link>
                     </div>
                   </div>
                 )}

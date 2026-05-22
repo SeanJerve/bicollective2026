@@ -73,7 +73,10 @@ const ToReview = () => {
         setUploadingMedia(true);
         for (const file of mediaFiles) {
           const ext = file.name.split(".").pop();
-          const path = `${user.id}/${vendorOrder.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+          const array = new Uint32Array(1);
+          window.crypto.getRandomValues(array);
+          const randomStr = array[0].toString(36);
+          const path = `${user.id}/${vendorOrder.id}/${Date.now()}-${randomStr}.${ext}`;
           const { error: uploadError } = await supabase.storage
             .from("review-media")
             .upload(path, file);

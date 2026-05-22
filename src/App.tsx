@@ -48,7 +48,6 @@ const VendorDrops = lazy(() => import("./pages/vendor/VendorDrops"));
 const VendorReviews = lazy(() => import("./pages/vendor/VendorReviews"));
 const VendorPromotions = lazy(() => import("./pages/vendor/VendorPromotions"));
 const VendorAnalytics = lazy(() => import("./pages/vendor/VendorAnalytics"));
-const VendorMessages = lazy(() => import("./pages/vendor/VendorMessages"));
 const VendorFinances = lazy(() => import("@/pages/vendor/VendorFinances"));
 const VendorMarketing = lazy(() => import("@/pages/vendor/VendorMarketing"));
 const VendorPremium = lazy(() => import("@/pages/vendor/VendorPremium"));
@@ -185,7 +184,7 @@ const App = () => (
                   <Route path="reviews" element={<VendorReviews />} />
                   <Route path="promotions" element={<VendorPromotions />} />
                   <Route path="analytics" element={<VendorAnalytics />} />
-                  <Route path="messages" element={<VendorMessages />} />
+                  <Route path="messages" element={<Navigate to="/account/messages" replace />} />
                   <Route path="finances" element={<VendorFinances />} />
                   <Route path="marketing" element={<VendorMarketing />} />
                   <Route path="premium" element={<VendorPremium />} />
@@ -246,9 +245,7 @@ const App = () => (
                 <Route
                   path="/account/to-review"
                   element={
-                    <ProtectedRoute>
-                      <ToReview />
-                    </ProtectedRoute>
+                    <Navigate to="/account/orders?filter=to_review" replace />
                   }
                 />
 

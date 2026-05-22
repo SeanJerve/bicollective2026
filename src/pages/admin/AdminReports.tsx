@@ -63,7 +63,7 @@ const AdminReports = () => {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "reports" }, () => {
         fetchReports();
         toast({
-          title: "🚩 New Report Received",
+          title: "New Report Received",
           description: "A vendor has submitted a new review report.",
         });
       })

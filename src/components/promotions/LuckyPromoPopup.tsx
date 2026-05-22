@@ -84,7 +84,7 @@ const LuckyPromoPopup = () => {
       setClaimed(true);
 
       toast({
-        title: "🎉 Lucky reward claimed!",
+        title: "Lucky reward claimed!",
         description:
           data.type === "free_shipping"
             ? "You got free shipping! Check your vouchers."

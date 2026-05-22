@@ -14,220 +14,350 @@ interface Conversation {
   orderId: string;
   brandName: string;
   hasAttachment: boolean;
+  role: "customer" | "vendor";
 }
 
 interface ConversationListProps {
   selectedConversation: string | null;
   onSelect: (conv: Conversation) => void;
   role: "customer" | "vendor";
+  activeEmptyConversation?: {
+    vendorOrderId: string;
+    otherUserId: string;
+    otherUserName: string;
+    orderId: string;
+    role?: "customer" | "vendor";
+  } | null;
 }
 
 const STORAGE_KEY = "bicollective_deleted_convs";
 
-const getDeletedConvs = (): Set<string> => {
+const getDeletedConvs = (): Record<string, string> => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? new Set(JSON.parse(stored)) : new Set();
+    if (!stored) return {};
+    const parsed = JSON.parse(stored);
+    if (Array.isArray(parsed)) {
+      const record: Record<string, string> = {};
+      parsed.forEach((key) => {
+        record[key] = new Date(0).toISOString();
+      });
+      return record;
+    }
+    return parsed || {};
   } catch {
-    return new Set();
+    return {};
   }
 };
 
 const saveDeletedConv = (key: string) => {
   try {
     const existing = getDeletedConvs();
-    existing.add(key);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([...existing]));
+    existing[key] = new Date().toISOString();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
   } catch {
     // ignore
   }
 };
 
-const ConversationList = ({ selectedConversation, onSelect, role }: ConversationListProps) => {
+const ConversationList = ({
+  selectedConversation,
+  onSelect,
+  role,
+  activeEmptyConversation,
+}: ConversationListProps) => {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
+  const activeEmptyVendorOrderId = activeEmptyConversation?.vendorOrderId;
+  const activeEmptyOtherUserId = activeEmptyConversation?.otherUserId;
+  const activeEmptyOtherUserName = activeEmptyConversation?.otherUserName;
+  const activeEmptyOrderId = activeEmptyConversation?.orderId;
+  const activeEmptyRole = activeEmptyConversation?.role;
+
   const fetchConversations = useCallback(async () => {
     if (!user) return;
     setLoading(true);
 
-    const deleted = getDeletedConvs();
+    try {
+      const deleted = getDeletedConvs();
 
-    // Get all messages where user is sender or receiver
-    const { data: messages, error } = await supabase
-      .from("messages")
-      .select(
-        "vendor_order_id, sender_id, receiver_id, content, created_at, read_at, attachment_type"
-      )
-      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-      .order("created_at", { ascending: false });
+      // Fetch current user's own brand (if any) to determine vendor role dynamically
+      const { data: myBrandData } = await supabase
+        .from("brands")
+        .select("id, name, owner_id")
+        .eq("owner_id", user.id)
+        .maybeSingle();
 
-    if (error || !messages) {
-      setLoading(false);
-      return;
-    }
+      // Get all messages where user is sender or receiver
+      const { data: messages, error } = await supabase
+        .from("messages")
+        .select(
+          "vendor_order_id, sender_id, receiver_id, content, created_at, read_at, attachment_type"
+        )
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .order("created_at", { ascending: false });
 
-    // Group by otherUserId (consolidate conversations)
-    const grouped = new Map<string, typeof messages>();
-    for (const msg of messages) {
-      const otherId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
-      const existing = grouped.get(otherId) || [];
-      existing.push(msg);
-      grouped.set(otherId, existing);
-    }
+      if (error) {
+        console.error("Error fetching messages:", error);
+        setLoading(false);
+        return;
+      }
 
-    // Get all vendor order IDs from all messages to fetch their brands
-    const allVoIds = new Set<string>();
-    for (const msgs of grouped.values()) {
-      msgs.forEach((m) => {
-        if (m.vendor_order_id) allVoIds.add(m.vendor_order_id);
-      });
-    }
+      const safeMessages = messages || [];
 
-    const { data: vendorOrders } = await supabase
-      .from("vendor_orders")
-      .select("id, order_id, brand:brands(id, name, owner_id)")
-      .in("id", Array.from(allVoIds));
+      // Group by otherUserId (consolidate conversations)
+      const grouped = new Map<string, typeof safeMessages>();
+      for (const msg of safeMessages) {
+        const otherId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
+        const existing = grouped.get(otherId) || [];
+        existing.push(msg);
+        grouped.set(otherId, existing);
+      }
 
-    // Get other user profiles
-    const otherUserIds = Array.from(grouped.keys());
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("user_id, full_name")
-      .in("user_id", otherUserIds);
+      // Get all vendor order IDs from all messages to fetch their brands
+      const allVoIds = new Set<string>();
+      for (const msgs of grouped.values()) {
+        msgs.forEach((m) => {
+          if (m.vendor_order_id) allVoIds.add(m.vendor_order_id);
+        });
+      }
 
-    const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name || "User"]) || []);
-
-    // Build conversation list
-    const convs: Conversation[] = [];
-    for (const [otherId, msgs] of grouped.entries()) {
-      const lastMsg = msgs[0]; // already sorted desc
-
-      // Find brand name and order ID from messages in this conversation
-      let brandName = "Unknown Store";
-      let orderId = "";
-
-      for (const msg of msgs) {
-        const vo = vendorOrders?.find((v) => v.id === msg.vendor_order_id);
-        if (vo) {
-          orderId = vo.order_id;
-          const brandData = vo.brand as any;
-          if (brandData?.name) {
-            brandName = brandData.name;
-            break;
-          }
+      let vendorOrders: any[] = [];
+      if (allVoIds.size > 0) {
+        const { data: vOrdersData, error: vOrdersError } = await supabase
+          .from("vendor_orders")
+          .select("id, order_id, brand:brands(id, name, owner_id), order:orders(shipping_name, customer_id)")
+          .in("id", Array.from(allVoIds));
+        if (!vOrdersError && vOrdersData) {
+          vendorOrders = vOrdersData;
         }
       }
 
-      // Build a stable key to check against localStorage deletions
-      const convKey = `${user.id}:${otherId}`;
-      if (deleted.has(convKey)) continue;
-
-      const unreadCount = msgs.filter((m) => m.receiver_id === user.id && !m.read_at).length;
-      const otherUserName = role === "customer" ? brandName : profileMap.get(otherId) || "Customer";
-
-      convs.push({
-        vendorOrderId: lastMsg.vendor_order_id,
-        otherUserId: otherId,
-        otherUserName,
-        lastMessage: lastMsg.content,
-        lastMessageAt: lastMsg.created_at,
-        unreadCount,
-        orderId,
-        brandName,
-        hasAttachment: !!lastMsg.attachment_type,
-      });
-    }
-
-    // Sort by latest message
-    convs.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
-
-    // Also fetch direct messages
-    const { data: dms } = await supabase
-      .from("direct_messages")
-      .select(
-        "id, sender_id, receiver_id, content, created_at, read_at, product_name, product_image"
-      )
-      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-      .order("created_at", { ascending: false });
-
-    if (dms && dms.length > 0) {
-      // Group DMs by other user
-      const dmGrouped = new Map<string, typeof dms>();
-      for (const dm of dms) {
-        const otherId = dm.sender_id === user.id ? dm.receiver_id : dm.sender_id;
-        const existing = dmGrouped.get(otherId) || [];
-        existing.push(dm);
-        dmGrouped.set(otherId, existing);
+      // Get other user profiles
+      const otherUserIds = Array.from(grouped.keys());
+      let profiles: any[] = [];
+      if (otherUserIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", otherUserIds);
+        if (!profilesError && profilesData) {
+          profiles = profilesData;
+        }
       }
 
-      // Get profiles for DM users
-      const dmOtherIds = Array.from(dmGrouped.keys());
-      const { data: dmProfiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", dmOtherIds);
-      const dmProfileMap = new Map(
-        dmProfiles?.map((p) => [p.user_id, p.full_name || "User"]) || []
-      );
+      const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name || "User"]) || []);
 
-      // Get brand names for vendor users (for customer view)
-      const { data: dmBrands } = await supabase
-        .from("brands")
-        .select("owner_id, name")
-        .in("owner_id", dmOtherIds);
-      const dmBrandMap = new Map(dmBrands?.map((b) => [b.owner_id, b.name]) || []);
+      // Build conversation list
+      const convs: Conversation[] = [];
+      for (const [otherId, msgs] of grouped.entries()) {
+        const lastMsg = msgs[0]; // already sorted desc
 
-      for (const [otherId, msgs] of dmGrouped.entries()) {
+        // Find brand name, order ID, and customer shipping name from messages
+        let brandName = "Unknown Store";
+        let orderId = "";
+        let orderShippingName = "";
+
+        for (const msg of msgs) {
+          const vo = vendorOrders?.find((v) => v.id === msg.vendor_order_id);
+          if (vo) {
+            orderId = vo.order_id;
+            const brandData = vo.brand as any;
+            const orderData = vo.order as any;
+            if (orderData?.shipping_name) {
+              orderShippingName = orderData.shipping_name;
+            }
+            if (brandData?.name) {
+              brandName = brandData.name;
+              break;
+            }
+          }
+        }
+
+        // Build a stable key to check against localStorage deletions
         const convKey = `${user.id}:${otherId}`;
-        if (deleted.has(convKey)) continue;
+        const deletedAt = deleted[convKey];
+        if (deletedAt && new Date(lastMsg.created_at).getTime() <= new Date(deletedAt).getTime()) {
+          continue;
+        }
 
-        // Skip if this user already has an order-based conversation
-        const existingConv = convs.find((c) => c.otherUserId === otherId);
-        if (existingConv) continue;
-
-        const lastMsg = msgs[0];
         const unreadCount = msgs.filter((m) => m.receiver_id === user.id && !m.read_at).length;
-        const otherUserName =
-          role === "customer"
-            ? dmBrandMap.get(otherId) || dmProfileMap.get(otherId) || "Seller"
-            : dmProfileMap.get(otherId) || "Customer";
 
-        // Find product context from messages
-        const productMsg = msgs.find((m) => m.product_name);
-        const productLabel = productMsg?.product_name ? ` · ${productMsg.product_name}` : "";
+        // Dynamically determine role: if the brand's owner is this user, they are the vendor
+        let convRole: "customer" | "vendor" = "customer";
+        for (const msg of msgs) {
+          const vo = vendorOrders?.find((v) => v.id === msg.vendor_order_id);
+          if (vo) {
+            const brandData = vo.brand as any;
+            if (brandData?.owner_id === user.id) {
+              convRole = "vendor";
+              break;
+            }
+          }
+        }
+
+        const otherUserName = convRole === "customer" ? brandName : profileMap.get(otherId) || orderShippingName || "Customer";
 
         convs.push({
-          vendorOrderId: `dm-${otherId}`,
+          vendorOrderId: lastMsg.vendor_order_id,
           otherUserId: otherId,
           otherUserName,
           lastMessage: lastMsg.content,
           lastMessageAt: lastMsg.created_at,
           unreadCount,
-          orderId: "",
-          brandName: dmBrandMap.get(otherId) || otherUserName,
-          hasAttachment: false,
+          orderId,
+          brandName,
+          hasAttachment: !!lastMsg.attachment_type,
+          role: convRole,
         });
       }
 
-      // Re-sort after merging
-      convs.sort(
-        (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
-      );
-    }
+      // Sort by latest message
+      convs.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
 
-    setConversations(convs);
-    setLoading(false);
-  }, [user, role]);
+      // Also fetch direct messages
+      const { data: dms, error: dmsError } = await supabase
+        .from("direct_messages")
+        .select(
+          "id, sender_id, receiver_id, content, created_at, read_at, product_name, product_image"
+        )
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .order("created_at", { ascending: false });
+
+      if (!dmsError && dms && dms.length > 0) {
+        // Group DMs by other user
+        const dmGrouped = new Map<string, typeof dms>();
+        for (const dm of dms) {
+          const otherId = dm.sender_id === user.id ? dm.receiver_id : dm.sender_id;
+          const existing = dmGrouped.get(otherId) || [];
+          existing.push(dm);
+          dmGrouped.set(otherId, existing);
+        }
+
+        // Get profiles for DM users
+        const dmOtherIds = Array.from(dmGrouped.keys());
+        let dmProfiles: any[] = [];
+        if (dmOtherIds.length > 0) {
+          const { data: dmProfilesData } = await supabase
+            .from("profiles")
+            .select("user_id, full_name")
+            .in("user_id", dmOtherIds);
+          if (dmProfilesData) dmProfiles = dmProfilesData;
+        }
+        const dmProfileMap = new Map(
+          dmProfiles?.map((p) => [p.user_id, p.full_name || "User"]) || []
+        );
+
+        // Get brand names for vendor users (for customer view)
+        let dmBrands: any[] = [];
+        if (dmOtherIds.length > 0) {
+          const { data: dmBrandsData } = await supabase
+            .from("brands")
+            .select("owner_id, name")
+            .in("owner_id", dmOtherIds);
+          if (dmBrandsData) dmBrands = dmBrandsData;
+        }
+        const dmBrandMap = new Map(dmBrands?.map((b) => [b.owner_id, b.name]) || []);
+
+        for (const [otherId, msgs] of dmGrouped.entries()) {
+          const lastMsg = msgs[0];
+          const convKey = `${user.id}:${otherId}`;
+          const deletedAt = deleted[convKey];
+          if (deletedAt && new Date(lastMsg.created_at).getTime() <= new Date(deletedAt).getTime()) {
+            continue;
+          }
+
+          // Skip if this user already has an order-based conversation
+          const existingConv = convs.find((c) => c.otherUserId === otherId);
+          if (existingConv) continue;
+
+          const unreadCount = msgs.filter((m) => m.receiver_id === user.id && !m.read_at).length;
+
+          // Dynamically determine role for DMs
+          let convRole: "customer" | "vendor" = "customer";
+          if (dmBrandMap.has(otherId)) {
+            // Other user has a brand → current user is the customer
+            convRole = "customer";
+          } else if (myBrandData) {
+            // Current user has a brand, other doesn't → current user is the vendor
+            convRole = "vendor";
+          }
+
+          const otherUserName =
+            convRole === "customer"
+              ? dmBrandMap.get(otherId) || dmProfileMap.get(otherId) || "Seller"
+              : dmProfileMap.get(otherId) || "Customer";
+
+          convs.push({
+            vendorOrderId: `dm-${otherId}`,
+            otherUserId: otherId,
+            otherUserName,
+            lastMessage: lastMsg.content,
+            lastMessageAt: lastMsg.created_at,
+            unreadCount,
+            orderId: "",
+            brandName: dmBrandMap.get(otherId) || otherUserName,
+            hasAttachment: false,
+            role: convRole,
+          });
+        }
+
+        // Re-sort after merging
+        convs.sort(
+          (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+        );
+      }
+
+      if (activeEmptyVendorOrderId && activeEmptyOtherUserId) {
+        const exists = convs.some(
+          (c) =>
+            c.otherUserId === activeEmptyOtherUserId ||
+            c.vendorOrderId === activeEmptyVendorOrderId
+        );
+        if (!exists) {
+          convs.unshift({
+            vendorOrderId: activeEmptyVendorOrderId,
+            otherUserId: activeEmptyOtherUserId,
+            otherUserName: activeEmptyOtherUserName || "Vendor",
+            lastMessage: "",
+            lastMessageAt: new Date().toISOString(),
+            unreadCount: 0,
+            orderId: activeEmptyOrderId || "",
+            brandName: activeEmptyOtherUserName || "Vendor",
+            hasAttachment: false,
+            role: activeEmptyRole || role,
+          });
+        }
+      }
+
+      setConversations(convs);
+    } catch (err) {
+      console.error("Error fetching conversations:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    user,
+    role,
+    activeEmptyVendorOrderId,
+    activeEmptyOtherUserId,
+    activeEmptyOtherUserName,
+    activeEmptyOrderId,
+    activeEmptyRole,
+  ]);
 
   useEffect(() => {
     if (!user) return;
     fetchConversations();
 
-    // Subscribe to new messages for live updates
+    // Subscribe to NEW messages only (INSERT) for live updates.
+    // We intentionally exclude UPDATE events to prevent a race condition:
+    // when MessageThread marks messages as read (UPDATE), we don't want to
+    // re-fetch and lose the unread bold styling before the user sees it.
     const channel = supabase
       .channel("conversations-list")
       .on(
@@ -264,6 +394,20 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
     if (isToday(date)) return format(date, "h:mm a");
     if (isYesterday(date)) return "Yesterday";
     return format(date, "MMM d");
+  };
+
+  // When a conversation is selected, locally clear its unread count so
+  // the bold styling disappears immediately on click, without waiting for
+  // a full re-fetch (which could race with MessageThread's mark-as-read).
+  const handleSelect = (conv: Conversation) => {
+    if (conv.unreadCount > 0) {
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.otherUserId === conv.otherUserId ? { ...c, unreadCount: 0 } : c
+        )
+      );
+    }
+    onSelect(conv);
   };
 
   const handleDeleteConversation = (conv: Conversation) => {
@@ -346,39 +490,61 @@ const ConversationList = ({ selectedConversation, onSelect, role }: Conversation
                 selectedConversation === conv.vendorOrderId ||
                 selectedConversation === conv.otherUserId
                   ? "bg-secondary border-l-4 border-l-foreground"
-                  : "hover:bg-secondary/50"
+                  : conv.unreadCount > 0
+                    ? "bg-primary/5 hover:bg-primary/10"
+                    : "hover:bg-secondary/50"
               }`}
             >
-              <button onClick={() => onSelect(conv)} className="w-full text-left px-4 py-3 pr-10">
-                <div className="flex items-start justify-between gap-2">
+              <button onClick={() => handleSelect(conv)} className="w-full text-left px-4 py-3 pr-10">
+                <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`text-sm truncate ${conv.unreadCount > 0 ? "font-bold" : "font-medium"}`}
+                        className={`text-sm truncate font-sans ${
+                          conv.unreadCount > 0
+                            ? "font-black text-foreground"
+                            : selectedConversation === conv.vendorOrderId ||
+                              selectedConversation === conv.otherUserId
+                              ? "font-normal text-foreground"
+                              : "font-normal text-muted-foreground"
+                        }`}
                       >
                         {conv.otherUserName}
                       </span>
-                      {conv.unreadCount > 0 && (
-                        <span className="shrink-0 w-5 h-5 bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center rounded-full">
-                          {conv.unreadCount}
-                        </span>
-                      )}
                     </div>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wide mt-0.5">
-                      {conv.vendorOrderId.startsWith("dm-")
+                      {(conv.vendorOrderId || "").startsWith("dm-")
                         ? "Direct Message"
-                        : `Order #${conv.orderId.slice(0, 8)}`}
+                        : `Order #${(conv.orderId || "").slice(0, 8)}`}
                     </p>
                     <p
-                      className={`text-xs mt-1 truncate flex items-center gap-1 ${conv.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}
+                      className={`text-xs mt-1 truncate flex items-center gap-1 ${
+                        conv.unreadCount > 0
+                          ? "font-bold text-foreground"
+                          : "font-normal text-muted-foreground"
+                      }`}
                     >
                       {conv.hasAttachment && <Paperclip className="w-3 h-3 shrink-0" />}
                       {conv.lastMessage || (conv.hasAttachment ? "Attachment" : "")}
                     </p>
                   </div>
-                  <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
-                    {formatTime(conv.lastMessageAt)}
-                  </span>
+                  <div className="flex flex-col items-end gap-1.5 shrink-0 mt-0.5">
+                    <span
+                      className={`text-[10px] font-mono ${
+                        conv.unreadCount > 0
+                          ? "font-bold text-foreground"
+                          : "font-normal text-muted-foreground"
+                      }`}
+                    >
+                      {formatTime(conv.lastMessageAt)}
+                    </span>
+                    {conv.unreadCount > 0 && (
+                      <span
+                        className="w-2.5 h-2.5 bg-[#0084FF] rounded-full shrink-0 border border-foreground shadow-brutal-xs"
+                        title={`${conv.unreadCount} unread`}
+                      />
+                    )}
+                  </div>
                 </div>
               </button>
 

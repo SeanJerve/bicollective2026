@@ -82,7 +82,6 @@ const Header = ({ minimal = false }: HeaderProps) => {
       icon: MessageSquare,
       badge: counts.unreadMessages,
     },
-    { href: "/account/to-review", label: "To Review", icon: Star },
     { href: "/account/wishlist", label: "Wishlist", icon: Heart },
     { href: "/account/vouchers", label: "My Vouchers", icon: Ticket },
     { href: "/account/profile", label: "Profile Settings", icon: UserCog },
@@ -363,6 +362,20 @@ const Header = ({ minimal = false }: HeaderProps) => {
                     {totalCustomer > 0 && (
                       <span className="ml-2 min-w-[20px] h-[20px] bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center px-1 rounded-full">
                         {totalCustomer}
+                      </span>
+                    )}
+                  </button>
+                )}
+                 {!isAdmin && (
+                  <button
+                    onClick={() => handleNavClick("/account/messages", () => setIsMenuOpen(false))}
+                    className="flex items-center gap-3 font-heading text-xl uppercase tracking-wide py-2 w-full text-left"
+                  >
+                    <MessageSquare className="w-5 h-5" />
+                    Messages
+                    {counts.unreadMessages > 0 && (
+                      <span className="ml-2 min-w-[20px] h-[20px] bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center px-1 rounded-full">
+                        {counts.unreadMessages}
                       </span>
                     )}
                   </button>

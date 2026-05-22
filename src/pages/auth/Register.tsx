@@ -207,6 +207,7 @@ const Register = () => {
 
               <button
                 onClick={handleGoogleSignIn}
+                disabled={loading}
                 className="btn-brutal-secondary w-full flex items-center justify-center gap-2 text-sm"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">

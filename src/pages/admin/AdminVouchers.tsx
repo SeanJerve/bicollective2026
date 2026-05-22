@@ -139,11 +139,13 @@ const AdminVouchers = () => {
       const { error: cError } = await (supabase.from("user_discount_claims") as any).insert(claims);
       if (cError) throw cError;
 
-      // Optional: If we want them to have unique codes, we'd need platform_promos too.
-      // For now, let's just create one platform_promo so they can see "CLAIMED" or a generic code.
+      const array = new Uint32Array(1);
+      window.crypto.getRandomValues(array);
+      const randomStr = array[0].toString(36).slice(0, 4).toUpperCase();
+
       await (supabase.from("platform_promos") as any).insert({
         discount_id: discount.id,
-        code: `REWARD-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+        code: `REWARD-${randomStr}`,
         deployment_target: "manual_code",
         created_by: user!.id,
       });

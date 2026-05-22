@@ -5,10 +5,12 @@ import PageLayout from "@/components/layout/PageLayout";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
 
 const Cart = () => {
   const { items, loading, updateQuantity, removeItem } = useCart();
   const { user, isAdmin } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   // Redirect admin users who try to access cart
@@ -26,12 +28,13 @@ const Cart = () => {
   const groupedItems = useMemo(() => {
     return items.reduce(
       (acc, item) => {
-        const brandId = item.variant.product.brand_id;
+        const brandId = item.variant?.product?.brand_id;
+        if (!brandId || !item.variant?.product?.brand) return acc;
         if (!acc[brandId]) {
           acc[brandId] = { brand: item.variant.product.brand, items: [], subtotal: 0 };
         }
         acc[brandId].items.push(item);
-        acc[brandId].subtotal += Number(item.variant.product.price) * item.quantity;
+        acc[brandId].subtotal += Number(item.variant.product.price || 0) * item.quantity;
         return acc;
       },
       {} as Record<
@@ -41,14 +44,17 @@ const Cart = () => {
     );
   }, [items]);
 
-  // Pre-select all items when they load
+  // Pre-select all items when they load, skipping out of stock items
   useEffect(() => {
     if (items.length > 0 && selectedIds.size === 0) {
-      setSelectedIds(new Set(items.map((i) => i.id)));
+      const inStockItems = items.filter((i) => (i.variant?.stock_quantity ?? 0) > 0);
+      setSelectedIds(new Set(inStockItems.map((i) => i.id)));
     }
   }, [items]);
 
   const toggleItem = (id: string) => {
+    const item = items.find((i) => i.id === id);
+    if (!item || (item.variant?.stock_quantity ?? 0) <= 0) return;
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -60,26 +66,33 @@ const Cart = () => {
   const toggleBrandGroup = (brandId: string) => {
     const group = groupedItems[brandId];
     if (!group) return;
-    const groupIds = group.items.map((i) => i.id);
-    const allSelected = groupIds.every((id) => selectedIds.has(id));
+    const inStockGroupItemIds = group.items
+      .filter((i) => (i.variant?.stock_quantity ?? 0) > 0)
+      .map((i) => i.id);
+    if (inStockGroupItemIds.length === 0) return;
+
+    const allSelected = inStockGroupItemIds.every((id) => selectedIds.has(id));
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      groupIds.forEach((id) => (allSelected ? next.delete(id) : next.add(id)));
+      inStockGroupItemIds.forEach((id) => (allSelected ? next.delete(id) : next.add(id)));
       return next;
     });
   };
 
   const toggleAll = () => {
-    if (selectedIds.size === items.length) {
+    const inStockItems = items.filter((i) => (i.variant?.stock_quantity ?? 0) > 0);
+    const allInStockSelected = inStockItems.length > 0 && inStockItems.every((i) => selectedIds.has(i.id));
+
+    if (allInStockSelected) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(items.map((i) => i.id)));
+      setSelectedIds(new Set(inStockItems.map((i) => i.id)));
     }
   };
 
   const selectedItems = items.filter((i) => selectedIds.has(i.id));
   const selectedTotal = selectedItems.reduce(
-    (sum, item) => sum + Number(item.variant.product.price) * item.quantity,
+    (sum, item) => sum + Number(item.variant?.product?.price || 0) * item.quantity,
     0
   );
 
@@ -157,23 +170,32 @@ const Cart = () => {
               {/* Select All */}
               <div className="flex items-center gap-3 pb-4 border-b border-border-subtle">
                 <Checkbox
-                  checked={selectedIds.size === items.length && items.length > 0}
+                  checked={
+                    items.length > 0 &&
+                    items.filter((i) => (i.variant?.stock_quantity ?? 0) > 0).every((i) => selectedIds.has(i.id))
+                  }
                   onCheckedChange={toggleAll}
+                  disabled={items.filter((i) => (i.variant?.stock_quantity ?? 0) > 0).length === 0}
                 />
                 <span className="font-heading text-sm uppercase">
-                  Select All ({selectedIds.size}/{items.length})
+                  Select All ({selectedIds.size}/{items.filter((i) => (i.variant?.stock_quantity ?? 0) > 0).length} in stock)
                 </span>
               </div>
 
               {Object.entries(groupedItems).map(([brandId, group]) => {
-                const groupIds = group.items.map((i) => i.id);
-                const allGroupSelected = groupIds.every((id) => selectedIds.has(id));
+                const inStockGroupIds = group.items
+                  .filter((i) => (i.variant?.stock_quantity ?? 0) > 0)
+                  .map((i) => i.id);
+                const allGroupSelected =
+                  inStockGroupIds.length > 0 && inStockGroupIds.every((id) => selectedIds.has(id));
+                const isGroupDisabled = inStockGroupIds.length === 0;
                 return (
                   <div key={brandId} className="card-brutal p-6">
                     <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border-subtle">
                       <Checkbox
                         checked={allGroupSelected}
                         onCheckedChange={() => toggleBrandGroup(brandId)}
+                        disabled={isGroupDisabled}
                       />
                       <Link
                         to={`/brands/${group.brand.slug}`}
@@ -184,71 +206,106 @@ const Cart = () => {
                     </div>
 
                     <div className="space-y-6">
-                      {group.items.map((item) => (
-                        <div key={item.id} className="flex gap-4">
-                          <div className="flex items-start pt-2">
-                            <Checkbox
-                              checked={selectedIds.has(item.id)}
-                              onCheckedChange={() => toggleItem(item.id)}
-                            />
-                          </div>
-                          <div className="w-24 h-32 bg-muted flex-shrink-0 border border-border-subtle">
-                            {item.variant.product.image_url && (
-                              <img
-                                src={item.variant.product.image_url}
-                                alt={item.variant.product.name}
-                                className="w-full h-full object-cover"
+                      {group.items.map((item) => {
+                        const isOutOfStock = (item.variant?.stock_quantity ?? 0) <= 0;
+                        const isStockLow = !isOutOfStock && (item.variant?.stock_quantity ?? 0) < item.quantity;
+                        return (
+                          <div key={item.id} className={`flex gap-4 ${isOutOfStock ? "opacity-60" : ""}`}>
+                            <div className="flex items-start pt-2">
+                              <Checkbox
+                                checked={selectedIds.has(item.id)}
+                                onCheckedChange={() => toggleItem(item.id)}
+                                disabled={isOutOfStock}
                               />
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <Link
-                              to={`/products/${item.variant.product.slug}`}
-                              className="font-heading uppercase hover:opacity-60"
-                            >
-                              {item.variant.product.name}
-                            </Link>
-                            {item.variant.size && (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                Size: {item.variant.size}
-                              </p>
-                            )}
-                            <p className="font-heading text-lg mt-2">
-                              {formatPrice(Number(item.variant.product.price))}
-                            </p>
-                            <div className="flex items-center gap-4 mt-4">
-                              <div className="inline-flex items-center border-2 border-foreground">
-                                <button
-                                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                  className="w-8 h-8 flex items-center justify-center hover:bg-secondary"
-                                >
-                                  <Minus className="w-4 h-4" />
-                                </button>
-                                <span className="w-10 h-8 flex items-center justify-center font-heading text-sm border-x-2 border-foreground">
-                                  {item.quantity}
+                            </div>
+                            <div className="w-24 h-32 bg-muted flex-shrink-0 border border-border-subtle relative">
+                              {item.variant?.product?.image_url && (
+                                <img
+                                  src={item.variant.product.image_url}
+                                  alt={item.variant.product.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              )}
+                              {isOutOfStock && (
+                                <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                                  <span className="font-heading text-xs text-destructive border-2 border-destructive px-1.5 py-0.5 rotate-12">
+                                    OUT OF STOCK
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <Link
+                                to={`/products/${item.variant?.product?.slug}`}
+                                className="font-heading uppercase hover:opacity-60"
+                              >
+                                {item.variant?.product?.name}
+                              </Link>
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                                {item.variant?.size && (
+                                  <p className="text-sm text-muted-foreground">
+                                    Size: {item.variant.size}
+                                  </p>
+                                )}
+                                <span className="text-xs font-bold text-muted-foreground border-l border-border-subtle pl-3">
+                                  Stock: {item.variant?.stock_quantity ?? 0}
                                 </span>
+                                {isStockLow && (
+                                  <span className="text-xs text-destructive font-bold bg-destructive/10 px-2 py-0.5">
+                                    Only {item.variant?.stock_quantity} left
+                                  </span>
+                                )}
+                              </div>
+                              <p className="font-heading text-lg mt-2">
+                                {formatPrice(Number(item.variant?.product?.price || 0))}
+                              </p>
+                              <div className="flex items-center gap-4 mt-4">
+                                <div className="inline-flex items-center border-2 border-foreground">
+                                  <button
+                                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                    className="w-8 h-8 flex items-center justify-center hover:bg-secondary"
+                                    disabled={isOutOfStock}
+                                  >
+                                    <Minus className="w-4 h-4" />
+                                  </button>
+                                  <span className="w-10 h-8 flex items-center justify-center font-heading text-sm border-x-2 border-foreground">
+                                    {item.quantity}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      const stockQty = item.variant?.stock_quantity ?? 0;
+                                      if (item.quantity >= stockQty) {
+                                        toast({
+                                          title: "Stock Limit Reached",
+                                          description: `Only ${stockQty} items available in stock.`,
+                                          variant: "destructive",
+                                        });
+                                        return;
+                                      }
+                                      updateQuantity(item.id, item.quantity + 1);
+                                    }}
+                                    className="w-8 h-8 flex items-center justify-center hover:bg-secondary"
+                                    disabled={isOutOfStock || item.quantity >= (item.variant?.stock_quantity ?? 0)}
+                                  >
+                                    <Plus className="w-4 h-4" />
+                                  </button>
+                                </div>
                                 <button
-                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                  className="w-8 h-8 flex items-center justify-center hover:bg-secondary"
+                                  onClick={() => removeItem(item.id)}
+                                  className="text-muted-foreground hover:text-destructive"
                                 >
-                                  <Plus className="w-4 h-4" />
+                                  <Trash2 className="w-5 h-5" />
                                 </button>
                               </div>
-                              <button
-                                onClick={() => removeItem(item.id)}
-                                className="text-muted-foreground hover:text-destructive"
-                              >
-                                <Trash2 className="w-5 h-5" />
-                              </button>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-heading">
+                                {formatPrice(Number(item.variant?.product?.price || 0) * item.quantity)}
+                              </span>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <span className="font-heading">
-                              {formatPrice(Number(item.variant.product.price) * item.quantity)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 );

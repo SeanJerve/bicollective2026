@@ -32,12 +32,6 @@ const VendorLayout = () => {
     { href: "/vendor", label: "Dashboard", icon: LayoutDashboard, exact: true },
     { href: "/vendor/products", label: "Products", icon: Package, badge: counts.lowStockProducts },
     { href: "/vendor/orders", label: "Orders", icon: ShoppingCart, badge: counts.pendingOrders },
-    {
-      href: "/vendor/messages",
-      label: "Messages",
-      icon: MessageSquare,
-      badge: counts.unreadMessages,
-    },
     { href: "/vendor/drops", label: "Drops & Trailers", icon: Calendar },
     { href: "/vendor/promotions", label: "Promotions", icon: Tag },
     { href: "/vendor/store", label: "Store Settings", icon: Store },
@@ -111,8 +105,10 @@ const VendorLayout = () => {
                   }}
                   className={`flex items-center gap-3 px-4 py-3 font-heading text-sm uppercase tracking-wide transition-colors ${
                     isActive(item.href, item.exact)
-                      ? "bg-background text-foreground"
-                      : "hover:bg-background/10"
+                      ? "bg-background text-foreground font-bold"
+                      : (item.badge ?? 0) > 0
+                        ? "text-background hover:bg-background/10 font-bold"
+                        : "hover:bg-background/10"
                   }`}
                 >
                   <item.icon className="w-5 h-5" />

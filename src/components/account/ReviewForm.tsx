@@ -72,7 +72,10 @@ const ReviewForm = ({ productId, brandId, vendorOrderId, onSuccess }: ReviewForm
       if (images.length > 0) {
         for (const file of images) {
           const fileExt = file.name.split(".").pop();
-          const filePath = `${user.id}/${Date.now()}-${Math.random()}.${fileExt}`;
+          const array = new Uint32Array(1);
+          window.crypto.getRandomValues(array);
+          const randomStr = array[0].toString(36);
+          const filePath = `${user.id}/${Date.now()}-${randomStr}.${fileExt}`;
 
           const { error: uploadError } = await supabase.storage
             .from("review-images")

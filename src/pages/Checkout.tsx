@@ -66,6 +66,7 @@ const Checkout = () => {
   const [loading, setLoading] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [createdVendorOrders, setCreatedVendorOrders] = useState<{ id: string; brandName: string }[]>([]);
 
   // Buy Now mode
   const buyNowItem: BuyNowItem | null = location.state?.buyNowItem || null;
@@ -321,6 +322,82 @@ const Checkout = () => {
     return total;
   }, [discountedSubtotal, effectiveShipping, pesoVoucherDeduction]);
 
+  const brandCalculations = useMemo(() => {
+    const brandsList = Object.entries(groupedItems).map(([id, group]) => ({
+      id,
+      subtotal: group.subtotal,
+      originalShipping: shippingByBrand[id]?.original || 0,
+    }));
+
+    // Sort to be deterministic
+    brandsList.sort((a, b) => a.id.localeCompare(b.id));
+
+    // 1. Allocate final shipping fee (effectiveShipping)
+    const brandShippingFinals: Record<string, number> = {};
+    let allocatedShippingSum = 0;
+    const totalOriginalShipping = totalShippingOriginal || 1; // avoid division by zero
+
+    brandsList.forEach((b, idx) => {
+      if (idx === brandsList.length - 1) {
+        // Last one takes remainder
+        brandShippingFinals[b.id] = Math.max(0, effectiveShipping - allocatedShippingSum);
+      } else {
+        const share = Math.round((effectiveShipping * b.originalShipping) / totalOriginalShipping);
+        brandShippingFinals[b.id] = share;
+        allocatedShippingSum += share;
+      }
+    });
+
+    // 2. Allocate final product subtotal after product discount and voucher discount
+    const finalProductSubtotal = Math.max(0, productSubtotal - promoDiscount - pesoVoucherDeduction);
+    const brandProductFinals: Record<string, number> = {};
+    let allocatedProductSum = 0;
+    const totalSub = productSubtotal || 1; // avoid division by zero
+
+    brandsList.forEach((b, idx) => {
+      if (idx === brandsList.length - 1) {
+        brandProductFinals[b.id] = Math.max(0, finalProductSubtotal - allocatedProductSum);
+      } else {
+        const share = Math.round((finalProductSubtotal * b.subtotal) / totalSub);
+        brandProductFinals[b.id] = share;
+        allocatedProductSum += share;
+      }
+    });
+
+    // 3. Construct calculations object for each brand
+    const calculations: Record<
+      string,
+      {
+        subtotal: number;
+        originalShipping: number;
+        shippingFee: number;
+        shippingDiscountShare: number;
+        discountAmount: number;
+        vendorTotal: number;
+      }
+    > = {};
+
+    brandsList.forEach((b) => {
+      const shippingFee = brandShippingFinals[b.id];
+      const originalShipping = b.originalShipping;
+      const shippingDiscountShare = originalShipping - shippingFee;
+
+      const productFinal = brandProductFinals[b.id];
+      const discountAmount = b.subtotal - productFinal;
+
+      calculations[b.id] = {
+        subtotal: b.subtotal,
+        originalShipping,
+        shippingFee,
+        shippingDiscountShare,
+        discountAmount,
+        vendorTotal: productFinal + shippingFee,
+      };
+    });
+
+    return calculations;
+  }, [groupedItems, shippingByBrand, totalShippingOriginal, effectiveShipping, productSubtotal, promoDiscount, pesoVoucherDeduction]);
+
   const pesoVouchers = userVouchers?.filter((v) => v.discount_type !== "free_shipping") || [];
   const shippingVouchers = userVouchers?.filter((v) => v.discount_type === "free_shipping") || [];
 
@@ -461,23 +538,12 @@ const Checkout = () => {
       }
       // ---------------------------------------------------------
 
+      const createdOrdersList: { id: string; brandName: string }[] = [];
       for (const [brandId, group] of Object.entries(groupedItems)) {
-        const brandShipping = shippingByBrand[brandId]?.original || 0;
-        const brandShippingAfterVoucher = shippingVoucher
-          ? Math.max(
-              0,
-              brandShipping -
-                Math.round((shippingVoucherDeduction * brandShipping) / totalShippingOriginal)
-            )
-          : brandShipping;
-        const brandShippingFinal =
-          promoFreeShipping > 0
-            ? Math.max(
-                0,
-                brandShippingAfterVoucher -
-                  Math.round((promoFreeShipping * brandShipping) / totalShippingOriginal)
-              )
-            : brandShippingAfterVoucher;
+        const brandCalc = brandCalculations[brandId];
+        const brandShipping = brandCalc?.originalShipping || 0;
+        const brandShippingFinal = brandCalc?.shippingFee || 0;
+        const totalDeductionsForBrand = brandCalc?.discountAmount || 0;
 
         const initialStatus =
           paymentMethod === "cod"
@@ -493,10 +559,6 @@ const Checkout = () => {
         const shippingMargin = 20; // Fixed 20 pesos margin
         const totalPlatformFee = platformCommission + shippingMargin;
 
-        const totalDeductionsForBrand = Math.round(
-          ((promoDiscount + pesoVoucherDeduction) * group.subtotal) / productSubtotal
-        );
-
         const { data: vendorOrder, error: vendorOrderError } = await supabase
           .from("vendor_orders")
           .insert({
@@ -505,7 +567,7 @@ const Checkout = () => {
             subtotal: group.subtotal,
             shipping_fee: brandShippingFinal,
             shipping_fee_original: brandShipping,
-            free_shipping_applied: shippingVoucherDeduction > 0 || promoFreeShipping > 0,
+            free_shipping_applied: (brandCalc?.shippingDiscountShare || 0) > 0,
             discount_amount: totalDeductionsForBrand,
             status: initialStatus,
             platform_commission: platformCommission,
@@ -517,6 +579,11 @@ const Checkout = () => {
           .single();
 
         if (vendorOrderError) throw vendorOrderError;
+
+        createdOrdersList.push({
+          id: vendorOrder.id,
+          brandName: group.brand?.name || "Unknown Brand",
+        });
 
         // Platform Debt is now automatically calculated via database triggers
         // when the vendor marks the order as 'delivered' (for COD).
@@ -544,6 +611,8 @@ const Checkout = () => {
         if (decrementError) console.error("Error decrementing stock:", decrementError);
         // --------------------------------------
       }
+
+      setCreatedVendorOrders(createdOrdersList);
 
       // Mark vouchers as used (Update user_discount_claims status)
       const allUsedVouchers = [...selectedVouchers, ...(shippingVoucher ? [shippingVoucher] : [])];
@@ -602,9 +671,22 @@ const Checkout = () => {
             <p className="text-muted-foreground mb-8">
               Your order has been placed. Upload payment proof from your order history.
             </p>
-            <div className="card-brutal p-6 mb-8 text-left">
-              <p className="text-sm text-muted-foreground mb-2">Order ID</p>
-              <p className="font-heading uppercase text-lg break-all">{orderId}</p>
+            <div className="card-brutal p-6 mb-8 text-left space-y-4">
+              <div>
+                <p className="text-sm font-heading uppercase text-muted-foreground mb-2">Vendor Orders</p>
+                <div className="space-y-2">
+                  {createdVendorOrders.map((vo) => (
+                    <div key={vo.id} className="flex justify-between items-center border-b border-dashed border-border-subtle pb-2 last:border-0 last:pb-0">
+                      <span className="font-medium text-sm">{vo.brandName}</span>
+                      <span className="font-mono text-sm font-bold uppercase text-primary">#{vo.id.slice(0, 8)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="pt-2 border-t border-border-subtle">
+                <p className="text-[10px] uppercase font-heading text-muted-foreground mb-1">Master Reference ID</p>
+                <p className="font-mono text-xs break-all text-muted-foreground select-all">{orderId}</p>
+              </div>
             </div>
             <div className="space-y-4">
               <button onClick={() => navigate("/account/orders")} className="btn-brutal w-full">
@@ -927,19 +1009,42 @@ const Checkout = () => {
                         );
                       })}
                     </div>
-                    <div className="flex justify-between mt-3 pt-3 border-t border-border-subtle text-sm">
-                      <span className="text-muted-foreground">Subtotal</span>
-                      <span>{formatPrice(group.subtotal)}</span>
-                    </div>
-                    <div className="mt-2">
-                      <ShippingCalculator
-                        sellerLocation={group.brand?.location || "Albay"}
-                        buyerLocation={buyerLocation}
-                        itemCount={group.items.reduce((sum, i) => sum + i.quantity, 0)}
-                        hasFreeShipping={
-                          !!shippingVoucher || appliedPromo?.type === "free_shipping"
-                        }
-                      />
+                    <div className="mt-4 pt-3 border-t border-dashed border-border-subtle space-y-2 text-sm bg-secondary/20 p-3 card-brutal">
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Seller Location</span>
+                        <span>{group.brand?.location || "Albay"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Vendor Subtotal</span>
+                        <span>{formatPrice(group.subtotal)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Shipping Fee</span>
+                        <span>
+                          {brandCalculations[brandId]?.shippingDiscountShare > 0 ? (
+                            <span className="space-x-1.5">
+                              <span className="line-through text-muted-foreground">
+                                {formatPrice(brandCalculations[brandId].originalShipping)}
+                              </span>
+                              <span className="text-success font-bold">
+                                {formatPrice(brandCalculations[brandId].shippingFee)}
+                              </span>
+                            </span>
+                          ) : (
+                            formatPrice(brandCalculations[brandId]?.originalShipping || 0)
+                          )}
+                        </span>
+                      </div>
+                      {(brandCalculations[brandId]?.discountAmount || 0) > 0 && (
+                        <div className="flex justify-between text-success">
+                          <span>Discount Share</span>
+                          <span>-{formatPrice(brandCalculations[brandId].discountAmount)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between pt-1 border-t border-dashed border-foreground/20 font-bold">
+                        <span className="font-heading uppercase text-xs">Vendor Total</span>
+                        <span>{formatPrice(brandCalculations[brandId]?.vendorTotal || 0)}</span>
+                      </div>
                     </div>
                   </div>
                 ))}

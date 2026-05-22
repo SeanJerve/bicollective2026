@@ -11,6 +11,7 @@ import {
   Loader2,
   CheckCircle2,
   RotateCcw,
+  MessageSquare,
 } from "lucide-react";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import PageLayout from "@/components/layout/PageLayout";
@@ -21,7 +22,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import ReviewForm from "@/components/account/ReviewForm";
-import OrderChat from "@/components/chat/OrderChat";
 import PaymentProofUpload from "@/components/account/PaymentProofUpload";
 
 const statusColors: Record<string, string> = {
@@ -175,14 +175,31 @@ const OrderDetail = () => {
     }
   };
 
-  const { data: order, isLoading } = useQuery({
+  const { data: vendorOrder, isLoading } = useQuery({
     queryKey: ["order-detail", orderId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("orders")
-        .select("*, discount:discounts(*)")
+        .from("vendor_orders")
+        .select(`
+          *,
+          brand:brands(id, name, slug, owner_id, status),
+          discount:discounts(*),
+          order:orders!inner(
+            id,
+            customer_id,
+            total_amount,
+            total_shipping,
+            total_discount,
+            shipping_name,
+            shipping_phone,
+            shipping_address_id,
+            shipping_address,
+            notes,
+            created_at
+          )
+        `)
         .eq("id", orderId!)
-        .eq("customer_id", user!.id)
+        .eq("order.customer_id", user!.id)
         .maybeSingle();
 
       if (error) throw error;
@@ -191,48 +208,34 @@ const OrderDetail = () => {
     enabled: !!orderId && !!user,
   });
 
+  const order = vendorOrder?.order;
+
   // Fetch payments separately
   const { data: payments = [] } = useQuery({
-    queryKey: ["order-payments", orderId],
+    queryKey: ["order-payments", order?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payments")
         .select("*, payment_verifications(*)")
-        .eq("order_id", orderId!);
+        .eq("order_id", order!.id);
       if (error) throw error;
       return data || [];
     },
-    enabled: !!orderId,
+    enabled: !!order?.id,
   });
 
-  // Fetch vendor_orders separately
-  const { data: vendorOrders = [] } = useQuery({
-    queryKey: ["order-vendor-orders", orderId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vendor_orders")
-        .select("*, brand:brands(id, name, slug, owner_id, status), discount:discounts(*)")
-        .eq("order_id", orderId!);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!orderId,
-  });
-
-  // Fetch order_items separately for all vendor_orders
-  const vendorOrderIds = useMemo(() => vendorOrders.map((vo) => vo.id), [vendorOrders]);
+  // Fetch order_items separately
   const { data: orderItems = [] } = useQuery({
-    queryKey: ["order-items-batch", vendorOrderIds],
+    queryKey: ["order-items", orderId],
     queryFn: async () => {
-      if (vendorOrderIds.length === 0) return [];
       const { data, error } = await supabase
         .from("order_items")
         .select("*")
-        .in("vendor_order_id", vendorOrderIds);
+        .eq("vendor_order_id", orderId!);
       if (error) throw error;
       return data || [];
     },
-    enabled: vendorOrderIds.length > 0,
+    enabled: !!orderId,
   });
 
   // Secondary query for address
@@ -254,16 +257,18 @@ const OrderDetail = () => {
 
   // Manual assembly of the combined order object for UI compatibility
   const enrichedOrder = useMemo(() => {
-    if (!order) return null;
+    if (!vendorOrder || !order) return null;
     return {
       ...order,
       payments,
-      vendor_orders: vendorOrders.map((vo) => ({
-        ...vo,
-        order_items: orderItems.filter((item) => item.vendor_order_id === vo.id),
-      })),
+      vendor_orders: [
+        {
+          ...vendorOrder,
+          order_items: orderItems,
+        }
+      ],
     };
-  }, [order, payments, vendorOrders, orderItems]);
+  }, [vendorOrder, order, payments, orderItems]);
 
   // Auto-confirm logic: if order is "shipped" or "for_delivery" and > 3 days have passed, auto-confirm to delivered
   useEffect(() => {
@@ -361,8 +366,8 @@ const OrderDetail = () => {
               <h1 className="font-heading text-3xl md:text-4xl uppercase tracking-tighter">
                 Order Detail
               </h1>
-              <p className="text-muted-foreground mt-1">
-                ID: {enrichedOrder.id.slice(0, 8)} •{" "}
+              <p className="text-muted-foreground mt-1 font-heading uppercase text-xs">
+                Order: <span className="font-mono text-primary font-bold">#{orderId?.slice(0, 8)}</span> •{" "}
                 {new Date(enrichedOrder.created_at).toLocaleDateString()}
               </p>
             </div>
@@ -629,11 +634,15 @@ const OrderDetail = () => {
 
               {/* Chat */}
               <div className="border-t border-border-subtle pt-4 mt-4 flex justify-end">
-                <OrderChat
-                  vendorOrderId={vo.id}
-                  otherUserId={vo.brand?.owner_id || ""}
-                  otherUserName={vo.brand?.name || "Vendor"}
-                />
+                <Link
+                  to={`/account/messages?vendorOrderId=${vo.id}&otherUserId=${vo.brand?.owner_id || ""}&otherUserName=${encodeURIComponent(
+                    vo.brand?.name || "Vendor"
+                  )}&orderId=${orderId}&role=customer`}
+                  className="inline-flex items-center gap-1.5 text-xs font-heading uppercase py-2 px-3 border-2 border-foreground hover:bg-secondary transition-colors"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Chat about Order
+                </Link>
               </div>
 
               {/* Cancel button for cancellable orders */}

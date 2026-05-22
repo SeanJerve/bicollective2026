@@ -9,6 +9,9 @@ import {
   Image,
   FileText,
   Download,
+  Truck,
+  CheckCircle,
+  AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +26,9 @@ interface MessageThreadProps {
   orderId?: string;
   onBack?: () => void;
   role: "customer" | "vendor";
+  productId?: string;
+  productName?: string;
+  productImage?: string;
 }
 
 const ACCEPTED_TYPES = "image/jpeg,image/png,image/webp,image/gif,application/pdf";
@@ -55,6 +61,124 @@ const AttachmentPreview = ({ url, type, name }: { url: string; type: string; nam
   );
 };
 
+const stripEmojis = (text: string) => {
+  if (!text) return "";
+  return text.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]|\p{Emoji_Presentation}|\p{Emoji}\uFE0F/gu, "");
+};
+
+const MOCK_COURIERS = [
+  "Ninja Vanishing Service",
+  "LBC Express but Slow",
+  "FedUp Delivery",
+  "DHL-y No Delivery",
+  "Bicol Express (actually 2 weeks)",
+];
+
+const getMockCourier = (orderId: string) => {
+  if (!orderId) return MOCK_COURIERS[0];
+  let sum = 0;
+  for (let i = 0; i < orderId.length; i++) {
+    sum += orderId.charCodeAt(i);
+  }
+  return MOCK_COURIERS[sum % MOCK_COURIERS.length];
+};
+
+const SystemOrderCard = ({ msg, vendorOrder }: { msg: any; vendorOrder: any }) => {
+  if (!vendorOrder) {
+    return (
+      <div className="card-brutal p-4 bg-secondary/50 text-center max-w-md mx-auto my-2 border-2 border-foreground shadow-brutal-sm">
+        <p className="text-[10px] font-heading uppercase text-muted-foreground mb-1">System Update</p>
+        <p className="text-xs font-semibold leading-relaxed">{stripEmojis(msg.content)}</p>
+      </div>
+    );
+  }
+
+  const cleanContent = stripEmojis(msg.content);
+  const slicedId = vendorOrder.id.slice(0, 8).toUpperCase();
+  const brandName = vendorOrder.brand?.name || "Vendor Store";
+  const items = vendorOrder.order_items || [];
+  const trackingNumber = vendorOrder.tracking_number;
+  const courier = getMockCourier(vendorOrder.id);
+
+  // Status-based color themes for the card header
+  let statusHeaderBg = "bg-primary text-primary-foreground";
+  let StatusIcon = Package;
+  
+  if (vendorOrder.status === "delivered") {
+    statusHeaderBg = "bg-success text-success-foreground";
+    StatusIcon = CheckCircle;
+  } else if (vendorOrder.status === "cancelled") {
+    statusHeaderBg = "bg-destructive text-destructive-foreground";
+    StatusIcon = X;
+  } else if (vendorOrder.status?.includes("payment")) {
+    statusHeaderBg = "bg-warning text-warning-foreground";
+    StatusIcon = AlertTriangle;
+  } else if (["shipped", "handed_to_courier", "for_delivery"].includes(vendorOrder.status)) {
+    StatusIcon = Truck;
+  }
+
+  return (
+    <div className="card-brutal max-w-sm mx-auto bg-background p-0 overflow-hidden text-left my-3 border-2 border-foreground shadow-brutal-sm">
+      {/* Header Banner */}
+      <div className={`p-2 font-heading text-[10px] uppercase tracking-wider flex items-center justify-between border-b-2 border-foreground ${statusHeaderBg}`}>
+        <span className="flex items-center gap-1.5">
+          <StatusIcon className="w-3.5 h-3.5" />
+          Order Status Update
+        </span>
+        <span className="font-mono font-bold">#{slicedId}</span>
+      </div>
+
+      <div className="p-3 space-y-2 text-xs">
+        {/* Update Message */}
+        <div className="border-b border-dashed border-border-subtle pb-2">
+          <p className="font-semibold leading-tight">{cleanContent}</p>
+        </div>
+
+        {/* Brand & Status Details */}
+        <div className="space-y-1">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground uppercase font-heading text-[9px]">Store</span>
+            <span className="font-bold">{brandName}</span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="text-muted-foreground uppercase font-heading text-[9px]">Status</span>
+            <span className="font-bold uppercase tracking-wider text-primary">{vendorOrder.status?.replace(/_/g, " ")}</span>
+          </div>
+
+          {trackingNumber && (
+            <>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground uppercase font-heading text-[9px]">Courier</span>
+                <span className="font-bold">{courier}</span>
+              </div>
+              <div className="flex justify-between items-center bg-secondary/50 p-1.5 border border-dashed border-foreground/10 font-mono mt-1">
+                <span className="text-muted-foreground uppercase font-heading text-[8px]">Tracking #</span>
+                <span className="font-bold select-all">{trackingNumber}</span>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Items list */}
+        {items.length > 0 && (
+          <div className="pt-2 border-t border-dashed border-border-subtle">
+            <p className="text-[9px] text-muted-foreground uppercase font-heading mb-1">Items Summary</p>
+            <div className="space-y-0.5 max-h-20 overflow-y-auto pr-1">
+              {items.map((item: any) => (
+                <div key={item.id} className="flex justify-between text-[11px] font-mono">
+                  <span className="truncate max-w-[180px]">{item.product_name}</span>
+                  <span className="text-muted-foreground">x{item.quantity}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const MessageThread = ({
   vendorOrderId,
   otherUserId,
@@ -62,6 +186,9 @@ const MessageThread = ({
   orderId,
   onBack,
   role,
+  productId,
+  productName,
+  productImage,
 }: MessageThreadProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -73,9 +200,54 @@ const MessageThread = ({
   const [pendingPreview, setPendingPreview] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [vendorOrder, setVendorOrder] = useState<any>(null);
 
   // DM mode: vendorOrderId starts with "dm-"
   const isDM = vendorOrderId.startsWith("dm-");
+
+  useEffect(() => {
+    if (isDM || !vendorOrderId) return;
+
+    const fetchVendorOrder = async () => {
+      const { data, error } = await supabase
+        .from("vendor_orders")
+        .select(`
+          id,
+          status,
+          tracking_number,
+          brand:brands(name),
+          order_items(id, product_name, quantity, size)
+        `)
+        .eq("id", vendorOrderId)
+        .maybeSingle();
+
+      if (!error && data) {
+        setVendorOrder(data);
+      }
+    };
+
+    fetchVendorOrder();
+
+    const channel = supabase
+      .channel(`vendor-order-detail-${vendorOrderId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "vendor_orders",
+          filter: `id=eq.${vendorOrderId}`,
+        },
+        () => {
+          fetchVendorOrder();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [vendorOrderId, isDM]);
 
   useEffect(() => {
     if (!user) return;
@@ -231,11 +403,18 @@ const MessageThread = ({
 
       let insertError;
       if (isDM) {
-        const { error } = await supabase.from("direct_messages").insert({
+        const payload: any = {
           sender_id: user.id,
           receiver_id: otherUserId,
           content: newMessage.trim() || "",
-        });
+        };
+        // Attach product context parameters to direct_messages if this is the first message in the conversation
+        if (messages.length === 0 && productId) {
+          payload.product_id = productId;
+          payload.product_name = productName;
+          payload.product_image = productImage;
+        }
+        const { error } = await supabase.from("direct_messages").insert(payload);
         insertError = error;
       } else {
         const { error } = await supabase.from("messages").insert({
@@ -295,7 +474,7 @@ const MessageThread = ({
           </button>
         )}
         <div className="min-w-0 flex-1">
-          <h3 className="font-heading text-sm uppercase truncate">{otherUserName}</h3>
+          <h3 className="font-heading font-bold text-sm uppercase truncate">{otherUserName}</h3>
           {isDM ? (
             <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
               Direct Message
@@ -316,6 +495,25 @@ const MessageThread = ({
           ) : null}
         </div>
       </div>
+
+      {/* Product Context Banner */}
+      {isDM && productId && productName && (
+        <div className="flex items-center gap-3 px-4 py-2 border-b border-border-subtle bg-accent/20">
+          {productImage && (
+            <img
+              src={productImage}
+              alt={productName}
+              className="w-10 h-10 object-cover border border-foreground/20"
+            />
+          )}
+          <div className="min-w-0 flex-1">
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-heading">
+              Inquiry About Product
+            </span>
+            <span className="text-xs font-medium truncate block">{productName}</span>
+          </div>
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-1">
@@ -369,37 +567,39 @@ const MessageThread = ({
                           : "justify-start"
                     }`}
                   >
-                    <div
-                      className={`max-w-[80%] px-3 py-2 ${
-                        msg.is_system_message
-                          ? "bg-muted text-muted-foreground italic text-center text-xs px-6 max-w-full w-full"
-                          : msg.sender_id === user?.id
+                    {msg.is_system_message ? (
+                      <div className="w-full">
+                        <SystemOrderCard msg={msg} vendorOrder={vendorOrder} />
+                      </div>
+                    ) : (
+                      <div
+                        className={`max-w-[80%] px-3 py-2 ${
+                          msg.sender_id === user?.id
                             ? "bg-foreground text-background"
                             : "bg-secondary border border-border-subtle"
-                      }`}
-                    >
-                      {msg.content && (
-                        <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
-                      )}
-                      {msg.attachment_url && (
-                        <AttachmentPreview
-                          url={msg.attachment_url}
-                          type={msg.attachment_type || "file"}
-                          name={msg.attachment_name}
-                        />
-                      )}
-                      <p
-                        className={`text-[10px] mt-1 ${
-                          msg.is_system_message
-                            ? "text-muted-foreground"
-                            : msg.sender_id === user?.id
-                              ? "text-background/60"
-                              : "text-muted-foreground"
                         }`}
                       >
-                        {format(new Date(msg.created_at), "h:mm a")}
-                      </p>
-                    </div>
+                        {msg.content && (
+                          <p className="text-sm whitespace-pre-wrap break-words">{stripEmojis(msg.content)}</p>
+                        )}
+                        {msg.attachment_url && (
+                          <AttachmentPreview
+                            url={msg.attachment_url}
+                            type={msg.attachment_type || "file"}
+                            name={msg.attachment_name}
+                          />
+                        )}
+                        <p
+                          className={`text-[10px] mt-1 ${
+                            msg.sender_id === user?.id
+                              ? "text-background/60"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {format(new Date(msg.created_at), "h:mm a")}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -436,6 +636,54 @@ const MessageThread = ({
           </div>
         </div>
       )}
+
+      {/* Suggestion Chips */}
+      {(() => {
+        const suggestions = isDM
+          ? role === "customer"
+            ? [
+                "Hi! Is this item currently in stock?",
+                "Hello! Can I request a custom size or color?",
+                "Hi, how long does shipping usually take?",
+                "Hello, do you offer bulk order discounts?",
+              ]
+            : [
+                "Hello! Yes, this item is in stock and ready to ship.",
+                "Hi! We can customize the size and color for you.",
+                "Hello! Shipping typically takes 3-5 business days.",
+                "Hi! We'd be happy to discuss a discount for bulk orders.",
+              ]
+          : role === "customer"
+            ? [
+                "Hello! How is my order going?",
+                "When will this order be shipped?",
+                "Could I request a tracking update?",
+                "Thank you for the quick shipping!",
+              ]
+            : [
+                "Hello! We have received your order and are preparing it.",
+                "Your order has been handed over to the courier service.",
+                "Thanks for shopping with us! Let us know if you need anything else.",
+                "We are currently checking the stock for your items.",
+              ];
+
+        return (
+          <div className="flex gap-2 overflow-x-auto pb-2 pt-1.5 px-3 border-t border-border-subtle bg-background/50 scrollbar-hide max-w-full">
+            {suggestions.map((suggestion, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  setNewMessage(suggestion);
+                }}
+                className="bg-secondary hover:bg-foreground hover:text-background text-foreground border-2 border-foreground px-3 py-1 text-[10px] font-heading uppercase whitespace-nowrap transition-colors"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Input */}
       <div className="p-3 border-t-2 border-foreground bg-background flex gap-2 items-end">

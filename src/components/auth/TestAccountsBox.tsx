@@ -37,6 +37,8 @@ interface TestAccountsBoxProps {
 }
 
 const TestAccountsBox = ({ onSelectAccount }: TestAccountsBoxProps) => {
+  if (!import.meta.env.DEV) return null;
+
   return (
     <div className="card-brutal p-4 bg-secondary/50">
       <h3 className="font-heading text-xs uppercase tracking-wide mb-3 text-muted-foreground">

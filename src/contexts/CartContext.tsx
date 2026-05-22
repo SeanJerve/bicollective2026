@@ -121,7 +121,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         .eq("cart_id", id);
 
       if (error) throw error;
-      setItems((data as unknown as CartItem[]) || []);
+      const fetchedItems = (data as unknown as CartItem[]) || [];
+      const validItems = fetchedItems.filter(
+        (item) =>
+          item.variant &&
+          item.variant.product &&
+          item.variant.product.brand
+      );
+      setItems(validItems);
     } catch (error) {
       console.error("Error fetching cart:", error);
     } finally {

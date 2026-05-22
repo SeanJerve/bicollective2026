@@ -1,20 +1,57 @@
-import { useState } from "react";
 import { MessageSquare } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import ConversationList from "@/components/chat/ConversationList";
 import MessageThread from "@/components/chat/MessageThread";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import usePageSEO from "@/hooks/usePageSEO";
 
 const Messages = () => {
   usePageSEO({ title: "Messages | BICOLLECTIVE", description: "Your conversations with vendors." });
 
-  const [selected, setSelected] = useState<{
-    vendorOrderId: string;
-    otherUserId: string;
-    otherUserName: string;
-    orderId: string;
-  } | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const vendorOrderId = searchParams.get("vendorOrderId");
+  const otherUserId = searchParams.get("otherUserId");
+  const otherUserName = searchParams.get("otherUserName");
+  const orderId = searchParams.get("orderId");
+  const productId = searchParams.get("productId");
+  const productName = searchParams.get("productName");
+  const productImage = searchParams.get("productImage");
+  const role = (searchParams.get("role") as "customer" | "vendor") || "customer";
+
+  const selected = vendorOrderId && otherUserId
+    ? {
+        vendorOrderId,
+        otherUserId,
+        otherUserName: otherUserName || (role === "vendor" ? "Customer" : "Vendor"),
+        orderId: orderId || "",
+      }
+    : null;
+
+  const onSelectConversation = (conv: any) => {
+    setSearchParams({
+      vendorOrderId: conv.vendorOrderId,
+      otherUserId: conv.otherUserId,
+      otherUserName: conv.otherUserName,
+      orderId: conv.orderId || "",
+      role: conv.role || "customer",
+    });
+  };
+
+  const onBack = () => {
+    setSearchParams({});
+  };
+
+  // Build active empty conversation payload if we have query params but it's not yet saved
+  const activeEmptyConversation =
+    vendorOrderId && otherUserId
+      ? {
+          vendorOrderId,
+          otherUserId,
+          otherUserName: otherUserName || (role === "vendor" ? "Customer" : "Vendor"),
+          orderId: orderId || "",
+          role: role,
+        }
+      : null;
 
   return (
     <PageLayout>
@@ -49,15 +86,9 @@ const Messages = () => {
             <div className="flex-1 overflow-hidden">
               <ConversationList
                 selectedConversation={selected?.vendorOrderId || null}
-                onSelect={(conv) =>
-                  setSelected({
-                    vendorOrderId: conv.vendorOrderId,
-                    otherUserId: conv.otherUserId,
-                    otherUserName: conv.otherUserName,
-                    orderId: conv.orderId,
-                  })
-                }
-                role="customer"
+                onSelect={onSelectConversation}
+                role={role}
+                activeEmptyConversation={activeEmptyConversation}
               />
             </div>
           </div>
@@ -70,8 +101,11 @@ const Messages = () => {
                 otherUserId={selected.otherUserId}
                 otherUserName={selected.otherUserName}
                 orderId={selected.orderId}
-                onBack={() => setSelected(null)}
-                role="customer"
+                productId={productId || undefined}
+                productName={productName || undefined}
+                productImage={productImage || undefined}
+                onBack={onBack}
+                role={role}
               />
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground">

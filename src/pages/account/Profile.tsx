@@ -582,7 +582,7 @@ const Profile = () => {
                     <div className="p-6 pt-0 space-y-4">
                       <div className="bg-destructive/10 border-2 border-destructive/20 p-4">
                         <p className="text-sm font-medium text-destructive mb-2">
-                          ⚠️ This action is permanent and cannot be undone.
+                          This action is permanent and cannot be undone.
                         </p>
                         <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
                           <li>Your profile and personal data will be anonymized</li>
