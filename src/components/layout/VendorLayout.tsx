@@ -100,7 +100,6 @@ const VendorLayout = () => {
                     setSidebarOpen(false);
                     if (item.label === "Products") dismiss("lowStockProducts");
                     if (item.label === "Orders") dismiss("pendingOrders");
-                    if (item.label === "Messages") dismiss("unreadMessages");
                     if (item.label === "Reviews") dismiss("newReviews");
                   }}
                   className={`flex items-center gap-3 px-4 py-3 font-heading text-sm uppercase tracking-wide transition-colors ${

@@ -65,7 +65,6 @@ const Header = ({ minimal = false }: HeaderProps) => {
   const handleNavClick = (href: string, closeMenu: () => void) => {
     closeMenu();
     if (href === "/account/orders") dismiss("orderUpdates");
-    if (href === "/account/messages") dismiss("unreadMessages");
 
     if (isDisabledForAdmin(href)) {
       navigate("/coming-soon");

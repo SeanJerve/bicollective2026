@@ -18,9 +18,9 @@ const Messages = () => {
   const productImage = searchParams.get("productImage");
   const role = (searchParams.get("role") as "customer" | "vendor") || "customer";
 
-  const selected = vendorOrderId && otherUserId
+  const selected = otherUserId
     ? {
-        vendorOrderId,
+        vendorOrderId: vendorOrderId || `dm-${otherUserId}`,
         otherUserId,
         otherUserName: otherUserName || (role === "vendor" ? "Customer" : "Vendor"),
         orderId: orderId || "",
@@ -43,9 +43,9 @@ const Messages = () => {
 
   // Build active empty conversation payload if we have query params but it's not yet saved
   const activeEmptyConversation =
-    vendorOrderId && otherUserId
+    otherUserId
       ? {
-          vendorOrderId,
+          vendorOrderId: vendorOrderId || `dm-${otherUserId}`,
           otherUserId,
           otherUserName: otherUserName || (role === "vendor" ? "Customer" : "Vendor"),
           orderId: orderId || "",
@@ -85,7 +85,7 @@ const Messages = () => {
             </div>
             <div className="flex-1 overflow-hidden">
               <ConversationList
-                selectedConversation={selected?.vendorOrderId || null}
+                selectedConversation={selected?.otherUserId || null}
                 onSelect={onSelectConversation}
                 role={role}
                 activeEmptyConversation={activeEmptyConversation}
@@ -94,7 +94,7 @@ const Messages = () => {
           </div>
 
           {/* Message Thread */}
-          <div className={`flex-1 ${!selected ? "hidden md:flex" : "flex"} flex-col`}>
+          <div className={`flex-1 ${!selected ? "hidden md:flex" : "flex"} flex-col min-w-0 overflow-hidden`}>
             {selected ? (
               <MessageThread
                 vendorOrderId={selected.vendorOrderId}

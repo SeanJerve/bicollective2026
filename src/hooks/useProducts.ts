@@ -128,17 +128,24 @@ export const useProduct = (slug: string) => {
   return useQuery({
     queryKey: ["product", slug],
     queryFn: async (): Promise<Product | null> => {
-      const { data, error } = await (
-        supabase.from("products").select(`
-          *,
-          brand:brands!inner(id, name, slug, status, location, store_sale_percent, store_sale_ends_at, commission_rate, subscription_tier),
-          category:categories(id, name, slug),
-          ad_boosts(id, status, starts_at, ends_at),
-          product_variants(id, size, stock_quantity),
-          product_images(image_url, sort_order)
-        `) as any
-      )
-        .eq("slug", slug)
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
+      
+      let query = supabase.from("products").select(`
+        *,
+        brand:brands!inner(id, name, slug, status, location, store_sale_percent, store_sale_ends_at, commission_rate, subscription_tier),
+        category:categories(id, name, slug),
+        ad_boosts(id, status, starts_at, ends_at),
+        product_variants(id, size, stock_quantity),
+        product_images(image_url, sort_order)
+      `) as any;
+
+      if (isUuid) {
+        query = query.eq("id", slug);
+      } else {
+        query = query.eq("slug", slug);
+      }
+
+      const { data, error } = await query
         .eq("brand.is_hidden", false)
         .maybeSingle();
 

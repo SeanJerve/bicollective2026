@@ -61,6 +61,7 @@ const Products = () => {
   }, [locationParam]);
 
   const filteredProducts = (products || []).filter((product) => {
+    if (!product.inStock && !searchQuery) return false;
     if (selectedCategory && product.categorySlug !== selectedCategory) return false;
     if (selectedRating) {
       const brandData = brands?.find((b) => b.slug === product.brandSlug);

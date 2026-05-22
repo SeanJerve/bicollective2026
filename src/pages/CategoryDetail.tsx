@@ -12,7 +12,9 @@ const CategoryDetail = () => {
   const { data: categoryProducts, isLoading: productsLoading } = useProductsByCategory(slug || "");
   const [sortBy, setSortBy] = useState("newest");
 
-  const sortedProducts = [...(categoryProducts || [])].sort((a, b) => {
+  const sortedProducts = [...(categoryProducts || [])]
+    .filter((product) => product.inStock)
+    .sort((a, b) => {
     switch (sortBy) {
       case "price-low":
         return a.price - b.price;

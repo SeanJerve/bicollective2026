@@ -16,7 +16,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, isToday, isYesterday } from "date-fns";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 interface MessageThreadProps {
@@ -192,6 +192,7 @@ const MessageThread = ({
 }: MessageThreadProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -200,149 +201,222 @@ const MessageThread = ({
   const [pendingPreview, setPendingPreview] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [vendorOrder, setVendorOrder] = useState<any>(null);
+  const [vendorOrdersMap, setVendorOrdersMap] = useState<Record<string, any>>({});
+  const isInteractingRef = useRef(false);
 
-  // DM mode: vendorOrderId starts with "dm-"
-  const isDM = vendorOrderId.startsWith("dm-");
-
-  useEffect(() => {
-    if (isDM || !vendorOrderId) return;
-
-    const fetchVendorOrder = async () => {
-      const { data, error } = await supabase
-        .from("vendor_orders")
-        .select(`
-          id,
-          status,
-          tracking_number,
-          brand:brands(name),
-          order_items(id, product_name, quantity, size)
-        `)
-        .eq("id", vendorOrderId)
-        .maybeSingle();
-
-      if (!error && data) {
-        setVendorOrder(data);
-      }
-    };
-
-    fetchVendorOrder();
-
-    const channel = supabase
-      .channel(`vendor-order-detail-${vendorOrderId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "vendor_orders",
-          filter: `id=eq.${vendorOrderId}`,
-        },
-        () => {
-          fetchVendorOrder();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [vendorOrderId, isDM]);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const fetchMessages = async () => {
-      setLoading(true);
-
-      if (isDM) {
-        // Direct messages mode
-        const { data, error } = await supabase
-          .from("direct_messages")
-          .select(
-            "id, sender_id, receiver_id, content, created_at, read_at, product_id, product_name, product_image"
-          )
-          .or(
-            `and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`
-          )
-          .order("created_at", { ascending: true });
-
-        if (!error) setMessages(data || []);
-        setLoading(false);
-
-        // Mark as read
-        await supabase
+  const markAsRead = async () => {
+    if (!user || !otherUserId) return;
+    try {
+      await Promise.all([
+        supabase
           .from("direct_messages")
           .update({ read_at: new Date().toISOString() })
           .eq("receiver_id", user.id)
           .eq("sender_id", otherUserId)
-          .is("read_at", null);
-      } else {
-        // Order-based messages mode
-        const { data, error } = await supabase
-          .from("messages")
-          .select("*")
-          .eq("vendor_order_id", vendorOrderId)
-          .order("created_at", { ascending: true });
-
-        if (!error) setMessages(data || []);
-        setLoading(false);
-
-        await supabase
+          .is("read_at", null),
+        supabase
           .from("messages")
           .update({ read_at: new Date().toISOString() })
-          .eq("vendor_order_id", vendorOrderId)
           .eq("receiver_id", user.id)
-          .is("read_at", null);
+          .eq("sender_id", otherUserId)
+          .is("read_at", null)
+      ]);
+    } catch (err) {
+      console.error("Error marking messages as read:", err);
+    }
+  };
+
+  // DM mode: vendorOrderId is empty or starts with "dm-"
+  const isDM = !vendorOrderId || vendorOrderId.startsWith("dm-");
+
+  const fetchMessages = async () => {
+    if (!user) return;
+    setLoading(true);
+
+    try {
+      // Query order messages
+      const { data: dbMessages, error: msgsError } = await supabase
+        .from("messages")
+        .select("*")
+        .or(
+          `and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`
+        );
+
+      if (msgsError) console.error("Error fetching order messages:", msgsError);
+
+      // Query direct messages
+      const { data: dbDms, error: dmsError } = await supabase
+        .from("direct_messages")
+        .select(
+          "id, sender_id, receiver_id, content, created_at, read_at, product_id, product_name, product_image"
+        )
+        .or(
+          `and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`
+        );
+
+      if (dmsError) console.error("Error fetching direct messages:", dmsError);
+
+      const merged: any[] = [];
+      if (dbMessages) {
+        dbMessages.forEach((m) => merged.push({ ...m, source: "message" }));
       }
-    };
+      if (dbDms) {
+        dbDms.forEach((d) => merged.push({ ...d, source: "direct_message" }));
+      }
+
+      // Sort ascending chronologically
+      merged.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+      setMessages(merged);
+      setLoading(false);
+
+      // Fetch vendor order details for all referenced orders in this thread
+      const referencedVoIds = Array.from(
+        new Set(merged.map((m) => m.vendor_order_id).filter(Boolean))
+      ) as string[];
+
+      if (referencedVoIds.length > 0) {
+        const { data: voData, error: voError } = await supabase
+          .from("vendor_orders")
+          .select(`
+            id,
+            status,
+            tracking_number,
+            brand:brands(name),
+            order_items(id, product_name, quantity, size)
+          `)
+          .in("id", referencedVoIds);
+
+        if (!voError && voData) {
+          const map: Record<string, any> = {};
+          voData.forEach((vo) => {
+            map[vo.id] = vo;
+          });
+          setVendorOrdersMap(map);
+        }
+      }
+
+    } catch (err) {
+      console.error("Error in fetchMessages:", err);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!user) return;
 
     fetchMessages();
+    markAsRead();
 
-    const tableName = isDM ? "direct_messages" : "messages";
+    // Subscription to messages insertions
     const channel = supabase
-      .channel(`thread-${vendorOrderId}`)
+      .channel(`thread-unified-${otherUserId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
-          table: tableName,
-          ...(isDM ? {} : { filter: `vendor_order_id=eq.${vendorOrderId}` }),
+          table: "messages",
         },
         (payload) => {
           const msg = payload.new as any;
-          if (isDM) {
-            // Only add if it's part of this conversation
-            if (
-              (msg.sender_id === user.id && msg.receiver_id === otherUserId) ||
-              (msg.sender_id === otherUserId && msg.receiver_id === user.id)
-            ) {
-              setMessages((prev) => [...prev, msg]);
-              if (msg.receiver_id === user.id) {
+          if (
+            (msg.sender_id === user.id && msg.receiver_id === otherUserId) ||
+            (msg.sender_id === otherUserId && msg.receiver_id === user.id)
+          ) {
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === msg.id)) return prev;
+              const newMsgs = [...prev, { ...msg, source: "message" }];
+              return newMsgs.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            });
+
+            // Fetch order details for the new message if needed
+            if (msg.vendor_order_id) {
+              supabase
+                .from("vendor_orders")
+                .select(`
+                  id,
+                  status,
+                  tracking_number,
+                  brand:brands(name),
+                  order_items(id, product_name, quantity, size)
+                `)
+                .eq("id", msg.vendor_order_id)
+                .maybeSingle()
+                .then(({ data }) => {
+                  if (data) {
+                    setVendorOrdersMap((prev) => ({ ...prev, [data.id]: data }));
+                  }
+                });
+            }
+
+            if (msg.receiver_id === user.id) {
+              if (document.hasFocus() && isInteractingRef.current) {
+                supabase
+                  .from("messages")
+                  .update({ read_at: new Date().toISOString() })
+                  .eq("id", msg.id)
+                  .then();
+              }
+            }
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "direct_messages",
+        },
+        (payload) => {
+          const msg = payload.new as any;
+          if (
+            (msg.sender_id === user.id && msg.receiver_id === otherUserId) ||
+            (msg.sender_id === otherUserId && msg.receiver_id === user.id)
+          ) {
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === msg.id)) return prev;
+              const newMsgs = [...prev, { ...msg, source: "direct_message" }];
+              return newMsgs.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            });
+
+            if (msg.receiver_id === user.id) {
+              if (document.hasFocus() && isInteractingRef.current) {
                 supabase
                   .from("direct_messages")
                   .update({ read_at: new Date().toISOString() })
-                  .eq("id", msg.id);
+                  .eq("id", msg.id)
+                  .then();
               }
-            }
-          } else {
-            setMessages((prev) => [...prev, msg]);
-            if (msg.receiver_id === user.id) {
-              supabase
-                .from("messages")
-                .update({ read_at: new Date().toISOString() })
-                .eq("id", msg.id);
             }
           }
         }
       )
       .subscribe();
 
+    // Subscription to vendor_orders updates to keep statuses synced in real-time
+    const voChannel = supabase
+      .channel(`vendor-orders-thread-${otherUserId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "vendor_orders",
+        },
+        () => {
+          // Re-query order statuses when they change in the database
+          fetchMessages();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(voChannel);
     };
-  }, [user, vendorOrderId, otherUserId, isDM]);
+  }, [user, otherUserId]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -369,7 +443,6 @@ const MessageThread = ({
     } else {
       setPendingPreview(null);
     }
-    // reset input so same file can be re-selected
     e.target.value = "";
   };
 
@@ -378,10 +451,71 @@ const MessageThread = ({
     setPendingPreview(null);
   };
 
+  const handleSendProductLink = async () => {
+    if (!user || !productId) return;
+    setSending(true);
+    try {
+      const { error } = await supabase.from("direct_messages").insert({
+        sender_id: user.id,
+        receiver_id: otherUserId,
+        content: `Hi, I'm inquiring about this product: ${productName}`,
+        product_id: productId,
+        product_name: productName,
+        product_image: productImage || null,
+      });
+      if (error) throw error;
+
+      handleDismissProductContext();
+    } catch (err) {
+      console.error("Error sending product link:", err);
+      toast({
+        title: "Failed to send link",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleDismissProductContext = () => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete("productId");
+    newParams.delete("productName");
+    newParams.delete("productImage");
+    setSearchParams(newParams);
+  };
+
+  useEffect(() => {
+    if (user && productId && !sending) {
+      handleSendProductLink();
+    }
+  }, [user, productId]);
+
   const sendMessage = async () => {
     if ((!newMessage.trim() && !pendingFile) || !user) return;
     setSending(true);
+    markAsRead();
     try {
+      // Determine if there is a valid order context in this unified thread
+      let activeVoId = vendorOrderId && !vendorOrderId.startsWith("dm-") ? vendorOrderId : null;
+      if (!activeVoId) {
+        const orderMsg = [...messages].reverse().find((m) => m.vendor_order_id);
+        if (orderMsg) {
+          activeVoId = orderMsg.vendor_order_id;
+        }
+      }
+
+      if (pendingFile && !activeVoId) {
+        toast({
+          title: "Cannot send attachment",
+          description: "Attachments can only be sent for conversations with active orders.",
+          variant: "destructive",
+        });
+        setSending(false);
+        return;
+      }
+
       let attachmentUrl: string | null = null;
       let attachmentType: string | null = null;
       let attachmentName: string | null = null;
@@ -402,31 +536,31 @@ const MessageThread = ({
       }
 
       let insertError;
-      if (isDM) {
-        const payload: any = {
-          sender_id: user.id,
-          receiver_id: otherUserId,
-          content: newMessage.trim() || "",
-        };
-        // Attach product context parameters to direct_messages if this is the first message in the conversation
-        if (messages.length === 0 && productId) {
-          payload.product_id = productId;
-          payload.product_name = productName;
-          payload.product_image = productImage;
-        }
-        const { error } = await supabase.from("direct_messages").insert(payload);
-        insertError = error;
-      } else {
+      if (activeVoId) {
         const { error } = await supabase.from("messages").insert({
           sender_id: user.id,
           receiver_id: otherUserId,
-          vendor_order_id: vendorOrderId,
-          content: newMessage.trim() || (pendingFile ? "" : ""),
+          vendor_order_id: activeVoId,
+          content: newMessage.trim() || "",
           is_system_message: false,
           attachment_url: attachmentUrl,
           attachment_type: attachmentType,
           attachment_name: attachmentName,
         });
+        insertError = error;
+      } else {
+        const payload: any = {
+          sender_id: user.id,
+          receiver_id: otherUserId,
+          content: newMessage.trim() || "",
+        };
+        // Attach product context to the DM if there's an inquiry
+        if (productId) {
+          payload.product_id = productId;
+          payload.product_name = productName;
+          payload.product_image = productImage;
+        }
+        const { error } = await supabase.from("direct_messages").insert(payload);
         insertError = error;
       }
 
@@ -465,7 +599,24 @@ const MessageThread = ({
   const orderLink = role === "customer" ? `/account/orders/${orderId}` : undefined;
 
   return (
-    <div className="flex flex-col h-full">
+    <div
+      className="flex flex-col h-full"
+      onClickCapture={markAsRead}
+      onMouseEnter={() => {
+        isInteractingRef.current = true;
+        markAsRead();
+      }}
+      onMouseLeave={() => {
+        isInteractingRef.current = false;
+      }}
+      onFocusCapture={() => {
+        isInteractingRef.current = true;
+        markAsRead();
+      }}
+      onBlurCapture={() => {
+        isInteractingRef.current = false;
+      }}
+    >
       {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b-2 border-foreground bg-secondary/30">
         {onBack && (
@@ -496,25 +647,6 @@ const MessageThread = ({
         </div>
       </div>
 
-      {/* Product Context Banner */}
-      {isDM && productId && productName && (
-        <div className="flex items-center gap-3 px-4 py-2 border-b border-border-subtle bg-accent/20">
-          {productImage && (
-            <img
-              src={productImage}
-              alt={productName}
-              className="w-10 h-10 object-cover border border-foreground/20"
-            />
-          )}
-          <div className="min-w-0 flex-1">
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-heading">
-              Inquiry About Product
-            </span>
-            <span className="text-xs font-medium truncate block">{productName}</span>
-          </div>
-        </div>
-      )}
-
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-1">
         {loading ? (
@@ -539,21 +671,31 @@ const MessageThread = ({
               {group.messages.map((msg) => (
                 <div key={msg.id}>
                   {/* Product context card for DMs */}
-                  {msg.product_name && msg.product_image && (
+                  {msg.product_name && (
                     <div
                       className={`flex mb-1 ${msg.sender_id === user?.id ? "justify-end" : "justify-start"}`}
                     >
-                      <div className="flex items-center gap-2 px-2.5 py-1.5 bg-accent/30 border border-border-subtle max-w-[80%]">
-                        <img
-                          src={msg.product_image}
-                          alt={msg.product_name}
-                          className="w-8 h-8 object-cover border border-border-subtle flex-shrink-0"
-                        />
+                      <div className="flex items-center gap-3 p-2 bg-secondary border-2 border-foreground shadow-brutal-xs max-w-[80%]">
+                        {msg.product_image && (
+                          <img
+                            src={msg.product_image}
+                            alt={msg.product_name}
+                            className="w-10 h-10 object-cover border border-foreground flex-shrink-0"
+                          />
+                        )}
                         <div className="min-w-0">
-                          <p className="text-[10px] text-muted-foreground uppercase">
-                            Re: Product Inquiry
+                          <p className="text-[9px] font-heading uppercase text-muted-foreground tracking-wide font-bold">
+                            Product Inquiry
                           </p>
-                          <p className="text-xs font-medium truncate">{msg.product_name}</p>
+                          <p className="text-xs font-bold truncate">{msg.product_name}</p>
+                          {msg.product_id && (
+                            <Link
+                              to={`/products/${msg.product_id}`}
+                              className="text-[9px] font-heading uppercase underline hover:text-primary mt-0.5 block font-bold"
+                            >
+                              View Product →
+                            </Link>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -569,7 +711,7 @@ const MessageThread = ({
                   >
                     {msg.is_system_message ? (
                       <div className="w-full">
-                        <SystemOrderCard msg={msg} vendorOrder={vendorOrder} />
+                        <SystemOrderCard msg={msg} vendorOrder={vendorOrdersMap[msg.vendor_order_id]} />
                       </div>
                     ) : (
                       <div
@@ -608,6 +750,41 @@ const MessageThread = ({
         )}
         <div ref={scrollRef} />
       </div>
+
+      {/* Product Inquiry Banner */}
+      {productId && productName && (
+        <div className="mx-3 my-2 p-3 bg-secondary border-2 border-foreground shadow-brutal-xs flex items-center gap-3 animate-fade-in">
+          {productImage && (
+            <img
+              src={productImage}
+              alt={productName}
+              className="w-12 h-12 object-cover border-2 border-foreground shadow-brutal-xs shrink-0"
+            />
+          )}
+          <div className="min-w-0 flex-1">
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-heading font-bold">
+              Product Inquiry
+            </span>
+            <span className="text-xs font-bold truncate block">{productName}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSendProductLink}
+              disabled={sending}
+              className="btn-brutal text-[10px] py-1 px-3 uppercase font-heading bg-primary text-primary-foreground flex items-center gap-1"
+            >
+              Send Link
+            </button>
+            <button
+              onClick={handleDismissProductContext}
+              className="p-1 border-2 border-foreground hover:bg-secondary transition-colors"
+              title="Dismiss"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Pending File Preview */}
       {pendingFile && (

@@ -169,7 +169,9 @@ const NotificationCenter = () => {
                     to={item.href}
                     onClick={() => {
                       setIsOpen(false);
-                      dismiss(item.key as keyof typeof counts);
+                      if (item.key !== "unreadMessages") {
+                        dismiss(item.key as keyof typeof counts);
+                      }
                     }}
                     className="flex items-center gap-3 px-4 py-3 hover:bg-secondary transition-colors border-b border-border-subtle last:border-0"
                   >
