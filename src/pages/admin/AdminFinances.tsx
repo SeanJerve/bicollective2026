@@ -188,6 +188,9 @@ const AdminFinances = () => {
                     <img
                       src={b.product?.image_url}
                       className="w-12 h-12 object-cover border border-foreground"
+                      onError={(e) => {
+                        e.currentTarget.src = "/placeholder.svg";
+                      }}
                     />
                     <div className="space-y-1">
                       <p className="font-heading text-sm uppercase leading-tight">

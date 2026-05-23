@@ -23,7 +23,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import VerificationSection from "@/components/vendor/VerificationSection";
 
 const Profile = () => {
   const { user, isVendor } = useAuth();
@@ -291,29 +290,31 @@ const Profile = () => {
   return (
     <PageLayout>
       <section className="py-12">
-        <div className={`section-container ${isVendor ? "max-w-6xl" : "max-w-xl"}`}>
+        <div className="section-container max-w-xl">
           <Link
             to="/"
             className="text-xs font-heading uppercase flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors mb-6"
           >
-            <ChevronLeft className="w-3 h-3" />
+          <ChevronLeft className="w-3 h-3" />
             Back to Marketplace
           </Link>
           <h1 className="font-heading text-3xl md:text-4xl uppercase mb-6">Profile Settings</h1>
 
-          {/* Two-column layout for vendors, single column for customers */}
-          <div
-            className={`${isVendor ? "grid grid-cols-1 lg:grid-cols-2 gap-8 items-start" : "space-y-0"}`}
-          >
-            {/* LEFT COLUMN — Profile info for everyone */}
-            <div className="space-y-6">
-              {/* Avatar Section */}
-              <div className="card-brutal p-6">
-                <div className="flex items-center gap-5">
-                  <div className="relative group">
-                    <div className="w-20 h-20 md:w-24 md:h-24 border-2 border-foreground bg-muted overflow-hidden flex items-center justify-center flex-shrink-0">
+          <div className="space-y-6">
+            {/* Avatar Section */}
+            <div className="card-brutal p-6">
+              <div className="flex items-center gap-5">
+                <div className="relative group">
+                  <div className="w-20 h-20 md:w-24 md:h-24 border-2 border-foreground bg-muted overflow-hidden flex items-center justify-center flex-shrink-0">
                       {avatarUrl ? (
-                        <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                        <img
+                          src={avatarUrl}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = "/placeholder.svg";
+                          }}
+                        />
                       ) : (
                         <User className="w-8 h-8 md:w-10 md:h-10 text-muted-foreground" />
                       )}
@@ -662,17 +663,7 @@ const Profile = () => {
                 </Collapsible>
               </div>
             </div>
-
-            {/* RIGHT COLUMN — Verification (vendors only) */}
-            {isVendor && (
-              <div className="space-y-0">
-                <div className="card-brutal p-6">
-                  <VerificationSection />
-                </div>
-              </div>
-            )}
           </div>
-        </div>
       </section>
     </PageLayout>
   );

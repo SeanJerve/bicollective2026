@@ -18,6 +18,9 @@ const CategoryCard = ({ name, slug, image, productCount }: CategoryCardProps) =>
               src={image}
               alt={name}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              onError={(e) => {
+                e.currentTarget.src = "/placeholder.svg";
+              }}
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-secondary to-muted flex items-center justify-center">

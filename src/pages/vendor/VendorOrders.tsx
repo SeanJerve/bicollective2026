@@ -62,6 +62,9 @@ const VendorPaymentProofImage = ({
           src={url}
           alt="Payment Proof"
           className="w-full h-full object-contain bg-background transition-transform duration-300 group-hover:scale-105"
+          onError={(e) => {
+            e.currentTarget.src = "/placeholder.svg";
+          }}
         />
         <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
           <span className="bg-background px-3 py-1.5 border border-foreground font-heading text-[10px] uppercase shadow-brutal hidden md:inline-block">
@@ -87,6 +90,9 @@ const VendorPaymentProofImage = ({
               src={viewingImage}
               alt="Full Proof"
               className="max-w-full max-h-full object-contain"
+              onError={(e) => {
+                e.currentTarget.src = "/placeholder.svg";
+              }}
             />
           </div>
         </div>

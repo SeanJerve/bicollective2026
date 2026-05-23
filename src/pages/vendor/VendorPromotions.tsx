@@ -253,17 +253,19 @@ const VendorPromotions = () => {
             Create promo codes and discounts for your products
           </p>
         </div>
-        <button
-          onClick={() => {
-            setShowForm(!showForm);
-            setEditId(null);
-            setForm(defaultForm);
-          }}
-          className="btn-brutal"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          New Promo
-        </button>
+        {!showForm && promotions && promotions.length > 0 && (
+          <button
+            onClick={() => {
+              setShowForm(!showForm);
+              setEditId(null);
+              setForm(defaultForm);
+            }}
+            className="btn-brutal"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New Promo
+          </button>
+        )}
       </div>
 
       {showForm && (

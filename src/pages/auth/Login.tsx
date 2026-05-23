@@ -33,6 +33,12 @@ const Login = () => {
         variant: "destructive",
       });
     } else {
+      // Clear popup seen status so they are greeted upon sign in
+      Object.keys(sessionStorage).forEach((key) => {
+        if (key.startsWith("site_popup_")) {
+          sessionStorage.removeItem(key);
+        }
+      });
       toast({
         title: "Welcome back!",
         description: "You have successfully signed in",
@@ -57,6 +63,12 @@ const Login = () => {
         variant: "destructive",
       });
     } else {
+      // Clear popup seen status so they are greeted upon sign in
+      Object.keys(sessionStorage).forEach((key) => {
+        if (key.startsWith("site_popup_")) {
+          sessionStorage.removeItem(key);
+        }
+      });
       toast({
         title: "Welcome!",
         description: "You have successfully signed in with Google",

@@ -13,7 +13,7 @@ const CategoryDetail = () => {
   const [sortBy, setSortBy] = useState("newest");
 
   const sortedProducts = [...(categoryProducts || [])]
-    .filter((product) => product.inStock)
+    .filter((product) => product.inStock && !product.isTeaser && product.listingType !== "teaser")
     .sort((a, b) => {
     switch (sortBy) {
       case "price-low":

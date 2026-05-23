@@ -144,6 +144,9 @@ const AdminVendors = () => {
                         src={vendor.logo_url}
                         alt={vendor.name}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = "/placeholder.svg";
+                        }}
                       />
                     ) : (
                       vendor.name.charAt(0)
@@ -245,6 +248,9 @@ const AdminVendors = () => {
                                 src={vendor.logo_url}
                                 alt={vendor.name}
                                 className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.src = "/placeholder.svg";
+                                }}
                               />
                             ) : (
                               vendor.name.charAt(0)

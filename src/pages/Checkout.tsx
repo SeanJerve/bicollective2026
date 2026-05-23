@@ -990,6 +990,9 @@ const Checkout = () => {
                                   src={product.image_url}
                                   alt={product.name}
                                   className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.src = "/placeholder.svg";
+                                  }}
                                 />
                               )}
                             </div>

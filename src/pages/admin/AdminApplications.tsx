@@ -194,6 +194,9 @@ const AdminApplications = () => {
               src={signedUrl}
               alt={label}
               className="max-w-full max-h-64 border-2 border-border-subtle object-contain bg-muted"
+              onError={(e) => {
+                e.currentTarget.src = "/placeholder.svg";
+              }}
             />
           </a>
         ) : (

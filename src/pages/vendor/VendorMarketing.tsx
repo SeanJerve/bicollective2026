@@ -155,6 +155,9 @@ const VendorMarketing = () => {
                     <img
                       src={p.image_url || "/placeholder.svg"}
                       className="w-10 h-10 object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = "/placeholder.svg";
+                      }}
                     />
                     <div className="min-w-0">
                       <p className="text-xs font-heading uppercase truncate">{p.name}</p>

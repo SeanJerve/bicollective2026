@@ -29,7 +29,7 @@ const SitePopup = () => {
   useEffect(() => {
     // If we have a popup and haven't shown it this session
     if (popup) {
-      const hasSeenPopup = localStorage.getItem(`site_popup_${popup.id}`);
+      const hasSeenPopup = sessionStorage.getItem(`site_popup_${popup.id}`);
       if (!hasSeenPopup) {
         // Add a small delay so it doesn't jarringly appear before paint structure
         const timer = setTimeout(() => {
@@ -43,7 +43,7 @@ const SitePopup = () => {
   const handleClose = () => {
     setIsOpen(false);
     if (popup) {
-      localStorage.setItem(`site_popup_${popup.id}`, "true");
+      sessionStorage.setItem(`site_popup_${popup.id}`, "true");
     }
   };
 
@@ -55,6 +55,9 @@ const SitePopup = () => {
         src={popup.image_url}
         alt="Promotion"
         className="w-full h-full object-cover rounded-sm"
+        onError={(e) => {
+          e.currentTarget.src = "/placeholder.svg";
+        }}
       />
     </div>
   );

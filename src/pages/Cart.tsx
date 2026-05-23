@@ -224,6 +224,9 @@ const Cart = () => {
                                   src={item.variant.product.image_url}
                                   alt={item.variant.product.name}
                                   className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.src = "/placeholder.svg";
+                                  }}
                                 />
                               )}
                               {isOutOfStock && (

@@ -57,7 +57,14 @@ const QuickAddDrawer = ({ open, onOpenChange, product }: QuickAddDrawerProps) =>
           {/* Product Info Row */}
           <div className="flex gap-3 mb-4">
             <div className="w-20 h-20 flex-shrink-0 border border-border-subtle overflow-hidden bg-muted">
-              <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+              <img
+                src={product.image}
+                alt={product.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = "/placeholder.svg";
+                }}
+              />
             </div>
             <div className="flex-1 min-w-0">
               <h4 className="font-heading text-sm uppercase leading-tight line-clamp-2 mb-1">

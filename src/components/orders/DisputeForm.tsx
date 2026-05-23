@@ -173,6 +173,9 @@ const DisputeForm = ({ vendorOrderId, vendorId, onSuccess, onCancel }: DisputeFo
                     src={url}
                     alt={`Evidence ${i + 1}`}
                     className="w-full h-full object-cover border-2 border-foreground"
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder.svg";
+                    }}
                   />
                   <button
                     type="button"

@@ -173,6 +173,7 @@ const VendorProducts = () => {
         .map((img: any) => img.image_url),
       inStock: product.in_stock,
       variants: product.product_variants || [],
+      dropId: product.drop_id,
     });
     setShowForm(true);
   };
@@ -241,13 +242,15 @@ const VendorProducts = () => {
             {products.length} {products.length === 1 ? "product" : "products"}
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="btn-brutal flex items-center justify-center gap-2"
-        >
-          <Plus className="w-4 h-4 md:w-5 md:h-5" />
-          Add Product
-        </button>
+        {!showForm && products.length > 0 && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="btn-brutal flex items-center justify-center gap-2"
+          >
+            <Plus className="w-4 h-4 md:w-5 md:h-5" />
+            Add Product
+          </button>
+        )}
       </div>
 
       {products.length > 0 ? (
@@ -263,6 +266,9 @@ const VendorProducts = () => {
                         src={product.image_url}
                         alt={product.name}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = "/placeholder.svg";
+                        }}
                       />
                     )}
                   </div>
@@ -342,6 +348,9 @@ const VendorProducts = () => {
                                 src={product.image_url}
                                 alt={product.name}
                                 className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.src = "/placeholder.svg";
+                                }}
                               />
                             )}
                           </div>

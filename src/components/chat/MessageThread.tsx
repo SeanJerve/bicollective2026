@@ -43,6 +43,9 @@ const AttachmentPreview = ({ url, type, name }: { url: string; type: string; nam
           src={url}
           alt={name || "attachment"}
           className="max-w-[200px] max-h-[200px] object-cover border border-border-subtle rounded-sm"
+          onError={(e) => {
+            e.currentTarget.src = "/placeholder.svg";
+          }}
         />
       </a>
     );
@@ -681,6 +684,9 @@ const MessageThread = ({
                             src={msg.product_image}
                             alt={msg.product_name}
                             className="w-10 h-10 object-cover border border-foreground flex-shrink-0"
+                            onError={(e) => {
+                              e.currentTarget.src = "/placeholder.svg";
+                            }}
                           />
                         )}
                         <div className="min-w-0">
@@ -759,6 +765,9 @@ const MessageThread = ({
               src={productImage}
               alt={productName}
               className="w-12 h-12 object-cover border-2 border-foreground shadow-brutal-xs shrink-0"
+              onError={(e) => {
+                e.currentTarget.src = "/placeholder.svg";
+              }}
             />
           )}
           <div className="min-w-0 flex-1">

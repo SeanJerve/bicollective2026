@@ -32,6 +32,9 @@ export interface Product {
   storeSaleEndsAt?: string;
   brandCommissionRate?: number;
   isBoosted?: boolean;
+  dropId?: string | null;
+  dropLaunchDate?: string | null;
+  isTeaser?: boolean;
 }
 
 export interface Brand {
@@ -69,7 +72,8 @@ export const useProducts = () => {
           category:categories(id, name, slug),
           ad_boosts(id, status, starts_at, ends_at),
           product_variants(id, size, stock_quantity),
-          product_images(image_url, sort_order)
+          product_images(image_url, sort_order),
+          product_drops(id, title, launch_date)
         `) as any
       )
         .eq("is_active", true)
@@ -116,6 +120,9 @@ export const useProducts = () => {
                 (!b.starts_at || new Date(b.starts_at) <= new Date()) &&
                 (!b.ends_at || new Date(b.ends_at) >= new Date())
             ),
+            dropId: p.drop_id || null,
+            dropLaunchDate: p.product_drops?.launch_date || null,
+            isTeaser: p.product_drops?.launch_date ? new Date(p.product_drops.launch_date) > new Date() : (p.listing_type === "teaser"),
           };
         })
         .sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));
@@ -136,7 +143,8 @@ export const useProduct = (slug: string) => {
         category:categories(id, name, slug),
         ad_boosts(id, status, starts_at, ends_at),
         product_variants(id, size, stock_quantity),
-        product_images(image_url, sort_order)
+        product_images(image_url, sort_order),
+        product_drops(id, title, launch_date)
       `) as any;
 
       if (isUuid) {
@@ -190,6 +198,9 @@ export const useProduct = (slug: string) => {
             (!b.starts_at || new Date(b.starts_at) <= new Date()) &&
             (!b.ends_at || new Date(b.ends_at) >= new Date())
         ),
+        dropId: product.drop_id || null,
+        dropLaunchDate: product.product_drops?.launch_date || null,
+        isTeaser: product.product_drops?.launch_date ? new Date(product.product_drops.launch_date) > new Date() : (product.listing_type === "teaser"),
       };
     },
     enabled: !!slug,
@@ -308,7 +319,8 @@ export const useProductsByBrand = (brandSlug: string) => {
           category:categories(id, name, slug),
           ad_boosts(id, status, starts_at, ends_at),
           product_variants(id, size, stock_quantity),
-          product_images(image_url, sort_order)
+          product_images(image_url, sort_order),
+          product_drops(id, title, launch_date)
         `) as any
       )
         .eq("brand.slug", brandSlug)
@@ -352,6 +364,9 @@ export const useProductsByBrand = (brandSlug: string) => {
                 (!b.starts_at || new Date(b.starts_at) <= new Date()) &&
                 (!b.ends_at || new Date(b.ends_at) >= new Date())
             ),
+            dropId: p.drop_id || null,
+            dropLaunchDate: p.product_drops?.launch_date || null,
+            isTeaser: p.product_drops?.launch_date ? new Date(p.product_drops.launch_date) > new Date() : (p.listing_type === "teaser"),
           };
         })
         .sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));
@@ -405,7 +420,8 @@ export const useProductsByCategory = (categorySlug: string) => {
           category:categories!inner(id, name, slug),
           ad_boosts(id, status, starts_at, ends_at),
           product_variants(id, size, stock_quantity),
-          product_images(image_url, sort_order)
+          product_images(image_url, sort_order),
+          product_drops(id, title, launch_date)
         `) as any
       )
         .eq("category.slug", categorySlug)
@@ -449,6 +465,9 @@ export const useProductsByCategory = (categorySlug: string) => {
                 (!b.starts_at || new Date(b.starts_at) <= new Date()) &&
                 (!b.ends_at || new Date(b.ends_at) >= new Date())
             ),
+            dropId: p.drop_id || null,
+            dropLaunchDate: p.product_drops?.launch_date || null,
+            isTeaser: p.product_drops?.launch_date ? new Date(p.product_drops.launch_date) > new Date() : (p.listing_type === "teaser"),
           };
         })
         .sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));

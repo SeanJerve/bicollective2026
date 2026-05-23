@@ -23,6 +23,7 @@ interface ProductCardProps {
   storeSaleEndsAt?: string;
   variants?: { id: string; size: string; stock_quantity: number }[];
   isBoosted?: boolean;
+  isTeaser?: boolean;
 }
 
 const ProductCard = ({
@@ -43,6 +44,7 @@ const ProductCard = ({
   storeSaleEndsAt,
   variants,
   isBoosted = false,
+  isTeaser = false,
 }: ProductCardProps) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -60,7 +62,8 @@ const ProductCard = ({
     storeSalePercent > 0 &&
     storeSaleEndsAt &&
     new Date(storeSaleEndsAt) > new Date();
-  const canAddToCart = inStock && listingType !== "teaser";
+  const isTeaserProduct = isTeaser || listingType === "teaser";
+  const canAddToCart = inStock && !isTeaserProduct;
 
   return (
     <>
@@ -74,6 +77,9 @@ const ProductCard = ({
                 alt={name}
                 loading="lazy"
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                onError={(e) => {
+                  e.currentTarget.src = "/placeholder.svg";
+                }}
               />
               {!inStock && listingType === "regular" && (
                 <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
@@ -82,7 +88,7 @@ const ProductCard = ({
                   </span>
                 </div>
               )}
-              {listingType === "teaser" && (
+              {isTeaserProduct && (
                 <div className="absolute top-2 right-2 md:top-3 md:right-3 px-1.5 py-0.5 md:px-2 md:py-1 bg-muted border border-foreground text-[10px] md:text-xs font-heading uppercase flex items-center gap-1">
                   <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" /> Coming Soon
                 </div>
@@ -107,7 +113,7 @@ const ProductCard = ({
                   SPONSORED
                 </div>
               )}
-
+ 
               {/* Mobile Quick Add Button */}
               {isMobile && canAddToCart && (
                 <button
@@ -123,7 +129,7 @@ const ProductCard = ({
                 </button>
               )}
             </div>
-
+ 
             {/* Content */}
             <div className="p-2.5 md:p-4">
               {/* Brand */}
@@ -140,18 +146,24 @@ const ProductCard = ({
                 </span>
                 {isVerifiedBrand && <VerifiedBadge size="sm" />}
               </span>
-
+ 
               {/* Product Name */}
               <h3 className="font-heading text-sm md:text-lg uppercase tracking-tight leading-tight mb-1 md:mb-2 line-clamp-2">
                 {name}
               </h3>
-
+ 
               {/* Price */}
               <div className="flex items-center gap-1.5 md:gap-2">
-                {listingType === "teaser" ? (
-                  <span className="font-heading text-sm md:text-lg text-muted-foreground">
-                    Price TBA
-                  </span>
+                {isTeaserProduct ? (
+                  price === 0 ? (
+                    <span className="font-heading text-sm md:text-lg text-muted-foreground">
+                      Price TBA
+                    </span>
+                  ) : (
+                    <span className="font-heading text-sm md:text-lg text-muted-foreground font-semibold">
+                      Preview: {formatPrice(price)}
+                    </span>
+                  )
                 ) : (
                   <>
                     <span className="font-heading text-sm md:text-lg">{formatPrice(price)}</span>

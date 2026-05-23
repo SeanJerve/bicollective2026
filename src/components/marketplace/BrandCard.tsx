@@ -37,6 +37,9 @@ const BrandCard = ({
               alt={`${name} banner`}
               loading="lazy"
               className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = "/placeholder.svg";
+              }}
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-muted to-accent" />
@@ -49,6 +52,9 @@ const BrandCard = ({
               alt={`${name} logo`}
               loading="lazy"
               className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = "/placeholder.svg";
+              }}
             />
             {isVerified && (
               <VerifiedBadge size="sm" className="absolute -top-1 -right-1 z-10 scale-110" />

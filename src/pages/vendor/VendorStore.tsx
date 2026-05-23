@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import DocumentUpload from "@/components/vendor/DocumentUpload";
+import VerificationSection from "@/components/vendor/VerificationSection";
 
 const VendorStore = () => {
   const { user, refreshRoles } = useAuth();
@@ -296,6 +297,9 @@ const VendorStore = () => {
                   src={formData.logo_url}
                   alt="Logo preview"
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = "/placeholder.svg";
+                  }}
                 />
               </div>
             )}
@@ -318,6 +322,9 @@ const VendorStore = () => {
                   src={formData.banner_url}
                   alt="Banner preview"
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = "/placeholder.svg";
+                  }}
                 />
               </div>
             )}
@@ -398,6 +405,12 @@ const VendorStore = () => {
             {saving ? "Saving..." : brand ? "Save Changes" : "Create Store"}
           </button>
         </form>
+
+        {brand && (
+          <div className="card-brutal p-4 md:p-8 bg-background mt-6">
+            <VerificationSection />
+          </div>
+        )}
       </div>
     </div>
   );

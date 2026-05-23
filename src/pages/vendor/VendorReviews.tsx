@@ -267,6 +267,9 @@ const VendorReviews = () => {
                     src={review.reviewer.avatar_url}
                     alt=""
                     className="w-5 h-5 rounded-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder.svg";
+                    }}
                   />
                 ) : (
                   <div className="w-5 h-5 bg-muted flex items-center justify-center rounded-full">

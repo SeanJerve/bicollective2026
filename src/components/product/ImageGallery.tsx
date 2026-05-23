@@ -35,6 +35,9 @@ const ImageGallery = ({ mainImage, images = [], alt }: ImageGalleryProps) => {
             alt={`${alt} ${activeIndex + 1}`}
             loading="lazy"
             className="w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.src = "/placeholder.svg";
+            }}
           />
         </div>
         {allImages.length > 1 && (
@@ -75,6 +78,9 @@ const ImageGallery = ({ mainImage, images = [], alt }: ImageGalleryProps) => {
                 src={img}
                 alt={`${alt} thumb ${idx + 1}`}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = "/placeholder.svg";
+                }}
               />
             </button>
           ))}

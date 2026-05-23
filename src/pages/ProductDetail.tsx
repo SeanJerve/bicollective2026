@@ -66,6 +66,17 @@ const ProductDetail = () => {
       });
   }, [product?.brandId]);
 
+  // Redirect if product is a teaser (trailer exclusive)
+  useEffect(() => {
+    if (product && (product.isTeaser || product.listingType === "teaser")) {
+      toast({
+        title: "Exclusive Trailer Product",
+        description: "This item is part of an exclusive drop trailer and cannot be viewed individually.",
+      });
+      navigate(`/brands/${product.brandSlug}`, { replace: true });
+    }
+  }, [product, navigate, toast]);
+
   usePageSEO({
     title: product?.name || "Product",
     description:
@@ -319,10 +330,16 @@ const ProductDetail = () => {
 
               {/* Price */}
               <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-6 md:mb-8">
-                {product.listingType === "teaser" ? (
-                  <span className="font-heading text-2xl md:text-3xl text-muted-foreground">
-                    Price TBA
-                  </span>
+                {product.isTeaser ? (
+                  product.price === 0 ? (
+                    <span className="font-heading text-2xl md:text-3xl text-muted-foreground">
+                      Price TBA
+                    </span>
+                  ) : (
+                    <span className="font-heading text-2xl md:text-3xl text-muted-foreground font-semibold">
+                      Preview: {formatPrice(product.price)}
+                    </span>
+                  )
                 ) : (
                   <>
                     <span className="font-heading text-2xl md:text-3xl">
@@ -349,68 +366,90 @@ const ProductDetail = () => {
                 </p>
               )}
 
-              {/* Size / Variant Selection */}
-              <div
-                className={`mb-6 md:mb-8 ${!product.inStock ? "opacity-50 pointer-events-none select-none grayscale" : ""}`}
-              >
-                <div className="flex items-center justify-between mb-2 md:mb-3">
-                  <span className="font-heading uppercase text-xs md:text-sm">Select Size</span>
-                  {selectedVariant && (
-                    <span className="text-xs text-muted-foreground">
-                      {selectedVariant.stock_quantity} left in stock
-                    </span>
+              {/* Teaser Notice Block */}
+              {product.isTeaser && (
+                <div className="card-brutal p-4 bg-secondary mb-6 border-2 border-foreground">
+                  <span className="font-heading text-xs text-destructive uppercase tracking-widest block mb-1">
+                    Teaser / Upcoming Drop
+                  </span>
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    This item is part of an upcoming collection. You cannot purchase it yet, but you can wishlist it to get notified when it goes live!
+                  </p>
+                  {product.releaseDate && (
+                    <div className="mt-3 text-xs font-mono font-bold uppercase flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5" />
+                      Expected Release: {new Date(product.releaseDate).toLocaleDateString()}
+                    </div>
                   )}
                 </div>
-                {variants.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {variants.map((variant) => (
-                      <button
-                        key={variant.id}
-                        onClick={() => setSelectedVariant(variant)}
-                        disabled={variant.stock_quantity === 0}
-                        className={`w-10 h-10 md:w-12 md:h-12 border-2 font-heading text-xs md:text-sm transition-colors ${
-                          selectedVariant?.id === variant.id
-                            ? "border-foreground bg-foreground text-background"
-                            : variant.stock_quantity === 0
-                              ? "border-border-subtle text-muted-foreground line-through cursor-not-allowed"
-                              : "border-border-subtle hover:border-foreground"
-                        }`}
-                      >
-                        {variant.size}
-                      </button>
-                    ))}
+              )}
+
+              {/* Size / Variant Selection */}
+              {!product.isTeaser && (
+                <div
+                  className={`mb-6 md:mb-8 ${!product.inStock ? "opacity-50 pointer-events-none select-none grayscale" : ""}`}
+                >
+                  <div className="flex items-center justify-between mb-2 md:mb-3">
+                    <span className="font-heading uppercase text-xs md:text-sm">Select Size</span>
+                    {selectedVariant && (
+                      <span className="text-xs text-muted-foreground">
+                        {selectedVariant.stock_quantity} left in stock
+                      </span>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">No sizes available</p>
-                )}
-              </div>
+                  {variants.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {variants.map((variant) => (
+                        <button
+                          key={variant.id}
+                          onClick={() => setSelectedVariant(variant)}
+                          disabled={variant.stock_quantity === 0}
+                          className={`w-10 h-10 md:w-12 md:h-12 border-2 font-heading text-xs md:text-sm transition-colors ${
+                            selectedVariant?.id === variant.id
+                              ? "border-foreground bg-foreground text-background"
+                              : variant.stock_quantity === 0
+                                ? "border-border-subtle text-muted-foreground line-through cursor-not-allowed"
+                                : "border-border-subtle hover:border-foreground"
+                          }`}
+                        >
+                          {variant.size}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No sizes available</p>
+                  )}
+                </div>
+              )}
 
               {/* Quantity */}
-              <div
-                className={`mb-6 md:mb-8 ${!product.inStock ? "opacity-50 pointer-events-none select-none grayscale" : ""}`}
-              >
-                <span className="font-heading uppercase text-xs md:text-sm mb-2 md:mb-3 block">
-                  Quantity
-                </span>
-                <div className="inline-flex items-center border-2 border-foreground">
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center hover:bg-secondary transition-colors"
-                    disabled={quantity <= 1}
-                  >
-                    <Minus className="w-3 h-3 md:w-4 md:h-4" />
-                  </button>
-                  <span className="w-12 h-10 md:w-16 md:h-12 flex items-center justify-center font-heading border-x-2 border-foreground text-sm md:text-base">
-                    {quantity}
+              {!product.isTeaser && (
+                <div
+                  className={`mb-6 md:mb-8 ${!product.inStock ? "opacity-50 pointer-events-none select-none grayscale" : ""}`}
+                >
+                  <span className="font-heading uppercase text-xs md:text-sm mb-2 md:mb-3 block">
+                    Quantity
                   </span>
-                  <button
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center hover:bg-secondary transition-colors"
-                  >
-                    <Plus className="w-3 h-3 md:w-4 md:h-4" />
-                  </button>
+                  <div className="inline-flex items-center border-2 border-foreground">
+                    <button
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center hover:bg-secondary transition-colors"
+                      disabled={quantity <= 1}
+                    >
+                      <Minus className="w-3 h-3 md:w-4 md:h-4" />
+                    </button>
+                    <span className="w-12 h-10 md:w-16 md:h-12 flex items-center justify-center font-heading border-x-2 border-foreground text-sm md:text-base">
+                      {quantity}
+                    </span>
+                    <button
+                      onClick={() => setQuantity(quantity + 1)}
+                      className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center hover:bg-secondary transition-colors"
+                    >
+                      <Plus className="w-3 h-3 md:w-4 md:h-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Actions */}
               {isAdmin ? (
@@ -425,6 +464,17 @@ const ProductDetail = () => {
                     You cannot purchase your own products
                   </p>
                 </div>
+              ) : product.isTeaser ? (
+                <div className="space-y-3">
+                  <button
+                    onClick={toggleWishlist}
+                    disabled={wishlistLoading}
+                    className={`btn-brutal w-full flex items-center justify-center gap-2 text-sm md:text-base transition-all ${isWishlisted ? "bg-success text-success-foreground" : ""}`}
+                  >
+                    <Heart className={`w-4 h-4 md:w-5 md:h-5 ${isWishlisted ? "fill-foreground" : ""}`} />
+                    {isWishlisted ? "In Wishlist" : "Add to Wishlist"}
+                  </button>
+                </div>
               ) : !product.inStock ? (
                 <div className="py-4 border-y-2 border-destructive bg-destructive/10 text-center">
                   <p className="text-sm font-heading uppercase text-destructive tracking-widest font-bold">
@@ -433,69 +483,74 @@ const ProductDetail = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {/* Buy Now — bypasses cart, goes straight to checkout */}
-                  <button
-                    onClick={() => {
-                      if (!selectedVariant) {
-                        toast({
-                          title: "Please select a size",
-                          description: "Choose a size before buying",
-                          variant: "destructive",
-                        });
-                        return;
-                      }
-                      navigate("/checkout", {
-                        state: {
-                          buyNowItem: {
-                            variant_id: selectedVariant.id,
-                            quantity,
-                            product: {
-                              id: product.id,
-                              name: product.name,
-                              price: product.price,
-                              image_url: product.image,
-                              brand_id: product.brandId,
-                              size: selectedVariant.size,
-                              brand: {
-                                id: product.brandId,
-                                name: product.brandName,
-                                slug: product.brandSlug,
-                                location: product.brandLocation || "Albay",
+                  {/* Buy Now & Add to Cart */}
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                      onClick={() => {
+                        if (!selectedVariant) {
+                          toast({
+                            title: "Please select a size",
+                            description: "Choose a size before buying",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        navigate("/checkout", {
+                          state: {
+                            buyNowItem: {
+                              variant_id: selectedVariant.id,
+                              quantity,
+                              product: {
+                                id: product.id,
+                                name: product.name,
+                                price: product.price,
+                                image_url: product.image,
+                                brand_id: product.brandId,
+                                size: selectedVariant.size,
+                                brand: {
+                                  id: product.brandId,
+                                  name: product.brandName,
+                                  slug: product.brandSlug,
+                                  location: product.brandLocation || "Albay",
+                                },
                               },
                             },
                           },
-                        },
-                      });
-                    }}
-                    className="btn-brutal w-full flex items-center justify-center gap-2 text-sm md:text-base transition-all"
-                    disabled={product.listingType === "teaser"}
-                  >
-                    <Zap className="w-4 h-4 md:w-5 md:h-5" />
-                    {product.listingType === "teaser"
-                      ? "Coming Soon"
-                      : product.listingType === "preorder"
-                        ? "Pre-order Now"
-                        : "Buy Now"}
-                  </button>
-
-                  {/* Add to Cart */}
-                  <button
-                    onClick={() => {
-                      if (!selectedVariant) {
-                        toast({
-                          title: "Please select a size",
-                          description: "Choose a size before adding to cart",
-                          variant: "destructive",
                         });
-                        return;
-                      }
-                      addToCart(selectedVariant.id, quantity);
-                    }}
-                    className="btn-brutal-secondary w-full flex items-center justify-center gap-2 text-sm md:text-base transition-all"
-                    disabled={product.listingType === "teaser"}
+                      }}
+                      className="btn-brutal flex-1 flex items-center justify-center gap-2 text-sm md:text-base transition-all"
+                    >
+                      <Zap className="w-4 h-4" />
+                      {product.listingType === "preorder" ? "Pre-order Now" : "Buy Now"}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        if (!selectedVariant) {
+                          toast({
+                            title: "Please select a size",
+                            description: "Choose a size before adding to cart",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        addToCart(selectedVariant.id, quantity);
+                      }}
+                      className="btn-brutal-secondary flex-1 flex items-center justify-center gap-2 text-sm md:text-base transition-all"
+                    >
+                      <ShoppingBag className="w-4 h-4" />
+                      Add to Cart
+                    </button>
+                  </div>
+
+                  {/* Add to Wishlist */}
+                  <button
+                    onClick={toggleWishlist}
+                    disabled={wishlistLoading}
+                    className={`btn-brutal-secondary w-full flex items-center justify-center gap-2 text-sm transition-all ${isWishlisted ? "bg-success text-success-foreground" : ""}`}
                   >
-                    <ShoppingBag className="w-4 h-4 md:w-5 md:h-5" />
-                    {product.listingType === "teaser" ? "Add to Wishlist" : "Add to Cart"}
+                    <Heart className={`w-4 h-4 ${isWishlisted ? "fill-foreground" : ""}`} />
+                    {isWishlisted ? "In Wishlist" : "Add to Wishlist"}
                   </button>
                 </div>
               )}
@@ -602,7 +657,14 @@ const ProductDetail = () => {
                                 {isVideo ? (
                                   <video src={url} className="w-full h-full object-cover" muted />
                                 ) : (
-                                  <img src={url} alt="" className="w-full h-full object-cover" />
+                                  <img
+                                    src={url}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      e.currentTarget.src = "/placeholder.svg";
+                                    }}
+                                  />
                                 )}
                               </div>
                             );
@@ -670,7 +732,14 @@ const ProductDetail = () => {
             {selectedMediaUrl.match(/\.(mp4|webm|ogg|mov)$/i) || selectedMediaUrl.includes("/video") ? (
               <video src={selectedMediaUrl} className="max-w-full max-h-[75vh]" controls autoPlay />
             ) : (
-              <img src={selectedMediaUrl} alt="" className="max-w-full max-h-[75vh] object-contain" />
+              <img
+                src={selectedMediaUrl}
+                alt=""
+                className="max-w-full max-h-[75vh] object-contain"
+                onError={(e) => {
+                  e.currentTarget.src = "/placeholder.svg";
+                }}
+              />
             )}
           </div>
         </div>

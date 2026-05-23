@@ -133,6 +133,9 @@ const Wishlist = () => {
                           src={item.product.image_url}
                           alt={item.product.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            e.currentTarget.src = "/placeholder.svg";
+                          }}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">

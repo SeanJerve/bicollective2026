@@ -7,10 +7,11 @@ import ProductCardSkeleton from "@/components/marketplace/ProductCardSkeleton";
 import BrandCard from "@/components/marketplace/BrandCard";
 import BrandCardSkeleton from "@/components/marketplace/BrandCardSkeleton";
 import SitePopup from "@/components/ui/SitePopup";
+import BecomeVendorCTA from "@/components/marketplace/BecomeVendorCTA";
 import { useProducts, useBrands, useCategories } from "@/hooks/useProducts";
 import { useAuth } from "@/contexts/AuthContext";
 import usePageSEO from "@/hooks/usePageSEO";
-import heroBanner from "@/assets/hero-banner.jpg";
+import heroBanner from "@/assets/hero-banner.png";
 
 const Index = () => {
   const { isVendor, isAdmin } = useAuth();
@@ -24,13 +25,16 @@ const Index = () => {
       "Shop curated collections from verified local Bicolano clothing brands. Quality fashion, community-driven commerce from the Bicol region.",
   });
 
-  const featuredProducts = products?.slice(0, 4) || [];
+  const featuredProducts = (products || [])
+    .filter((p) => !p.isTeaser && p.listingType !== "teaser")
+    .slice(0, 4);
   const featuredBrands = brands?.slice(0, 3) || [];
 
   const saleProducts = useMemo(() => {
     return (
       products
         ?.filter((p) => {
+          if (p.isTeaser || p.listingType === "teaser") return false;
           const isProductSale = p.originalPrice && p.originalPrice > p.price;
           const isPreorderSale = p.preorderDiscountPercent && p.preorderDiscountPercent > 0;
           const isStoreSale =
@@ -46,7 +50,8 @@ const Index = () => {
 
   const dailyDiscoverProducts = useMemo(() => {
     if (!products || products.length === 0) return [];
-    const shuffled = [...products].sort(() => 0.5 - Math.random());
+    const filtered = products.filter((p) => !p.isTeaser && p.listingType !== "teaser");
+    const shuffled = [...filtered].sort(() => 0.5 - Math.random());
     return shuffled.slice(0, 8);
   }, [products]);
 
@@ -54,13 +59,13 @@ const Index = () => {
     <PageLayout>
       <SitePopup />
       {/* Hero Section */}
-      <section className="relative min-h-[60vh] md:min-h-[80vh] flex items-center border-b-2 border-foreground overflow-hidden">
-        {/* Plain Background */}
-        <div className="absolute inset-0 bg-background" />
-
+      <section
+        className="relative min-h-[60vh] md:min-h-[80vh] flex items-center border-b-2 border-foreground overflow-hidden bg-cover bg-right md:bg-center"
+        style={{ backgroundImage: `url(${heroBanner})` }}
+      >
         {/* Content */}
-        <div className="relative section-container py-12 md:py-20">
-          <div className="max-w-2xl animate-fade-in">
+        <div className="relative section-container py-12 md:py-20 text-left flex justify-start w-full">
+          <div className="max-w-2xl animate-fade-in text-left flex flex-col items-start">
             <span className="inline-block font-heading text-xs md:text-sm uppercase tracking-widest mb-3 md:mb-4 border-2 border-foreground px-2 md:px-3 py-1 bg-background">
               Local Bicolano Fashion
             </span>
@@ -331,23 +336,7 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      {!isVendor && !isAdmin && (
-        <section className="py-16 md:py-32 bg-secondary border-t-2 border-foreground">
-          <div className="section-container text-center px-4">
-            <h2 className="font-heading text-3xl md:text-6xl uppercase mb-4 md:mb-6">
-              Own a Local Brand?
-            </h2>
-            <p className="text-base md:text-lg text-muted-foreground max-w-xl mx-auto mb-6 md:mb-8">
-              Join Bicollective and reach thousands of customers. Get your own storefront with zero
-              setup fees.
-            </p>
-            <Link to="/vendor/register" className="btn-brutal inline-flex items-center gap-2">
-              Become a Vendor
-              <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
-            </Link>
-          </div>
-        </section>
-      )}
+      <BecomeVendorCTA />
     </PageLayout>
   );
 };

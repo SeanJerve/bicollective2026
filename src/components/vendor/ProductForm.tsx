@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Upload, X, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +27,7 @@ interface ProductFormProps {
     listingType?: string;
     releaseDate?: string;
     preorderDiscountPercent?: number;
+    dropId?: string | null;
   };
   onSuccess: () => void;
   onCancel: () => void;
@@ -58,7 +59,30 @@ const ProductForm = ({
     listingType: initialData?.listingType || "regular",
     releaseDate: initialData?.releaseDate || "",
     preorderDiscountPercent: initialData?.preorderDiscountPercent || 0,
+    dropId: initialData?.dropId || "",
   });
+
+  const [drops, setDrops] = useState<{ id: string; title: string }[]>([]);
+
+  useEffect(() => {
+    const fetchDrops = async () => {
+      if (!brandId) return;
+      try {
+        const { data, error } = await supabase
+          .from("product_drops" as any)
+          .select("id, title")
+          .eq("brand_id", brandId)
+          .eq("is_active", true)
+          .order("launch_date", { ascending: true }) as any;
+        if (!error && data) {
+          setDrops(data);
+        }
+      } catch (err) {
+        console.error("Error fetching brand drops:", err);
+      }
+    };
+    fetchDrops();
+  }, [brandId]);
 
   const generateSlug = (name: string) => {
     return name
@@ -154,10 +178,21 @@ const ProductForm = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.price) {
+    if (!formData.name) {
       toast({
         title: "Missing fields",
-        description: "Please fill in all required fields",
+        description: "Please specify a product name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const isTeaserForm = formData.listingType === "teaser" || !!formData.dropId;
+
+    if (!isTeaserForm && !formData.price) {
+      toast({
+        title: "Price required",
+        description: "Please specify a price for this product",
         variant: "destructive",
       });
       return;
@@ -177,7 +212,7 @@ const ProductForm = ({
       const productData: any = {
         name: formData.name,
         slug: formData.slug,
-        price: formData.price,
+        price: isTeaserForm ? (formData.price || 0) : formData.price,
         original_price: formData.originalPrice || null,
         description: formData.description || null,
         category_id: formData.categoryId || null,
@@ -188,6 +223,7 @@ const ProductForm = ({
         listing_type: formData.listingType,
         release_date: formData.releaseDate || null,
         preorder_discount_percent: formData.preorderDiscountPercent || 0,
+        drop_id: formData.dropId || null,
       };
 
       let productId = initialData?.id;
@@ -273,7 +309,14 @@ const ProductForm = ({
               key={url}
               className="relative w-24 h-24 md:w-32 md:h-32 border-2 border-foreground overflow-hidden group"
             >
-              <img src={url} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" />
+              <img
+                src={url}
+                alt={`Product ${idx + 1}`}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = "/placeholder.svg";
+                }}
+              />
               <button
                 type="button"
                 onClick={() => removeImage(url)}
@@ -344,16 +387,16 @@ const ProductForm = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
-            Price (₱) *
+            Price (₱) {formData.listingType === "teaser" || formData.dropId ? "" : "*"}
           </label>
           <input
             type="number"
-            value={formData.price}
+            value={formData.price || ""}
             onChange={(e) => setFormData((prev) => ({ ...prev, price: Number(e.target.value) }))}
             className="input-brutal w-full"
             min="0"
             step="0.01"
-            required
+            required={formData.listingType !== "teaser" && !formData.dropId}
           />
         </div>
         <div>
@@ -452,6 +495,28 @@ const ProductForm = ({
             />
           </div>
         )}
+      </div>
+
+      {/* Link to Drop Trailer */}
+      <div>
+        <label className="font-heading text-sm uppercase tracking-wide mb-2 block">
+          Link to Drop Trailer
+        </label>
+        <select
+          value={formData.dropId}
+          onChange={(e) => setFormData((prev) => ({ ...prev, dropId: e.target.value }))}
+          className="input-brutal w-full"
+        >
+          <option value="">No Drop Trailer (Standalone Product)</option>
+          {drops.map((drop) => (
+            <option key={drop.id} value={drop.id}>
+              {drop.title}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-muted-foreground mt-1">
+          Linking a product to a drop trailer displays it in that drop's trailer popup and marks it as a teaser until the launch date.
+        </p>
       </div>
 
       {/* Variants (Size & Stock) */}

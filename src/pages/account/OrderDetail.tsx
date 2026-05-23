@@ -77,6 +77,9 @@ const PaymentProofImage = ({ path }: { path: string }) => {
           src={url}
           alt="Payment proof"
           className="w-32 h-32 object-cover border border-border-subtle"
+          onError={(e) => {
+            e.currentTarget.src = "/placeholder.svg";
+          }}
         />
       </a>
     </div>

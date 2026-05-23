@@ -149,6 +149,9 @@ const Disputes = () => {
                               src={url}
                               alt={`Evidence ${i + 1}`}
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.src = "/placeholder.svg";
+                              }}
                             />
                           </a>
                         ))}
