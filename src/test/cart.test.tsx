@@ -36,6 +36,7 @@ const mockCartItems = [
     variant: {
       id: "v-1",
       size: "S",
+      stock_quantity: 5,
       product: {
         id: "prod-1",
         name: "Boses Trucker Cap",
