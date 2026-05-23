@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import DocumentUpload from "@/components/vendor/DocumentUpload";
+import BrutalistConfirmModal from "@/components/ui/BrutalistConfirmModal";
 
 const AdminSitePopups = () => {
   const { user } = useAuth();
@@ -16,6 +17,7 @@ const AdminSitePopups = () => {
     redirect_url: "",
     is_active: false,
   });
+  const [popupToDeleteId, setPopupToDeleteId] = useState<string | null>(null);
 
   const { data: popups, isLoading } = useQuery({
     queryKey: ["admin-site-popups"],
@@ -200,9 +202,7 @@ const AdminSitePopups = () => {
                     {popup.is_active ? "Deactivate" : "Activate"}
                   </button>
                   <button
-                    onClick={() => {
-                      if (confirm("Delete this popup forever?")) deleteMutation.mutate(popup.id);
-                    }}
+                    onClick={() => setPopupToDeleteId(popup.id)}
                     className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
                     title="Delete"
                   >
@@ -222,6 +222,22 @@ const AdminSitePopups = () => {
           </p>
         </div>
       )}
+
+      <BrutalistConfirmModal
+        isOpen={popupToDeleteId !== null}
+        title="Delete Popup?"
+        message="Are you sure you want to delete this sitewide promo popup forever?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDestructive={true}
+        onConfirm={() => {
+          if (popupToDeleteId) {
+            deleteMutation.mutate(popupToDeleteId);
+            setPopupToDeleteId(null);
+          }
+        }}
+        onCancel={() => setPopupToDeleteId(null)}
+      />
     </div>
   );
 };

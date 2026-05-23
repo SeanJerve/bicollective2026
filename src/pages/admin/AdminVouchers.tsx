@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import BrutalistConfirmModal from "@/components/ui/BrutalistConfirmModal";
 
 interface BulkVoucherForm {
   name: string;
@@ -45,6 +46,7 @@ const AdminVouchers = () => {
   const [bulkForm, setBulkForm] = useState<BulkVoucherForm>(defaultBulkForm);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [voucherToDeleteId, setVoucherToDeleteId] = useState<string | null>(null);
 
   const { data: vouchers, isLoading } = useQuery({
     queryKey: ["admin-vouchers"],
@@ -448,9 +450,7 @@ const AdminVouchers = () => {
                   </button>
                 )}
                 <button
-                  onClick={() => {
-                    if (confirm("Delete?")) deleteMutation.mutate(v.id);
-                  }}
+                  onClick={() => setVoucherToDeleteId(v.id)}
                   className="p-1 text-muted-foreground hover:text-destructive"
                   title="Delete"
                 >
@@ -471,6 +471,22 @@ const AdminVouchers = () => {
           <p className="text-muted-foreground">No vouchers found</p>
         </div>
       )}
+
+      <BrutalistConfirmModal
+        isOpen={voucherToDeleteId !== null}
+        title="Delete Voucher?"
+        message="Are you sure you want to delete this voucher?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDestructive={true}
+        onConfirm={() => {
+          if (voucherToDeleteId) {
+            deleteMutation.mutate(voucherToDeleteId);
+            setVoucherToDeleteId(null);
+          }
+        }}
+        onCancel={() => setVoucherToDeleteId(null)}
+      />
     </div>
   );
 };

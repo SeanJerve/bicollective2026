@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import BrutalistConfirmModal from "@/components/ui/BrutalistConfirmModal";
 
 interface VendorPromoForm {
   name: string;
@@ -61,6 +62,7 @@ const VendorPromotions = () => {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<VendorPromoForm>(defaultForm);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [promoToDeleteId, setPromoToDeleteId] = useState<string | null>(null);
 
   const { data: brand } = useQuery({
     queryKey: ["vendor-brand", user?.id],
@@ -528,9 +530,7 @@ const VendorPromotions = () => {
                         {promo.is_active ? "Deactivate" : "Activate"}
                       </button>
                       <button
-                        onClick={() => {
-                          if (confirm("Delete?")) deleteMutation.mutate(promo.id);
-                        }}
+                        onClick={() => setPromoToDeleteId(promo.id)}
                         className="btn-brutal-secondary text-xs px-3 py-1 text-destructive"
                       >
                         <Trash2 className="w-3 h-3 mr-1" />
@@ -556,6 +556,22 @@ const VendorPromotions = () => {
           </button>
         </div>
       )}
+
+      <BrutalistConfirmModal
+        isOpen={promoToDeleteId !== null}
+        title="Delete Promotion?"
+        message="Are you sure you want to delete this promotion?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDestructive={true}
+        onConfirm={() => {
+          if (promoToDeleteId) {
+            deleteMutation.mutate(promoToDeleteId);
+            setPromoToDeleteId(null);
+          }
+        }}
+        onCancel={() => setPromoToDeleteId(null)}
+      />
     </div>
   );
 };

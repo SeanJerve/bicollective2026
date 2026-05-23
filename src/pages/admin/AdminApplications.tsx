@@ -14,6 +14,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import BrutalistConfirmModal from "@/components/ui/BrutalistConfirmModal";
 
 const statusColors = {
   pending: "bg-warning text-warning-foreground",
@@ -31,6 +32,7 @@ const AdminApplications = () => {
   const [processing, setProcessing] = useState(false);
   const [filter, setFilter] = useState<string>("pending");
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const [appToDeleteId, setAppToDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchApplications();
@@ -167,7 +169,6 @@ const AdminApplications = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Permanently delete this application? This cannot be undone.")) return;
     try {
       const { error } = await supabase.from("vendor_applications").delete().eq("id", id);
       if (error) throw error;
@@ -282,7 +283,7 @@ const AdminApplications = () => {
                       <Settings2 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(app.id)}
+                      onClick={() => setAppToDeleteId(app.id)}
                       className="p-2 hover:bg-destructive/10 rounded-full border-2 border-transparent hover:border-destructive"
                     >
                       <Trash2 className="w-4 h-4 text-destructive" />
@@ -342,7 +343,7 @@ const AdminApplications = () => {
                             <Settings2 className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(app.id)}
+                            onClick={() => setAppToDeleteId(app.id)}
                             className="p-2 hover:bg-destructive/10 rounded-full border-2 border-transparent hover:border-destructive"
                             title="Delete permanently"
                           >
@@ -473,6 +474,22 @@ const AdminApplications = () => {
           </div>
         </div>
       )}
+
+      <BrutalistConfirmModal
+        isOpen={appToDeleteId !== null}
+        title="Delete Application?"
+        message="Permanently delete this application? This cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDestructive={true}
+        onConfirm={() => {
+          if (appToDeleteId) {
+            handleDelete(appToDeleteId);
+            setAppToDeleteId(null);
+          }
+        }}
+        onCancel={() => setAppToDeleteId(null)}
+      />
     </div>
   );
 };

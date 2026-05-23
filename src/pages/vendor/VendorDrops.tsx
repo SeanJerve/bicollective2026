@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import DocumentUpload from "@/components/vendor/DocumentUpload";
+import BrutalistConfirmModal from "@/components/ui/BrutalistConfirmModal";
 
 const VendorDrops = () => {
   const { user } = useAuth();
@@ -13,6 +14,7 @@ const VendorDrops = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingDropId, setEditingDropId] = useState<string | null>(null);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [dropToDeleteId, setDropToDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -596,10 +598,7 @@ const VendorDrops = () => {
                         <Power className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => {
-                          if (confirm("Are you sure you want to delete this trailer?"))
-                            deleteMutation.mutate(drop.id);
-                        }}
+                        onClick={() => setDropToDeleteId(drop.id)}
                         className="btn-brutal-secondary text-destructive px-3 py-2"
                         title="Delete Trailer"
                       >
@@ -627,6 +626,22 @@ const VendorDrops = () => {
           </button>
         </div>
       )}
+
+      <BrutalistConfirmModal
+        isOpen={dropToDeleteId !== null}
+        title="Delete Trailer?"
+        message="Are you sure you want to delete this trailer?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDestructive={true}
+        onConfirm={() => {
+          if (dropToDeleteId) {
+            deleteMutation.mutate(dropToDeleteId);
+            setDropToDeleteId(null);
+          }
+        }}
+        onCancel={() => setDropToDeleteId(null)}
+      />
     </div>
   );
 };

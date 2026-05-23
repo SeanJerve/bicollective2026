@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import ProductForm from "@/components/vendor/ProductForm";
+import BrutalistConfirmModal from "@/components/ui/BrutalistConfirmModal";
 
 const VendorProducts = () => {
   const { user } = useAuth();
@@ -15,6 +16,7 @@ const VendorProducts = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [productToDeleteId, setProductToDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -119,13 +121,6 @@ const VendorProducts = () => {
   };
 
   const deleteProduct = async (productId: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this product? It will be hidden from the marketplace."
-      )
-    )
-      return;
-
     try {
       // Soft delete - set deleted_at timestamp instead of hard delete
       const { error } = await supabase
@@ -312,7 +307,7 @@ const VendorProducts = () => {
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => deleteProduct(product.id)}
+                    onClick={() => setProductToDeleteId(product.id)}
                     className="p-2 hover:bg-destructive hover:text-destructive-foreground"
                     title="Delete"
                   >
@@ -400,7 +395,7 @@ const VendorProducts = () => {
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => deleteProduct(product.id)}
+                            onClick={() => setProductToDeleteId(product.id)}
                             className="p-2 hover:bg-destructive hover:text-destructive-foreground"
                             title="Delete"
                           >
@@ -426,6 +421,22 @@ const VendorProducts = () => {
           </button>
         </div>
       )}
+
+      <BrutalistConfirmModal
+        isOpen={productToDeleteId !== null}
+        title="Delete Product?"
+        message="Are you sure you want to delete this product? It will be hidden from the marketplace."
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDestructive={true}
+        onConfirm={() => {
+          if (productToDeleteId) {
+            deleteProduct(productToDeleteId);
+            setProductToDeleteId(null);
+          }
+        }}
+        onCancel={() => setProductToDeleteId(null)}
+      />
     </div>
   );
 };

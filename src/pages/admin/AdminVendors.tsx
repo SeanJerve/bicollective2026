@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { BadgeCheck, Ban, Eye, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import BrutalistConfirmModal from "@/components/ui/BrutalistConfirmModal";
 
 const AdminVendors = () => {
   const { toast } = useToast();
   const [vendors, setVendors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
+  const [vendorToDeleteId, setVendorToDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchVendors = async () => {
@@ -54,8 +56,6 @@ const AdminVendors = () => {
   };
 
   const deleteVendor = async (vendorId: string) => {
-    if (!confirm("Permanently delete this vendor and all their data? This cannot be undone."))
-      return;
     try {
       const { error } = await supabase.from("brands").delete().eq("id", vendorId);
       if (error) throw error;
@@ -211,7 +211,7 @@ const AdminVendors = () => {
                       </button>
                     )}
                     <button
-                      onClick={() => deleteVendor(vendor.id)}
+                      onClick={() => setVendorToDeleteId(vendor.id)}
                       className="p-2 hover:bg-destructive/20"
                       title="Delete permanently"
                     >
@@ -310,7 +310,7 @@ const AdminVendors = () => {
                             </button>
                           )}
                           <button
-                            onClick={() => deleteVendor(vendor.id)}
+                            onClick={() => setVendorToDeleteId(vendor.id)}
                             className="p-2 hover:bg-destructive/20"
                             title="Delete permanently"
                           >
@@ -333,6 +333,22 @@ const AdminVendors = () => {
           </p>
         </div>
       )}
+
+      <BrutalistConfirmModal
+        isOpen={vendorToDeleteId !== null}
+        title="Delete Vendor?"
+        message="Permanently delete this vendor and all their data? This cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDestructive={true}
+        onConfirm={() => {
+          if (vendorToDeleteId) {
+            deleteVendor(vendorToDeleteId);
+            setVendorToDeleteId(null);
+          }
+        }}
+        onCancel={() => setVendorToDeleteId(null)}
+      />
     </div>
   );
 };
