@@ -66,9 +66,7 @@ const Index = () => {
         {/* Content */}
         <div className="relative section-container py-12 md:py-20 text-left flex justify-start w-full">
           <div className="max-w-2xl animate-fade-in text-left flex flex-col items-start">
-            <span className="inline-block font-heading text-xs md:text-sm uppercase tracking-widest mb-3 md:mb-4 border-2 border-foreground px-2 md:px-3 py-1 bg-background">
-              Local Bicolano Fashion
-            </span>
+
             <h1 className="font-heading text-4xl sm:text-5xl md:text-7xl lg:text-8xl uppercase leading-[0.9] mb-4 md:mb-6">
               Discover
               <br />

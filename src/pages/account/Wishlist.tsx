@@ -63,14 +63,8 @@ const Wishlist = () => {
 
         if (error) throw error;
 
-        // Filter wishlist items to include only drop-associated or teaser products
-        const fetchedItems = (data as any) || [];
-        const filteredItems = fetchedItems.filter((item: any) => {
-          if (!item.product) return false;
-          return item.product.drop_id !== null || item.product.listing_type === "teaser";
-        });
-
-        setItems(filteredItems);
+        const fetchedItems = ((data as any) || []).filter((item: any) => !!item.product);
+        setItems(fetchedItems);
       } catch (error) {
         console.error("Error fetching wishlist:", error);
       } finally {

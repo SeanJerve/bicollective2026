@@ -205,69 +205,60 @@ const Vouchers = () => {
         </div>
       </section>
 
-      {/* Loyalty Progress Section */}
-      <section className="py-6 border-b-2 border-border-subtle">
+      {/* Loyalty Progress Section — open HP bar layout */}
+      <section className="py-8 border-b-2 border-foreground/10">
         <div className="section-container max-w-4xl">
-          <div className="card-brutal p-4 md:p-6 bg-gradient-to-r from-primary/10 to-accent/10">
-            <h2 className="font-heading text-lg uppercase mb-4 flex items-center gap-2">
-              <Gift className="w-5 h-5" />
-              Loyalty Progress
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* 5 Deliveries Milestone */}
-              <div className="bg-background p-4 border-2 border-foreground">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-heading text-sm uppercase">5 Deliveries</span>
-                  {loyaltyProgress?.milestone_5_deliveries_claimed ? (
-                    <span className="text-xs bg-success text-success-foreground px-2 py-0.5">
-                      CLAIMED
-                    </span>
-                  ) : (
-                    <span className="text-xs bg-secondary px-2 py-0.5">
-                      {loyaltyProgress?.total_delivered_orders || 0}/5
-                    </span>
-                  )}
-                </div>
-                <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
-                  <div
-                    className="bg-primary h-full transition-all"
-                    style={{
-                      width: `${Math.min(100, ((loyaltyProgress?.total_delivered_orders || 0) / 5) * 100)}%`,
-                    }}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Earn ₱100 voucher after 5 delivered orders
-                </p>
-              </div>
+          <h2 className="font-heading text-sm uppercase tracking-widest text-muted-foreground mb-6 flex items-center gap-2">
+            <Gift className="w-4 h-4" />
+            Loyalty Progress
+          </h2>
 
-              {/* 10 Unique Sellers Milestone */}
-              <div className="bg-background p-4 border-2 border-foreground">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-heading text-sm uppercase">10 Sellers</span>
-                  {loyaltyProgress?.milestone_10_sellers_claimed ? (
-                    <span className="text-xs bg-success text-success-foreground px-2 py-0.5">
-                      CLAIMED
-                    </span>
-                  ) : (
-                    <span className="text-xs bg-secondary px-2 py-0.5">
-                      {loyaltyProgress?.unique_sellers_count || 0}/10
-                    </span>
-                  )}
-                </div>
-                <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
-                  <div
-                    className="bg-accent h-full transition-all"
-                    style={{
-                      width: `${Math.min(100, ((loyaltyProgress?.unique_sellers_count || 0) / 10) * 100)}%`,
-                    }}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Earn ₱500 voucher after buying from 10 different sellers
-                </p>
+          {/* 5 Deliveries Bar */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-heading text-base md:text-lg uppercase">5 Deliveries</span>
+              <div className="flex items-center gap-2">
+                {loyaltyProgress?.milestone_5_deliveries_claimed ? (
+                  <span className="text-xs bg-success text-success-foreground px-2 py-0.5 font-heading uppercase">Claimed</span>
+                ) : (
+                  <span className="font-heading text-sm tabular-nums">
+                    {loyaltyProgress?.total_delivered_orders || 0}
+                    <span className="text-muted-foreground"> / 5</span>
+                  </span>
+                )}
               </div>
             </div>
+            <div className="w-full bg-muted h-3 overflow-hidden">
+              <div
+                className="bg-foreground h-full transition-all duration-500"
+                style={{ width: `${Math.min(100, ((loyaltyProgress?.total_delivered_orders || 0) / 5) * 100)}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">Earn ₱100 voucher after 5 delivered orders</p>
+          </div>
+
+          {/* 10 Sellers Bar */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-heading text-base md:text-lg uppercase">10 Sellers</span>
+              <div className="flex items-center gap-2">
+                {loyaltyProgress?.milestone_10_sellers_claimed ? (
+                  <span className="text-xs bg-success text-success-foreground px-2 py-0.5 font-heading uppercase">Claimed</span>
+                ) : (
+                  <span className="font-heading text-sm tabular-nums">
+                    {loyaltyProgress?.unique_sellers_count || 0}
+                    <span className="text-muted-foreground"> / 10</span>
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="w-full bg-muted h-3 overflow-hidden">
+              <div
+                className="bg-foreground h-full transition-all duration-500"
+                style={{ width: `${Math.min(100, ((loyaltyProgress?.unique_sellers_count || 0) / 10) * 100)}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">Earn ₱500 voucher after buying from 10 different sellers</p>
           </div>
         </div>
       </section>

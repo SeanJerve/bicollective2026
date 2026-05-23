@@ -4,7 +4,7 @@ import CategoryCard from "@/components/marketplace/CategoryCard";
 import ProductCard from "@/components/marketplace/ProductCard";
 import ProductCardSkeleton from "@/components/marketplace/ProductCardSkeleton";
 import { useCategories, useProducts } from "@/hooks/useProducts";
-import { Sparkles, ArrowRight, Layers } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 const Categories = () => {
   const { data: categories, isLoading: categoriesLoading } = useCategories();
@@ -30,9 +30,7 @@ const Categories = () => {
           </nav>
           
           <div className="max-w-3xl">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-heading uppercase tracking-widest bg-foreground text-background mb-4">
-              <Layers className="w-3.5 h-3.5" /> Curated Departments
-            </span>
+
             <h1 className="font-heading text-4xl sm:text-5xl md:text-7xl uppercase leading-none tracking-tight">
               Explore
               <br />
@@ -53,9 +51,7 @@ const Categories = () => {
               <h2 className="font-heading text-xl md:text-3xl uppercase">All Collections</h2>
               <p className="text-xs md:text-sm text-muted-foreground mt-1">Select a category to view the complete catalog</p>
             </div>
-            <span className="text-xs md:text-sm font-mono text-muted-foreground uppercase hidden sm:inline">
-              {categories?.length || 0} Departments Active
-            </span>
+
           </div>
 
           {categoriesLoading ? (
@@ -89,9 +85,6 @@ const Categories = () => {
         <div className="section-container">
           <div className="mb-8 md:mb-12 flex justify-between items-end">
             <div>
-              <span className="font-heading text-xs text-primary uppercase tracking-widest flex items-center gap-1 mb-1">
-                <Sparkles className="w-3.5 h-3.5 text-primary fill-primary" /> Curated Pick
-              </span>
               <h2 className="font-heading text-xl md:text-3xl uppercase">Trending In Shop</h2>
             </div>
             <Link to="/products" className="text-xs md:text-sm font-heading uppercase tracking-wider flex items-center gap-1 hover:underline">

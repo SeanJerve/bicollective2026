@@ -482,9 +482,9 @@ const ProductDetail = () => {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {/* Buy Now & Add to Cart */}
-                  <div className="flex flex-col sm:flex-row gap-3">
+                <div className="space-y-2">
+                  {/* Buy Now & Add to Cart — equal width row */}
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => {
                         if (!selectedVariant) {
@@ -518,10 +518,10 @@ const ProductDetail = () => {
                           },
                         });
                       }}
-                      className="btn-brutal flex-1 flex items-center justify-center gap-2 text-sm md:text-base transition-all"
+                      className="btn-brutal flex items-center justify-center gap-2 text-sm md:text-base py-3"
                     >
                       <Zap className="w-4 h-4" />
-                      {product.listingType === "preorder" ? "Pre-order Now" : "Buy Now"}
+                      {product.listingType === "preorder" ? "Pre-order" : "Buy Now"}
                     </button>
 
                     <button
@@ -536,20 +536,24 @@ const ProductDetail = () => {
                         }
                         addToCart(selectedVariant.id, quantity);
                       }}
-                      className="btn-brutal-secondary flex-1 flex items-center justify-center gap-2 text-sm md:text-base transition-all"
+                      className="btn-brutal-secondary flex items-center justify-center gap-2 text-sm md:text-base py-3"
                     >
                       <ShoppingBag className="w-4 h-4" />
                       Add to Cart
                     </button>
                   </div>
 
-                  {/* Add to Wishlist */}
+                  {/* Add to Wishlist — full width below */}
                   <button
                     onClick={toggleWishlist}
                     disabled={wishlistLoading}
-                    className={`btn-brutal-secondary w-full flex items-center justify-center gap-2 text-sm transition-all ${isWishlisted ? "bg-success text-success-foreground" : ""}`}
+                    className={`w-full flex items-center justify-center gap-2 py-3 border-2 font-heading text-sm uppercase tracking-wide transition-all ${
+                      isWishlisted
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-foreground hover:bg-secondary"
+                    }`}
                   >
-                    <Heart className={`w-4 h-4 ${isWishlisted ? "fill-foreground" : ""}`} />
+                    <Heart className={`w-4 h-4 ${isWishlisted ? "fill-background" : ""}`} />
                     {isWishlisted ? "In Wishlist" : "Add to Wishlist"}
                   </button>
                 </div>
@@ -576,7 +580,7 @@ const ProductDetail = () => {
                       )}&productImage=${encodeURIComponent(product.image || "")}&role=customer`
                     );
                   }}
-                  className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 border-2 border-foreground text-sm font-heading uppercase tracking-wide hover:bg-secondary transition-colors"
+                  className="mt-2 w-full flex items-center justify-center gap-2 py-3 border-2 border-foreground/40 text-sm font-heading uppercase tracking-wide hover:border-foreground hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
                 >
                   <MessageSquare className="w-4 h-4" />
                   Message Seller

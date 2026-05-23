@@ -58,10 +58,6 @@ const Brands = () => {
             <span>Brands</span>
           </nav>
           <h1 className="font-heading text-4xl md:text-6xl uppercase">Local Brands</h1>
-          <p className="text-muted-foreground mt-2 text-sm md:text-base">
-            {allBrands.length} Bicolano fashion brands
-            {selectedLocation && ` in ${selectedLocation}`}
-          </p>
         </div>
       </section>
 
