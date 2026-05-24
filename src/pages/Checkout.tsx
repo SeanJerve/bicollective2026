@@ -211,21 +211,24 @@ const Checkout = () => {
     queryFn: async () => {
       // Query junction table user_discount_claims joined with discounts supertype
       const { data, error } = await (supabase.from("user_discount_claims") as any)
-        .select(`*, discounts!inner(*)`)
+        .select(`*, discounts!inner(*), vendor_vouchers(brand_id, code)`)
         .eq("user_id", user!.id)
         .eq("status", "active")
         .gte("discounts.ends_at", new Date().toISOString());
 
       if (error) console.error("Error fetching claimed vouchers:", error);
-      // Flatten the result to match expected discount structure
       return (data || []).map((claim: any) => {
-        // Precise 3NF mapping: ensuring we get the data from the nested 'discounts' object
         const d = claim.discounts;
+        const vv = Array.isArray(claim.vendor_vouchers)
+          ? claim.vendor_vouchers[0]
+          : claim.vendor_vouchers;
         return {
           ...d,
           id: d?.id,
           discount_value: Number(d?.discount_value) || 0,
           claim_id: claim.id,
+          brand_id: vv?.brand_id ?? null,
+          is_vendor_voucher: Boolean(vv?.brand_id),
         };
       });
     },
@@ -277,30 +280,43 @@ const Checkout = () => {
     [shippingByBrand]
   );
 
-  // Voucher deductions
+  const getVoucherApplicableSubtotal = (voucher: { brand_id?: string | null }) => {
+    if (voucher.brand_id) {
+      return groupedItems[voucher.brand_id]?.subtotal ?? 0;
+    }
+    return discountedSubtotal;
+  };
+
+  const calcVoucherDiscount = (voucher: any, base: number) => {
+    if (base <= 0) return 0;
+    const val = Number(voucher.discount_value) || 0;
+    if (voucher.discount_type === "percentage") {
+      let d = (base * val) / 100;
+      if (voucher.max_discount_amount) d = Math.min(d, Number(voucher.max_discount_amount));
+      return Math.min(d, base);
+    }
+    return Math.min(val, base);
+  };
+
+  // Voucher deductions (vendor vouchers only apply to their brand's subtotal)
   const pesoVoucherDeduction = useMemo(() => {
     const total = selectedVouchers.reduce((sum, v) => {
-      const val = Number(v.discount_value) || 0;
-      if (v.discount_type === "percentage") {
-        let d = (discountedSubtotal * val) / 100;
-        if (v.max_discount_amount) d = Math.min(d, Number(v.max_discount_amount));
-        return sum + d;
-      }
-      return sum + val;
+      const base = getVoucherApplicableSubtotal(v);
+      if (v.min_order_amount && base < Number(v.min_order_amount)) return sum;
+      return sum + calcVoucherDiscount(v, base);
     }, 0);
-    console.log("Peso Voucher Calculation:", {
-      total,
-      discountedSubtotal,
-      deduction: Math.min(total, discountedSubtotal),
-    });
     return Math.min(total, discountedSubtotal);
-  }, [selectedVouchers, discountedSubtotal]);
+  }, [selectedVouchers, discountedSubtotal, groupedItems]);
 
   const shippingVoucherDeduction = useMemo(() => {
     if (!shippingVoucher) return 0;
     const deduction = Number(shippingVoucher.discount_value) || 50;
+    if (shippingVoucher.brand_id) {
+      const brandShipping = shippingByBrand[shippingVoucher.brand_id]?.original ?? 0;
+      return Math.min(deduction, brandShipping);
+    }
     return Math.min(deduction, totalShippingOriginal);
-  }, [shippingVoucher, totalShippingOriginal]);
+  }, [shippingVoucher, totalShippingOriginal, shippingByBrand]);
 
   const finalShipping = Math.max(0, totalShippingOriginal - shippingVoucherDeduction);
 
@@ -407,10 +423,19 @@ const Checkout = () => {
     if (exists) {
       setSelectedVouchers(selectedVouchers.filter((v) => v.id !== voucher.id));
     } else {
-      if (voucher.min_order_amount && productSubtotal < Number(voucher.min_order_amount)) {
+      const applicableSubtotal = getVoucherApplicableSubtotal(voucher);
+      if (voucher.brand_id && applicableSubtotal <= 0) {
+        toast({
+          title: "Not applicable",
+          description: "Add products from this vendor's store to use this voucher.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (voucher.min_order_amount && applicableSubtotal < Number(voucher.min_order_amount)) {
         toast({
           title: "Minimum not met",
-          description: `Min order ₱${Number(voucher.min_order_amount).toLocaleString()} required`,
+          description: `Min order ₱${Number(voucher.min_order_amount).toLocaleString()} required for this voucher`,
           variant: "destructive",
         });
         return;
@@ -423,6 +448,14 @@ const Checkout = () => {
     if (shippingVoucher?.id === voucher.id) {
       setShippingVoucher(null);
     } else {
+      if (voucher.brand_id && !(groupedItems[voucher.brand_id]?.subtotal > 0)) {
+        toast({
+          title: "Not applicable",
+          description: "Add products from this vendor's store to use this voucher.",
+          variant: "destructive",
+        });
+        return;
+      }
       setShippingVoucher(voucher);
     }
   };
@@ -1097,9 +1130,13 @@ const Checkout = () => {
                             </div>
                             {pesoVouchers.map((v) => {
                               const isSelected = selectedVouchers.some((sv) => sv.id === v.id);
+                              const applicableSubtotal = getVoucherApplicableSubtotal(v);
+                              const hasBrandItems =
+                                !v.brand_id || applicableSubtotal > 0;
                               const meetsMin =
-                                !v.min_order_amount ||
-                                productSubtotal >= Number(v.min_order_amount);
+                                hasBrandItems &&
+                                (!v.min_order_amount ||
+                                  applicableSubtotal >= Number(v.min_order_amount));
                               return (
                                 <button
                                   key={v.id}
@@ -1115,6 +1152,11 @@ const Checkout = () => {
                                           : formatPrice(Number(v.discount_value))}
                                       </span>
                                       <p className="text-xs text-muted-foreground">{v.name}</p>
+                                      {v.is_vendor_voucher && (
+                                        <p className="text-[10px] text-accent uppercase font-heading mt-0.5">
+                                          Store voucher only
+                                        </p>
+                                      )}
                                       {!meetsMin && (
                                         <p className="text-xs text-destructive">
                                           Min: {formatPrice(Number(v.min_order_amount))}

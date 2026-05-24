@@ -48,6 +48,34 @@ interface PromoForm {
   target_locations: string[];
 }
 
+type PromoFormType = PromoForm["type"];
+
+const discountTypeToFormType = (discountType: string | undefined): PromoFormType => {
+  switch (discountType) {
+    case "percentage":
+      return "percentage_discount";
+    case "fixed":
+      return "fixed_discount";
+    case "free_shipping":
+      return "free_shipping";
+    default:
+      return "percentage_discount";
+  }
+};
+
+const formTypeToDiscountType = (type: PromoFormType | undefined): string => {
+  switch (type) {
+    case "percentage_discount":
+      return "percentage";
+    case "fixed_discount":
+      return "fixed";
+    case "free_shipping":
+      return "free_shipping";
+    default:
+      return "percentage";
+  }
+};
+
 const defaultForm: PromoForm = {
   name: "",
   description: "",
@@ -94,8 +122,10 @@ const AdminPromotions = () => {
         discount_id: p.discounts?.id,
         code: p.code,
         promo_id: p.id,
+        scope: p.scope || "platform",
+        discount_type: p.discounts?.discount_type,
         deployment_target: p.deployment_target,
-        target_locations: p.promotion_targets 
+        target_locations: p.promotion_targets
           ? p.promotion_targets.filter((t: any) => t.target_type === "location").map((t: any) => t.target_id)
           : [],
         created_by: p.created_by,
@@ -117,7 +147,7 @@ const AdminPromotions = () => {
       const discountPayload = {
         name: formData.name,
         description: formData.description || null,
-        discount_type: formData.type.replace("_discount", ""),
+        discount_type: formTypeToDiscountType(formData.type),
         discount_value: formData.discount_value,
         min_order_amount: formData.min_order_amount,
         max_discount_amount: formData.max_discount_amount,
@@ -260,8 +290,8 @@ const AdminPromotions = () => {
       name: promo.name,
       description: promo.description || "",
       code: promo.code || "",
-      type: promo.type,
-      scope: promo.scope,
+      type: discountTypeToFormType(promo.discount_type),
+      scope: promo.scope || "platform",
       discount_value: Number(promo.discount_value),
       min_order_amount: Number(promo.min_order_amount || 0),
       max_discount_amount: promo.max_discount_amount ? Number(promo.max_discount_amount) : null,

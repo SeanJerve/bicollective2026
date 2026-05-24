@@ -64,7 +64,7 @@ const AdminFinances = () => {
       const { data, error } = await (
         (supabase as any)
           .from("platform_transactions")
-          .select("*, brand:brands(id, name, logo, logo_url, platform_debt)") as any
+          .select("*, brand:brands(id, name, logo_url, platform_debt)") as any
       )
         .eq("status", "pending")
         .order("created_at", { ascending: false });
@@ -79,7 +79,7 @@ const AdminFinances = () => {
       const { data, error } = await (
         (supabase as any)
           .from("ad_boosts")
-          .select("*, brand:brands(id, name, logo, logo_url), product:products(name, image_url)") as any
+          .select("*, brand:brands(id, name, logo_url), product:products(name, image_url)") as any
       )
         .eq("status", "pending")
         .order("created_at", { ascending: false });
@@ -131,9 +131,9 @@ const AdminFinances = () => {
     try {
       const startsAt = new Date();
       const endsAt = new Date();
-      if (boost.boost_type === "24h") endsAt.setDate(endsAt.getDate() + 1);
-      else if (boost.boost_type === "7d") endsAt.setDate(endsAt.getDate() + 7);
-      else if (boost.boost_type === "30d") endsAt.setDate(endsAt.getDate() + 30);
+      if (boost.boost_type === "daily") endsAt.setDate(endsAt.getDate() + 1);
+      else if (boost.boost_type === "weekly") endsAt.setDate(endsAt.getDate() + 7);
+      else if (boost.boost_type === "monthly") endsAt.setDate(endsAt.getDate() + 30);
 
       const { error: updateErr } = await (supabase as any)
         .from("ad_boosts")
@@ -302,7 +302,7 @@ const AdminFinances = () => {
                   <h3 className="text-xs font-heading uppercase text-muted-foreground mb-3">Sender Brand Info</h3>
                   <div className="flex items-center gap-3">
                     <img
-                      src={activeTxn.brand?.logo_url || activeTxn.brand?.logo || "/placeholder.svg"}
+                      src={activeTxn.brand?.logo_url || "/placeholder.svg"}
                       alt=""
                       className="w-10 h-10 object-cover border border-foreground bg-background"
                       onError={(e) => {

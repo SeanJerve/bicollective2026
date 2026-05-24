@@ -23,6 +23,7 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import ReviewForm from "@/components/account/ReviewForm";
 import PaymentProofUpload from "@/components/account/PaymentProofUpload";
+import { formatStatusLabel } from "@/lib/formatStatus";
 
 const statusColors: Record<string, string> = {
   pending_payment: "bg-warning text-warning-foreground",
@@ -50,6 +51,14 @@ const statusLabels: Record<string, string> = {
   delivered: "Delivered",
   cancelled: "Cancelled",
   disputed: "Disputed",
+};
+
+const paymentStatusLabels: Record<string, string> = {
+  pending: "Pending Verification",
+  pending_verification: "Pending Verification",
+  verified: "Verified",
+  rejected: "Rejected",
+  failed: "Failed",
 };
 
 // Helper to render payment proof with signed URL
@@ -453,7 +462,7 @@ const OrderDetail = () => {
                       statusColors[vo.status] || "bg-secondary"
                     }`}
                   >
-                    {statusLabels[vo.status] || vo.status}
+                    {statusLabels[vo.status] || formatStatusLabel(vo.status)}
                   </span>
                 </div>
                 {vo.tracking_number && (
@@ -757,8 +766,8 @@ const OrderDetail = () => {
                     enrichedOrder.vendor_orders?.some((vo: any) =>
                       ["shipped", "for_delivery", "delivered", "confirmed"].includes(vo.status)
                     )
-                      ? "VERIFIED / PAID"
-                      : payment.status.toUpperCase()}
+                      ? "Verified / Paid"
+                      : paymentStatusLabels[payment.status] || formatStatusLabel(payment.status)}
                   </span>
                 </div>
                 {payment.payment_verifications?.[0]?.proof_image_url && (
