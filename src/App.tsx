@@ -50,7 +50,6 @@ const VendorPromotions = lazy(() => import("./pages/vendor/VendorPromotions"));
 const VendorAnalytics = lazy(() => import("./pages/vendor/VendorAnalytics"));
 const VendorFinances = lazy(() => import("@/pages/vendor/VendorFinances"));
 const VendorMarketing = lazy(() => import("@/pages/vendor/VendorMarketing"));
-const VendorPremium = lazy(() => import("@/pages/vendor/VendorPremium"));
 
 // Admin pages
 const AdminLayout = lazy(() => import("./components/layout/AdminLayout"));
@@ -187,7 +186,7 @@ const App = () => (
                   <Route path="messages" element={<Navigate to="/account/messages" replace />} />
                   <Route path="finances" element={<VendorFinances />} />
                   <Route path="marketing" element={<VendorMarketing />} />
-                  <Route path="premium" element={<VendorPremium />} />
+                  <Route path="premium" element={<Navigate to="/vendor/marketing?tab=premium" replace />} />
                 </Route>
 
                 {/* Admin Routes */}

@@ -9,9 +9,12 @@ import {
   Users,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { calcCommissionAtCurrentRate } from "@/lib/platformFees";
 
 interface AnalyticsData {
   totalRevenue: number;
+  totalIncome: number;
+  siteProfit: number;
   totalOrders: number;
   deliveredOrders: number;
   pendingOrders: number;
@@ -36,10 +39,12 @@ const AdminAnalytics = () => {
         // Get orders stats
         const { data: orders } = await supabase
           .from("vendor_orders")
-          .select("status, subtotal, shipping_fee");
+          .select("status, subtotal, shipping_fee, brand:brands(commission_rate)");
 
         const ordersByStatus: Record<string, number> = {};
-        let totalRevenue = 0;
+        let totalRevenue = 0; // Gross Volume (Sales + Shipping)
+        let totalIncome = 0;  // Total Income Generated (Sales only, no shipping)
+        let siteProfit = 0;   // Site Profit (Commission fees only)
         let deliveredOrders = 0;
         let pendingOrders = 0;
         let cancelledOrders = 0;
@@ -47,7 +52,17 @@ const AdminAnalytics = () => {
         orders?.forEach((order) => {
           ordersByStatus[order.status] = (ordersByStatus[order.status] || 0) + 1;
           if (order.status === "delivered") {
-            totalRevenue += Number(order.subtotal) + Number(order.shipping_fee || 0);
+            const subtotal = Number(order.subtotal);
+            const shipFee = Number(order.shipping_fee || 0);
+            
+            totalRevenue += subtotal + shipFee;
+            totalIncome += subtotal;
+
+            siteProfit += calcCommissionAtCurrentRate(
+              subtotal,
+              (order.brand as { commission_rate?: number | null } | null)?.commission_rate
+            );
+
             deliveredOrders++;
           }
           if (["pending_payment", "payment_uploaded", "processing"].includes(order.status)) {
@@ -109,6 +124,8 @@ const AdminAnalytics = () => {
 
         setData({
           totalRevenue,
+          totalIncome,
+          siteProfit,
           totalOrders: orders?.length || 0,
           deliveredOrders,
           pendingOrders,
@@ -155,20 +172,48 @@ const AdminAnalytics = () => {
       <h1 className="font-heading text-2xl md:text-4xl uppercase mb-4">Analytics</h1>
       <p className="text-muted-foreground mb-8">Platform performance insights and statistics</p>
 
-      {/* Revenue Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="card-brutal p-6">
+      {/* Financial Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="card-brutal p-6 bg-background border-l-4 border-l-blue-500">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-success/20 flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-success" />
+            <div className="w-12 h-12 bg-blue-100 flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Total Revenue</p>
-              <p className="font-heading text-xl">{formatPrice(data?.totalRevenue || 0)}</p>
+              <p className="text-xs text-muted-foreground uppercase font-heading">Gross Revenue</p>
+              <p className="text-xs text-muted-foreground">Sales + Shipping</p>
+              <p className="font-heading text-xl mt-1">{formatPrice(data?.totalRevenue || 0)}</p>
             </div>
           </div>
         </div>
+        <div className="card-brutal p-6 bg-background border-l-4 border-l-amber-500">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-amber-100 flex items-center justify-center">
+              <TrendingUp className="w-6 h-6 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase font-heading">Total Income</p>
+              <p className="text-xs text-muted-foreground">Sales subtotals only</p>
+              <p className="font-heading text-xl mt-1">{formatPrice(data?.totalIncome || 0)}</p>
+            </div>
+          </div>
+        </div>
+        <div className="card-brutal p-6 bg-background border-l-4 border-l-green-500">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-green-100 flex items-center justify-center">
+              <BarChart3 className="w-6 h-6 text-green-600" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase font-heading">Site Profit</p>
+              <p className="text-xs text-muted-foreground">Commission at current rates (10% / 5% premium)</p>
+              <p className="font-heading text-xl mt-1 text-green-600">{formatPrice(data?.siteProfit || 0)}</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
+      {/* Operational Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="card-brutal p-6">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-secondary flex items-center justify-center">
@@ -191,6 +236,18 @@ const AdminAnalytics = () => {
               <p className="font-heading text-xl">
                 {data?.activeProducts}/{data?.totalProducts}
               </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card-brutal p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-secondary flex items-center justify-center">
+              <Users className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Delivered</p>
+              <p className="font-heading text-xl">{data?.deliveredOrders || 0}</p>
             </div>
           </div>
         </div>

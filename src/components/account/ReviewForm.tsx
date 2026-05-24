@@ -88,16 +88,30 @@ const ReviewForm = ({ productId, brandId, vendorOrderId, onSuccess }: ReviewForm
         }
       }
 
-      const { error } = await supabase.from("reviews").insert({
-        user_id: user.id,
-        product_id: productId || null,
-        brand_id: brandId,
-        vendor_order_id: vendorOrderId,
-        rating,
-        comment: comment.trim() || null,
-        media_urls: mediaUrls.length > 0 ? mediaUrls : null,
-        is_visible: true,
-      });
+      const { data: newReview, error } = await (supabase
+        .from("reviews")
+        .insert({
+          user_id: user.id,
+          product_id: productId || null,
+          brand_id: brandId,
+          vendor_order_id: vendorOrderId,
+          rating,
+          comment: comment.trim() || null,
+          is_visible: true,
+        })
+        .select("id")
+        .single() as any);
+
+      if (error) throw error;
+
+      if (mediaUrls.length > 0 && newReview) {
+        const mediaInserts = mediaUrls.map((url) => ({
+          review_id: newReview.id,
+          media_url: url,
+        }));
+        const { error: mError } = await supabase.from("review_media").insert(mediaInserts);
+        if (mError) throw mError;
+      }
 
       if (error) throw error;
 

@@ -3,13 +3,16 @@ import { X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SitePopup = () => {
+  const { isAdmin, isVendor } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   const { data: popup } = useQuery({
     queryKey: ["active-site-popup"],
     queryFn: async () => {
+      if (isAdmin || isVendor) return null;
       const { data, error } = await (supabase
         .from("site_popups" as any)
         .select("*")
@@ -24,9 +27,11 @@ const SitePopup = () => {
       }
       return data;
     },
+    enabled: !isAdmin && !isVendor,
   });
 
   useEffect(() => {
+    if (isAdmin || isVendor) return;
     // If we have a popup and haven't shown it this session
     if (popup) {
       const hasSeenPopup = sessionStorage.getItem(`site_popup_${popup.id}`);
@@ -38,7 +43,7 @@ const SitePopup = () => {
         return () => clearTimeout(timer);
       }
     }
-  }, [popup]);
+  }, [popup, isAdmin, isVendor]);
 
   const handleClose = () => {
     setIsOpen(false);
@@ -47,7 +52,7 @@ const SitePopup = () => {
     }
   };
 
-  if (!isOpen || !popup) return null;
+  if (!isOpen || !popup || isAdmin || isVendor) return null;
 
   const content = (
     <div className="relative w-full h-full">
@@ -64,9 +69,9 @@ const SitePopup = () => {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={handleClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
 
-      <div className="relative z-10 w-full max-w-lg bg-background p-1 border-2 border-foreground shadow-brutal animate-in zoom-in-95 duration-200">
+      <div className="relative z-10 w-full max-w-[90vw] md:max-w-3xl lg:max-w-4xl bg-background p-1 border-2 border-foreground shadow-brutal animate-in zoom-in-95 duration-200">
         <button
           onClick={handleClose}
           className="absolute -top-3 -right-3 z-20 w-8 h-8 bg-foreground text-background border-2 border-foreground rounded-full flex items-center justify-center hover:bg-background hover:text-foreground transition-colors"

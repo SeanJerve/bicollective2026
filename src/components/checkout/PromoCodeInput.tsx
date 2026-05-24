@@ -68,8 +68,12 @@ const PromoCodeInput = ({ onApply, appliedCode, orderTotal }: PromoCodeInputProp
 
       const discount = promoData.discounts;
 
+      const nowTime = new Date().getTime();
+      const startsTime = new Date(discount.starts_at).getTime();
+      const endsTime = new Date(discount.ends_at).getTime();
+
       // Check isActive
-      if (!discount.is_active || now < discount.starts_at || now > discount.ends_at) {
+      if (!discount.is_active || nowTime < startsTime || nowTime > endsTime) {
         setError("This promo code is currently inactive or expired");
         return;
       }

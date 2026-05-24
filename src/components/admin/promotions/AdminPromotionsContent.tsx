@@ -82,18 +82,33 @@ const AdminPromotions = () => {
       const { data, error } = await (
         supabase.from("platform_promos").select(`
           *,
-          discounts:discounts(*)
+          discounts:discounts(*),
+          promotion_targets(*)
         `) as any
-      ).order("created_at", { ascending: false });
+      );
       if (error) throw error;
-      return (data || []).map((p: any) => ({
+      
+      const mapped = (data || []).map((p: any) => ({
         ...p.discounts,
+        id: p.id,
+        discount_id: p.discounts?.id,
         code: p.code,
         promo_id: p.id,
         deployment_target: p.deployment_target,
-        target_locations: p.target_locations,
+        target_locations: p.promotion_targets 
+          ? p.promotion_targets.filter((t: any) => t.target_type === "location").map((t: any) => t.target_id)
+          : [],
         created_by: p.created_by,
       }));
+
+      // Sort by created_at descending (newest first)
+      mapped.sort((a: any, b: any) => {
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateB - dateA;
+      });
+
+      return mapped;
     },
   });
 
@@ -129,10 +144,25 @@ const AdminPromotions = () => {
             .update({
               code: formData.code.toUpperCase(),
               deployment_target: formData.deployment_target,
-              target_locations:
-                formData.target_locations.length > 0 ? formData.target_locations : null,
             })
             .eq("id", editId);
+
+          // Update targets: delete first, then insert new ones
+          await supabase
+            .from("promotion_targets")
+            .delete()
+            .eq("promotion_id", editId)
+            .eq("target_type", "location");
+
+          if (formData.target_locations.length > 0) {
+            const targetInserts = formData.target_locations.map((loc) => ({
+              promotion_id: editId,
+              target_type: "location",
+              target_id: loc,
+            }));
+            const { error: tError } = await supabase.from("promotion_targets").insert(targetInserts);
+            if (tError) throw tError;
+          }
         }
       } else {
         // Step 1: Create the discount supertype
@@ -145,15 +175,30 @@ const AdminPromotions = () => {
         if (dError) throw dError;
 
         // Step 2: Create the platform promo subtype
-        const { error: pError } = await supabase.from("platform_promos").insert({
-          discount_id: discount.id,
-          code: formData.code.toUpperCase() || null,
-          deployment_target: formData.deployment_target,
-          target_locations: formData.target_locations.length > 0 ? formData.target_locations : null,
-          created_by: user!.id,
-        });
+        const { data: platformPromo, error: pError } = await (supabase
+          .from("platform_promos")
+          .insert({
+            discount_id: discount.id,
+            code: formData.code.toUpperCase() || null,
+            scope: "platform",
+            deployment_target: formData.deployment_target,
+            created_by: user!.id,
+          })
+          .select("id")
+          .single() as any);
 
         if (pError) throw pError;
+
+        // Step 3: Insert promotion targets
+        if (formData.target_locations.length > 0 && platformPromo) {
+          const targetInserts = formData.target_locations.map((loc) => ({
+            promotion_id: platformPromo.id,
+            target_type: "location",
+            target_id: loc,
+          }));
+          const { error: tError } = await supabase.from("promotion_targets").insert(targetInserts);
+          if (tError) throw tError;
+        }
       }
     },
     onSuccess: () => {

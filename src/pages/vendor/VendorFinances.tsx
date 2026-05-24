@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveCommissionRate } from "@/lib/platformFees";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   DollarSign,
@@ -160,7 +161,7 @@ const VendorFinances = () => {
             </span>
             <TrendingUp className="w-5 h-5 text-secondary-foreground" />
           </div>
-          <p className="text-3xl font-heading">{brand?.commission_rate || 5}%</p>
+          <p className="text-3xl font-heading">{resolveCommissionRate(brand?.commission_rate)}%</p>
           <p className="text-xs text-muted-foreground mt-2">
             {brand?.subscription_tier === "premium"
               ? "Premium rate applied!"

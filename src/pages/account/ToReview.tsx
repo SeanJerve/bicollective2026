@@ -90,17 +90,30 @@ const ToReview = () => {
       // Get first product id from items
       const firstItem = vendorOrder.items?.[0];
 
-      const { error } = await supabase.from("reviews").insert({
-        user_id: user.id,
-        product_id: firstItem?.product_id || null,
-        brand_id: vendorOrder.brand_id,
-        vendor_order_id: vendorOrder.id,
-        rating,
-        comment: comment.trim() || null,
-        media_urls: mediaUrls.length > 0 ? mediaUrls : [],
-      } as any);
+      const { data: newReview, error } = await (supabase
+        .from("reviews")
+        .insert({
+          user_id: user.id,
+          product_id: firstItem?.product_id || null,
+          brand_id: vendorOrder.brand_id,
+          vendor_order_id: vendorOrder.id,
+          rating,
+          comment: comment.trim() || null,
+          is_visible: true,
+        })
+        .select("id")
+        .single() as any);
 
       if (error) throw error;
+
+      if (mediaUrls.length > 0 && newReview) {
+        const mediaInserts = mediaUrls.map((url) => ({
+          review_id: newReview.id,
+          media_url: url,
+        }));
+        const { error: mError } = await supabase.from("review_media").insert(mediaInserts);
+        if (mError) throw mError;
+      }
 
       toast({ title: "Review submitted!", description: "Thank you for your feedback!" });
       setActiveReview(null);

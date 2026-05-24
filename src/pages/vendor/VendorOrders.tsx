@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNotifications } from "@/hooks/useNotifications";
 
 // Helper to render payment proof with signed URL
 const VendorPaymentProofImage = ({
@@ -75,7 +76,7 @@ const VendorPaymentProofImage = ({
 
       {/* Modal View */}
       {viewingImage && (
-        <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm p-4 md:p-12 flex flex-col animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm p-4 md:p-12 flex flex-col animate-in fade-in zoom-in duration-200 text-foreground">
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-heading text-lg md:text-xl uppercase">Proof Preview</h3>
             <button
@@ -136,7 +137,12 @@ const VendorOrders = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { dismiss } = useNotifications();
   const [filter, setFilter] = useState<FilterValue>("all");
+
+  useEffect(() => {
+    dismiss("pendingOrders");
+  }, [dismiss]);
   const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
   const [updatingTracking, setUpdatingTracking] = useState<string | null>(null);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
@@ -299,7 +305,7 @@ const VendorOrders = () => {
     });
   }, [orders, parentOrders, orderPayments, paymentVerifications, vendorOrderItems]);
 
-  const loading = brandLoading || ordersLoading || addressesLoading;
+  const loading = brandLoading || ordersLoading || (addressIds.length > 0 && addressesLoading);
 
   const updateOrderStatus = async (orderId: string, status: string, timestampField?: string) => {
     try {

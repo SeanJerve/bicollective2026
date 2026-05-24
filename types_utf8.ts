@@ -110,6 +110,11 @@ export type Database = {
           updated_at: string
           store_sale_percent: number | null
           store_sale_ends_at: string | null
+          commission_rate: number | null
+          platform_debt: number | null
+          subscription_tier: string | null
+          subscription_expires_at: string | null
+          is_hidden: boolean | null
         }
         Insert: {
           banner_url?: string | null
@@ -128,6 +133,11 @@ export type Database = {
           updated_at?: string
           store_sale_percent?: number | null
           store_sale_ends_at?: string | null
+          commission_rate?: number | null
+          platform_debt?: number | null
+          subscription_tier?: string | null
+          subscription_expires_at?: string | null
+          is_hidden?: boolean | null
         }
         Update: {
           banner_url?: string | null
@@ -146,6 +156,11 @@ export type Database = {
           updated_at?: string
           store_sale_percent?: number | null
           store_sale_ends_at?: string | null
+          commission_rate?: number | null
+          platform_debt?: number | null
+          subscription_tier?: string | null
+          subscription_expires_at?: string | null
+          is_hidden?: boolean | null
         }
         Relationships: []
       }
@@ -500,8 +515,6 @@ export type Database = {
           },
         ]
       }
-        Relationships: []
-      }
       payments: {
         Row: {
           amount: number
@@ -705,6 +718,7 @@ export type Database = {
           listing_type: string
           release_date: string | null
           preorder_discount_percent: number | null
+          drop_id: string | null
         }
         Insert: {
           brand_id: string
@@ -724,6 +738,7 @@ export type Database = {
           listing_type?: string
           release_date?: string | null
           preorder_discount_percent?: number | null
+          drop_id?: string | null
         }
         Update: {
           brand_id?: string
@@ -743,6 +758,7 @@ export type Database = {
           listing_type?: string
           release_date?: string | null
           preorder_discount_percent?: number | null
+          drop_id?: string | null
         }
         Relationships: [
           {
@@ -1255,6 +1271,10 @@ export type Database = {
           tracking_number: string | null
           updated_at: string
           voucher_id: string | null
+          platform_commission: number | null
+          platform_shipping_margin: number | null
+          total_platform_fee: number | null
+          cancelled_at: string | null
         }
         Insert: {
           auto_delivery_eligible?: boolean | null
@@ -1279,6 +1299,10 @@ export type Database = {
           tracking_number?: string | null
           updated_at?: string
           voucher_id?: string | null
+          platform_commission?: number | null
+          platform_shipping_margin?: number | null
+          total_platform_fee?: number | null
+          cancelled_at?: string | null
         }
         Update: {
           auto_delivery_eligible?: boolean | null
@@ -1303,6 +1327,10 @@ export type Database = {
           tracking_number?: string | null
           updated_at?: string
           voucher_id?: string | null
+          platform_commission?: number | null
+          platform_shipping_margin?: number | null
+          total_platform_fee?: number | null
+          cancelled_at?: string | null
         }
         Relationships: [
           {
@@ -1586,7 +1614,7 @@ export type Database = {
       [_ in never]: never
     }
   }
-}
+};
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
@@ -1762,3 +1790,4 @@ export const Constants = {
     },
   },
 } as const
+

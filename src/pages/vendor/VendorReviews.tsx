@@ -6,6 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useEffect } from "react";
 
 const REPORT_REASONS = [
   "Inappropriate or offensive content",
@@ -20,6 +22,11 @@ const VendorReviews = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { dismiss } = useNotifications();
+
+  useEffect(() => {
+    dismiss("newReviews");
+  }, [dismiss]);
 
   // Report modal state
   const [reportingReview, setReportingReview] = useState<any | null>(null);
@@ -27,6 +34,7 @@ const VendorReviews = () => {
   const [customReason, setCustomReason] = useState("");
   const [reportLoading, setReportLoading] = useState(false);
   const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
+  const [selectedMediaUrl, setSelectedMediaUrl] = useState<string | null>(null);
 
   const { data: brand, isLoading: brandLoading } = useQuery({
     queryKey: ["vendor-brand", user?.id],
@@ -50,7 +58,8 @@ const VendorReviews = () => {
         .select(
           `
           *,
-          product:products(name, slug)
+          product:products(name, slug),
+          review_media(media_url)
         `
         )
         .eq("brand_id", brand!.id)
@@ -69,13 +78,17 @@ const VendorReviews = () => {
           .in("user_id", userIds);
 
         const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) || []);
-        return data.map((r) => ({
+        return data.map((r: any) => ({
           ...r,
           reviewer: profileMap.get(r.user_id) || { full_name: "Anonymous", avatar_url: null },
+          media_urls: r.review_media ? r.review_media.map((m: any) => m.media_url) : [],
         }));
       }
 
-      return data;
+      return data.map((r: any) => ({
+        ...r,
+        media_urls: r.review_media ? r.review_media.map((m: any) => m.media_url) : [],
+      }));
     },
     enabled: !!brand,
   });
@@ -282,6 +295,33 @@ const VendorReviews = () => {
               </div>
 
               {review.comment && <p className="text-sm text-muted-foreground">{review.comment}</p>}
+              {review.media_urls && review.media_urls.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {review.media_urls.map((url: string, index: number) => {
+                    const isVideo = url.match(/\.(mp4|webm|ogg|mov)$/i) || url.includes("/video");
+                    return (
+                      <div
+                        key={index}
+                        onClick={() => setSelectedMediaUrl(url)}
+                        className="w-16 h-16 border-2 border-foreground bg-secondary cursor-pointer hover:opacity-80 transition-all overflow-hidden flex items-center justify-center"
+                      >
+                        {isVideo ? (
+                          <video src={url} className="w-full h-full object-cover" muted />
+                        ) : (
+                          <img
+                            src={url}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = "/placeholder.svg";
+                            }}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -297,7 +337,7 @@ const VendorReviews = () => {
 
       {/* Report Modal */}
       {reportingReview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="card-brutal p-6 md:p-8 w-full max-w-md">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -383,6 +423,36 @@ const VendorReviews = () => {
             <p className="text-xs text-muted-foreground mt-3 text-center">
               Only admins can hide or delete reported reviews.
             </p>
+          </div>
+        </div>
+      )}
+      {selectedMediaUrl && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedMediaUrl(null)}
+        >
+          <div
+            className="relative bg-background border-4 border-foreground p-2 max-w-3xl max-h-[80vh] flex items-center justify-center shadow-brutal animate-in fade-in duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setSelectedMediaUrl(null)}
+              className="absolute -top-3 -right-3 w-8 h-8 bg-background border-2 border-foreground rounded-full flex items-center justify-center font-heading hover:bg-secondary transition-colors"
+            >
+              ✕
+            </button>
+            {selectedMediaUrl.match(/\.(mp4|webm|ogg|mov)$/i) || selectedMediaUrl.includes("/video") ? (
+              <video src={selectedMediaUrl} className="max-w-full max-h-[75vh]" controls autoPlay />
+            ) : (
+              <img
+                src={selectedMediaUrl}
+                alt=""
+                className="max-w-full max-h-[75vh] object-contain"
+                onError={(e) => {
+                  e.currentTarget.src = "/placeholder.svg";
+                }}
+              />
+            )}
           </div>
         </div>
       )}

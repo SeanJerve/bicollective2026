@@ -233,10 +233,13 @@ const OrderDetail = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("order_items")
-        .select("*")
+        .select("*, variant:product_variants(product_id)")
         .eq("vendor_order_id", orderId!);
       if (error) throw error;
-      return data || [];
+      return (data || []).map((item: any) => ({
+        ...item,
+        product_id: item.product_id || item.variant?.product_id || null,
+      }));
     },
     enabled: !!orderId,
   });
@@ -263,6 +266,7 @@ const OrderDetail = () => {
     if (!vendorOrder || !order) return null;
     return {
       ...order,
+      discount: (vendorOrder as any).discount || null,
       payments,
       vendor_orders: [
         {
@@ -270,7 +274,7 @@ const OrderDetail = () => {
           order_items: orderItems,
         }
       ],
-    };
+    } as any;
   }, [vendorOrder, order, payments, orderItems]);
 
   // Auto-confirm logic: if order is "shipped" or "for_delivery" and > 3 days have passed, auto-confirm to delivered
@@ -533,58 +537,29 @@ const OrderDetail = () => {
               <div className="mt-6 pt-4 border-t border-border-subtle">
                 <h4 className="font-heading text-sm uppercase mb-4">Tracking History</h4>
                 <div className="relative border-l-2 border-border-subtle ml-2 space-y-4 pb-2">
-                  {vo.delivered_at && (
-                    <div className="relative pl-6">
-                      <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-success border-2 border-background shadow-brutal-xs" />
-                      <p className="text-sm font-bold">Delivered</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {new Date(vo.delivered_at).toLocaleString()}
-                      </p>
-                    </div>
-                  )}
-                  {vo.for_delivery_at && (
-                    <div className="relative pl-6">
-                      <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-primary border-2 border-background shadow-brutal-xs" />
-                      <p className="text-sm font-bold">Out for Delivery</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {new Date(vo.for_delivery_at).toLocaleString()}
-                      </p>
-                    </div>
-                  )}
-                  {vo.handed_to_courier_at && (
-                    <div className="relative pl-6">
-                      <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-info border-2 border-background shadow-brutal-xs" />
-                      <p className="text-sm font-bold">Handed to Courier</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {new Date(vo.handed_to_courier_at).toLocaleString()}
-                      </p>
-                    </div>
-                  )}
-                  {vo.shipped_at && (
-                    <div className="relative pl-6">
-                      <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-info border-2 border-background shadow-brutal-xs" />
-                      <p className="text-sm font-bold">Shipped</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {new Date(vo.shipped_at).toLocaleString()}
-                      </p>
-                    </div>
-                  )}
-                  {vo.confirmed_at && (
-                    <div className="relative pl-6">
-                      <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-secondary border-2 border-foreground shadow-brutal-xs" />
-                      <p className="text-sm font-bold">Order Confirmed</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {new Date(vo.confirmed_at).toLocaleString()}
-                      </p>
-                    </div>
-                  )}
-                  <div className="relative pl-6">
-                    <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-secondary border-2 border-foreground shadow-brutal-xs" />
-                    <p className="text-sm font-bold">Order Placed</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {new Date(vo.created_at).toLocaleString()}
-                    </p>
-                  </div>
+                  {(() => {
+                    const trackingEvents = [
+                      { label: "Order Placed", date: vo.created_at, color: "bg-secondary border-2 border-foreground" },
+                      vo.confirmed_at && { label: "Order Confirmed", date: vo.confirmed_at, color: "bg-secondary border-2 border-foreground" },
+                      vo.shipped_at && { label: "Shipped", date: vo.shipped_at, color: "bg-info border-2 border-background" },
+                      vo.handed_to_courier_at && { label: "Handed to Courier", date: vo.handed_to_courier_at, color: "bg-info border-2 border-background" },
+                      vo.for_delivery_at && { label: "Out for Delivery", date: vo.for_delivery_at, color: "bg-primary border-2 border-background" },
+                      vo.delivered_at && { label: "Delivered", date: vo.delivered_at, color: "bg-success border-2 border-background" }
+                    ].filter(Boolean) as { label: string; date: string; color: string }[];
+
+                    // Sort chronologically (oldest to newest)
+                    trackingEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+                    return trackingEvents.map((evt, idx) => (
+                      <div key={idx} className="relative pl-6">
+                        <div className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full ${evt.color} shadow-brutal-xs`} />
+                        <p className="text-sm font-bold">{evt.label}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {new Date(evt.date).toLocaleString()}
+                        </p>
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
 

@@ -6,12 +6,14 @@ import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import BrutalistConfirmModal from "@/components/ui/BrutalistConfirmModal";
 
 const Cart = () => {
   const { items, loading, updateQuantity, removeItem } = useCart();
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Redirect admin users who try to access cart
   useEffect(() => {
@@ -294,7 +296,7 @@ const Cart = () => {
                                   </button>
                                 </div>
                                 <button
-                                  onClick={() => removeItem(item.id)}
+                                  onClick={() => setConfirmDeleteId(item.id)}
                                   className="text-muted-foreground hover:text-destructive"
                                 >
                                   <Trash2 className="w-5 h-5" />
@@ -359,6 +361,22 @@ const Cart = () => {
           </div>
         </div>
       </section>
+
+      <BrutalistConfirmModal
+        isOpen={confirmDeleteId !== null}
+        title="Remove Item?"
+        message="Are you sure you want to remove this item from your cart?"
+        confirmText="Remove"
+        cancelText="Cancel"
+        isDestructive={true}
+        onConfirm={() => {
+          if (confirmDeleteId) {
+            removeItem(confirmDeleteId);
+            setConfirmDeleteId(null);
+          }
+        }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </PageLayout>
   );
 };

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveCommissionRate } from "@/lib/platformFees";
 
 export interface ProductVariant {
   id: string;
@@ -113,7 +114,7 @@ export const useProducts = () => {
             preorderDiscountPercent: p.preorder_discount_percent || undefined,
             storeSalePercent: p.brand?.store_sale_percent || undefined,
             storeSaleEndsAt: p.brand?.store_sale_ends_at || undefined,
-            brandCommissionRate: p.brand?.commission_rate ? Number(p.brand.commission_rate) : 5,
+            brandCommissionRate: resolveCommissionRate(p.brand?.commission_rate),
             isBoosted: (p.ad_boosts || []).some(
               (b: any) =>
                 b.status === "active" &&
@@ -189,9 +190,7 @@ export const useProduct = (slug: string) => {
         preorderDiscountPercent: product.preorder_discount_percent || undefined,
         storeSalePercent: product.brand?.store_sale_percent || undefined,
         storeSaleEndsAt: product.brand?.store_sale_ends_at || undefined,
-        brandCommissionRate: product.brand?.commission_rate
-          ? Number(product.brand.commission_rate)
-          : 5,
+        brandCommissionRate: resolveCommissionRate(product.brand?.commission_rate),
         isBoosted: (product.ad_boosts || []).some(
           (b: any) =>
             b.status === "active" &&
@@ -357,7 +356,7 @@ export const useProductsByBrand = (brandSlug: string) => {
             listingType: p.listing_type || "regular",
             releaseDate: p.release_date || undefined,
             preorderDiscountPercent: p.preorder_discount_percent || undefined,
-            brandCommissionRate: p.brand?.commission_rate ? Number(p.brand.commission_rate) : 5,
+            brandCommissionRate: resolveCommissionRate(p.brand?.commission_rate),
             isBoosted: (p.ad_boosts || []).some(
               (b: any) =>
                 b.status === "active" &&
@@ -458,7 +457,7 @@ export const useProductsByCategory = (categorySlug: string) => {
             listingType: p.listing_type || "regular",
             releaseDate: p.release_date || undefined,
             preorderDiscountPercent: p.preorder_discount_percent || undefined,
-            brandCommissionRate: p.brand?.commission_rate ? Number(p.brand.commission_rate) : 5,
+            brandCommissionRate: resolveCommissionRate(p.brand?.commission_rate),
             isBoosted: (p.ad_boosts || []).some(
               (b: any) =>
                 b.status === "active" &&

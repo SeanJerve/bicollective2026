@@ -51,36 +51,42 @@ const AdminVouchers = () => {
   const { data: vouchers, isLoading } = useQuery({
     queryKey: ["admin-vouchers"],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("user_discount_claims") as any)
+      const { data, error } = await supabase.from("user_discount_claims")
         .select(
           `
           *,
-          discounts:discounts(*),
-          platform_promo:platform_promos(*)
+          discounts:discounts(
+            *,
+            platform_promos(*)
+          )
         `
         )
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
-      return (data || []).map((v: any) => ({
-        id: v.id,
-        discount_id: v.discount_id,
-        user_id: v.user_id,
-        status: v.status,
-        created_at: v.created_at,
-        name: v.discounts?.name,
-        description: v.discounts?.description,
-        type:
-          v.discounts?.discount_type === "percentage"
-            ? "percentage_discount"
-            : v.discounts?.discount_type === "fixed"
-              ? "fixed_discount"
-              : "free_shipping",
-        discount_value: v.discounts?.discount_value,
-        expires_at: v.discounts?.ends_at,
-        code: v.platform_promo?.code || "CLAIMED",
-        source: "admin_grant",
-      }));
+      return (data || []).map((v: any) => {
+        const d = v.discounts;
+        const pp = Array.isArray(d?.platform_promos) ? d.platform_promos[0] : d?.platform_promos;
+        return {
+          id: v.id,
+          discount_id: v.discount_id,
+          user_id: v.user_id,
+          status: v.status,
+          created_at: v.created_at,
+          name: d?.name,
+          description: d?.description,
+          type:
+            d?.discount_type === "percentage"
+              ? "percentage_discount"
+              : d?.discount_type === "fixed"
+                ? "fixed_discount"
+                : "free_shipping",
+          discount_value: d?.discount_value,
+          expires_at: d?.ends_at,
+          code: pp?.code || v.code || "CLAIMED",
+          source: "admin_grant",
+        };
+      });
     },
   });
 

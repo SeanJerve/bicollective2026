@@ -202,7 +202,7 @@ const Wishlist = () => {
       {/* Sub-modal popup for clicking an individual product */}
       {activeProduct && (
         <div
-          className="fixed inset-0 bg-background/95 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-fade-in text-foreground"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-fade-in text-foreground"
           onClick={() => setActiveProduct(null)}
         >
           <div

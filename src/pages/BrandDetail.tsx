@@ -467,7 +467,7 @@ const DropProductsModal = ({
 
   return (
     <div
-      className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
@@ -561,7 +561,7 @@ const DropProductsModal = ({
       {/* Sub-modal popup for clicking an individual product */}
       {activeTeaser && (
         <div
-          className="fixed inset-0 bg-background/95 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-fade-in text-foreground"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-fade-in text-foreground"
           onClick={() => setActiveTeaser(null)}
         >
           <div

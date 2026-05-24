@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -110,6 +110,11 @@ export type Database = {
           updated_at: string
           store_sale_percent: number | null
           store_sale_ends_at: string | null
+          commission_rate: number | null
+          platform_debt: number | null
+          subscription_tier: string | null
+          subscription_expires_at: string | null
+          is_hidden: boolean | null
         }
         Insert: {
           banner_url?: string | null
@@ -128,6 +133,11 @@ export type Database = {
           updated_at?: string
           store_sale_percent?: number | null
           store_sale_ends_at?: string | null
+          commission_rate?: number | null
+          platform_debt?: number | null
+          subscription_tier?: string | null
+          subscription_expires_at?: string | null
+          is_hidden?: boolean | null
         }
         Update: {
           banner_url?: string | null
@@ -146,6 +156,11 @@ export type Database = {
           updated_at?: string
           store_sale_percent?: number | null
           store_sale_ends_at?: string | null
+          commission_rate?: number | null
+          platform_debt?: number | null
+          subscription_tier?: string | null
+          subscription_expires_at?: string | null
+          is_hidden?: boolean | null
         }
         Relationships: []
       }
@@ -452,56 +467,6 @@ export type Database = {
           },
         ]
       }
-      order_items: {
-        Row: {
-          created_at: string
-          id: string
-          product_id: string | null
-          product_name: string
-          product_price: number
-          quantity: number
-          size: string | null
-          vendor_order_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          product_id?: string | null
-          product_name: string
-          product_price: number
-          quantity: number
-          size?: string | null
-          vendor_order_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          product_id?: string | null
-          product_name?: string
-          product_price?: number
-          quantity?: number
-          size?: string | null
-          vendor_order_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "order_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_items_vendor_order_id_fkey"
-            columns: ["vendor_order_id"]
-            isOneToOne: false
-            referencedRelation: "vendor_orders"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-        Relationships: []
-      }
       payments: {
         Row: {
           amount: number
@@ -705,6 +670,7 @@ export type Database = {
           listing_type: string
           release_date: string | null
           preorder_discount_percent: number | null
+          drop_id: string | null
         }
         Insert: {
           brand_id: string
@@ -724,6 +690,7 @@ export type Database = {
           listing_type?: string
           release_date?: string | null
           preorder_discount_percent?: number | null
+          drop_id?: string | null
         }
         Update: {
           brand_id?: string
@@ -743,6 +710,7 @@ export type Database = {
           listing_type?: string
           release_date?: string | null
           preorder_discount_percent?: number | null
+          drop_id?: string | null
         }
         Relationships: [
           {
@@ -1255,6 +1223,10 @@ export type Database = {
           tracking_number: string | null
           updated_at: string
           voucher_id: string | null
+          platform_commission: number | null
+          platform_shipping_margin: number | null
+          total_platform_fee: number | null
+          cancelled_at: string | null
         }
         Insert: {
           auto_delivery_eligible?: boolean | null
@@ -1279,6 +1251,10 @@ export type Database = {
           tracking_number?: string | null
           updated_at?: string
           voucher_id?: string | null
+          platform_commission?: number | null
+          platform_shipping_margin?: number | null
+          total_platform_fee?: number | null
+          cancelled_at?: string | null
         }
         Update: {
           auto_delivery_eligible?: boolean | null
@@ -1303,6 +1279,10 @@ export type Database = {
           tracking_number?: string | null
           updated_at?: string
           voucher_id?: string | null
+          platform_commission?: number | null
+          platform_shipping_margin?: number | null
+          total_platform_fee?: number | null
+          cancelled_at?: string | null
         }
         Relationships: [
           {
@@ -1456,6 +1436,197 @@ export type Database = {
           },
         ]
       }
+      platform_transactions: {
+        Row: {
+          id: string
+          brand_id: string
+          amount: number
+          type: string
+          status: string
+          description: string | null
+          created_at: string
+          resolved_at: string | null
+        }
+        Insert: {
+          id?: string
+          brand_id: string
+          amount: number
+          type: string
+          status?: string
+          description?: string | null
+          created_at?: string
+          resolved_at?: string | null
+        }
+        Update: {
+          id?: string
+          brand_id?: string
+          amount?: number
+          type?: string
+          status?: string
+          description?: string | null
+          created_at?: string
+          resolved_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_transactions_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_boosts: {
+        Row: {
+          id: string
+          brand_id: string
+          product_id: string | null
+          amount: number
+          status: string
+          start_date: string | null
+          end_date: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          brand_id: string
+          product_id?: string | null
+          amount: number
+          status?: string
+          start_date?: string | null
+          end_date?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          brand_id?: string
+          product_id?: string | null
+          amount?: number
+          status?: string
+          start_date?: string | null
+          end_date?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_boosts_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_messages: {
+        Row: {
+          id: string
+          sender_id: string
+          receiver_id: string
+          content: string
+          created_at: string
+          read_at: string | null
+          product_id: string | null
+          product_name: string | null
+          product_image: string | null
+        }
+        Insert: {
+          id?: string
+          sender_id: string
+          receiver_id: string
+          content: string
+          created_at?: string
+          read_at?: string | null
+          product_id?: string | null
+          product_name?: string | null
+          product_image?: string | null
+        }
+        Update: {
+          id?: string
+          sender_id?: string
+          receiver_id?: string
+          content?: string
+          created_at?: string
+          read_at?: string | null
+          product_id?: string | null
+          product_name?: string | null
+          product_image?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_messages_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_media: {
+        Row: {
+          id: string
+          review_id: string
+          media_url: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          review_id: string
+          media_url: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          review_id?: string
+          media_url?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_media_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promotion_targets: {
+        Row: {
+          id: string
+          promotion_id: string
+          target_type: string
+          target_id: string
+        }
+        Insert: {
+          id?: string
+          promotion_id: string
+          target_type: string
+          target_id: string
+        }
+        Update: {
+          id?: string
+          promotion_id?: string
+          target_type?: string
+          target_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_targets_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "platform_promos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wishlists: {
         Row: {
           created_at: string
@@ -1487,7 +1658,22 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      brand_aggregates: {
+        Row: {
+          brand_id: string
+          average_rating: number | null
+          review_count: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_aggregates_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: true
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       apply_free_shipping_discount: {
@@ -1540,6 +1726,10 @@ export type Database = {
         Returns: boolean
       }
       validate_stock: { Args: { items: Json }; Returns: Json }
+      check_active_orders: {
+        Args: { v_brand_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "vendor" | "customer"
@@ -1586,7 +1776,7 @@ export type Database = {
       [_ in never]: never
     }
   }
-}
+};
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import PageLoadingFallback from "@/components/layout/PageLoadingFallback";
 import {
   LayoutDashboard,
   Users,
@@ -154,7 +155,9 @@ const AdminLayout = () => {
       <main className="flex-1 bg-background overflow-auto pt-14 md:pt-0">
         <div className="p-4 md:p-8">
           <Breadcrumbs />
-          <Outlet />
+          <Suspense fallback={<PageLoadingFallback />}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
     </div>

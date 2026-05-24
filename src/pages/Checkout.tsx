@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { resolveCommissionRate } from "@/lib/platformFees";
 
 interface BuyNowItem {
   variant_id: string; // Added variant_id
@@ -554,7 +555,7 @@ const Checkout = () => {
 
         // Calculate Platform Fees
         const product = group.items[0]?.variant?.product;
-        const commissionRate = product?.brand?.commission_rate || 5;
+        const commissionRate = resolveCommissionRate(product?.brand?.commission_rate);
         const platformCommission = Math.round((group.subtotal * commissionRate) / 100);
         const shippingMargin = 20; // Fixed 20 pesos margin
         const totalPlatformFee = platformCommission + shippingMargin;
@@ -592,7 +593,7 @@ const Checkout = () => {
           const product = item.variant?.product;
           return {
             vendor_order_id: vendorOrder.id,
-            product_id: item.product_id,
+            product_id: product?.id || item.product_id || null,
             variant_id: item.variant_id,
             product_name: product?.name || "Unknown Product",
             product_price: Number(product?.price || 0),

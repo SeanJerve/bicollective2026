@@ -101,7 +101,7 @@ const LuckyPromoPopup = () => {
   if (!isVisible || !user) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="card-brutal p-6 md:p-8 max-w-sm w-full text-center relative overflow-hidden">
         <button
           onClick={() => setIsVisible(false)}

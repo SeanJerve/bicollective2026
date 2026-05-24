@@ -34,25 +34,33 @@ const SaleBanner = () => {
         .select(
           `
           *,
-          discounts:discounts(*)
+          discounts:discounts!inner(*)
         `
         )
+        .eq("deployment_target", "sale_banner")
         .eq("discounts.is_active", true)
         .lte("discounts.starts_at", now)
-        .gte("discounts.ends_at", now)
-        .order("discounts(discount_value)", { ascending: false })
-        .limit(1)
-        .maybeSingle() as any);
+        .gte("discounts.ends_at", now) as any);
 
       if (error) throw error;
-      if (!data) return null;
+      if (!data || data.length === 0) return null;
 
-      return {
-        ...data.discounts,
-        code: data.code,
-        id: data.id,
-        type: data.discounts.discount_type,
-      } as Promotion | null;
+      // Map and sort chronologically (newest first)
+      const mapped = data.map((p: any) => ({
+        ...p.discounts,
+        code: p.code,
+        id: p.id,
+        type: p.discounts.discount_type,
+        created_at: p.discounts.created_at,
+      }));
+
+      mapped.sort((a: any, b: any) => {
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateB - dateA;
+      });
+
+      return mapped[0] as Promotion | null;
     },
     refetchInterval: 60000, // Refresh every minute
   });

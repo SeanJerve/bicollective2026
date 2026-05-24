@@ -111,6 +111,8 @@ describe("Cart Component Tests (Vince)", () => {
 
     if (trashBtn) {
       fireEvent.click(trashBtn);
+      const confirmBtn = screen.getByRole("button", { name: /remove/i });
+      fireEvent.click(confirmBtn);
       expect(mockRemoveItem).toHaveBeenCalledWith("cart-item-1");
     }
   });

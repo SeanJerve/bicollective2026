@@ -143,7 +143,7 @@ const Vouchers = () => {
       if (cError) throw cError;
 
       return {
-        ...progress,
+        ...(progress as any || {}),
         unique_sellers_count: count || 0,
       };
     },

@@ -261,15 +261,17 @@ export const useNotifications = () => {
     };
   }, [user, isAdmin, isVendor, fetchCounts, debouncedFetchCounts]);
 
-  const dismiss = async (key: keyof NotificationCounts) => {
+  const dismiss = useCallback(async (key: keyof NotificationCounts) => {
     // Immediate UI feedback
     setCounts((prev) => ({ ...prev, [key]: 0 }));
 
     // Persist session-level dismissal to avoid flicker on re-fetches
-    const newDismissed = new Set(dismissedKeys);
-    newDismissed.add(key);
-    setDismissedKeys(newDismissed);
-    localStorage.setItem(DISMISSED_STORAGE_KEY, JSON.stringify(Array.from(newDismissed)));
+    setDismissedKeys((prevKeys) => {
+      const newDismissed = new Set(prevKeys);
+      newDismissed.add(key);
+      localStorage.setItem(DISMISSED_STORAGE_KEY, JSON.stringify(Array.from(newDismissed)));
+      return newDismissed;
+    });
 
     if (!user) return;
 
@@ -320,7 +322,7 @@ export const useNotifications = () => {
     } catch (e) {
       console.error("Failed to persist notification dismissal", e);
     }
-  };
+  }, [user, fetchCounts]);
 
   const totalAdmin =
     counts.pendingApplications + counts.pendingVerifications + counts.pendingReports;

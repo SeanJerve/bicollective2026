@@ -101,7 +101,7 @@ const ProductDetail = () => {
       try {
         const { data, error } = await supabase
           .from("reviews")
-          .select("*")
+          .select("*, review_media(media_url)")
           .eq("product_id", product.id)
           .eq("is_visible", true)
           .order("created_at", { ascending: false });
@@ -115,9 +115,10 @@ const ProductDetail = () => {
             .in("user_id", userIds);
 
           const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) || []);
-          const enriched = data.map((r) => ({
+          const enriched = data.map((r: any) => ({
             ...r,
             profile: profileMap.get(r.user_id) || null,
+            media_urls: r.review_media ? r.review_media.map((m: any) => m.media_url) : [],
           }));
 
           setReviews(enriched);
@@ -482,109 +483,110 @@ const ProductDetail = () => {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {/* Buy Now & Add to Cart — equal width row */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => {
-                        if (!selectedVariant) {
-                          toast({
-                            title: "Please select a size",
-                            description: "Choose a size before buying",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                        navigate("/checkout", {
-                          state: {
-                            buyNowItem: {
-                              variant_id: selectedVariant.id,
-                              quantity,
-                              product: {
-                                id: product.id,
-                                name: product.name,
-                                price: product.price,
-                                image_url: product.image,
-                                brand_id: product.brandId,
-                                size: selectedVariant.size,
-                                brand: {
-                                  id: product.brandId,
-                                  name: product.brandName,
-                                  slug: product.brandSlug,
-                                  location: product.brandLocation || "Albay",
-                                },
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Row 1, Col 1: Buy Now */}
+                  <button
+                    onClick={() => {
+                      if (!selectedVariant) {
+                        toast({
+                          title: "Please select a size",
+                          description: "Choose a size before buying",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      navigate("/checkout", {
+                        state: {
+                          buyNowItem: {
+                            variant_id: selectedVariant.id,
+                            quantity,
+                            product: {
+                              id: product.id,
+                              name: product.name,
+                              price: product.price,
+                              image_url: product.image,
+                              brand_id: product.brandId,
+                              size: selectedVariant.size,
+                              brand: {
+                                id: product.brandId,
+                                name: product.brandName,
+                                slug: product.brandSlug,
+                                location: product.brandLocation || "Albay",
                               },
                             },
                           },
-                        });
-                      }}
-                      className="btn-brutal flex items-center justify-center gap-2 text-sm md:text-base py-3"
-                    >
-                      <Zap className="w-4 h-4" />
-                      {product.listingType === "preorder" ? "Pre-order" : "Buy Now"}
-                    </button>
+                        },
+                      });
+                    }}
+                    className="btn-brutal w-full flex items-center justify-center gap-2 text-sm md:text-base py-3"
+                  >
+                    <Zap className="w-4 h-4" />
+                    {product.listingType === "preorder" ? "Pre-order" : "Buy Now"}
+                  </button>
 
+                  {/* Row 1, Col 2: Add to Cart */}
+                  <button
+                    onClick={() => {
+                      if (!selectedVariant) {
+                        toast({
+                          title: "Please select a size",
+                          description: "Choose a size before adding to cart",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      addToCart(selectedVariant.id, quantity);
+                    }}
+                    className="btn-brutal-secondary w-full flex items-center justify-center gap-2 text-sm md:text-base py-3"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                    Add to Cart
+                  </button>
+
+                  {/* Row 2, Col 1: Message Seller (under Buy Now) */}
+                  {!isAdmin && !(isVendor && vendorBrandId === product.brandId) ? (
                     <button
                       onClick={() => {
-                        if (!selectedVariant) {
+                        if (!user) {
                           toast({
-                            title: "Please select a size",
-                            description: "Choose a size before adding to cart",
+                            title: "Login Required",
+                            description: "Please log in to message this seller.",
                             variant: "destructive",
                           });
+                          navigate("/auth");
                           return;
                         }
-                        addToCart(selectedVariant.id, quantity);
+                        navigate(
+                          `/account/messages?vendorOrderId=dm-${brandOwnerId}&otherUserId=${brandOwnerId}&otherUserName=${encodeURIComponent(
+                            product.brandName
+                          )}&productId=${product.id}&productName=${encodeURIComponent(
+                            product.name
+                          )}&productImage=${encodeURIComponent(product.image || "")}&role=customer`
+                        );
                       }}
-                      className="btn-brutal-secondary flex items-center justify-center gap-2 text-sm md:text-base py-3"
+                      className="w-full flex items-center justify-center gap-2 py-3 border-2 border-foreground/40 text-sm md:text-base font-heading uppercase tracking-wide transition-all duration-100 ease-out hover:border-foreground hover:bg-secondary text-muted-foreground hover:text-foreground shadow-[4px_4px_0_0_rgba(0,0,0,0.15)] hover:-translate-y-0.5 hover:-translate-x-0.5 active:translate-y-0.5 active:translate-x-0.5 active:shadow-none"
                     >
-                      <ShoppingBag className="w-4 h-4" />
-                      Add to Cart
+                      <MessageSquare className="w-4 h-4" />
+                      Message Seller
                     </button>
-                  </div>
+                  ) : (
+                    <div />
+                  )}
 
-                  {/* Add to Wishlist — full width below */}
+                  {/* Row 2, Col 2: Add to Wishlist (under Add to Cart) */}
                   <button
                     onClick={toggleWishlist}
                     disabled={wishlistLoading}
-                    className={`w-full flex items-center justify-center gap-2 py-3 border-2 font-heading text-sm uppercase tracking-wide transition-all ${
+                    className={`w-full flex items-center justify-center gap-2 py-3 border-2 font-heading text-sm md:text-base uppercase tracking-wide transition-all duration-100 ease-out shadow-[4px_4px_0_0_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 active:translate-y-0.5 active:translate-x-0.5 active:shadow-none ${
                       isWishlisted
                         ? "border-foreground bg-foreground text-background"
-                        : "border-foreground hover:bg-secondary"
+                        : "border-foreground bg-background text-foreground hover:bg-secondary"
                     }`}
                   >
                     <Heart className={`w-4 h-4 ${isWishlisted ? "fill-background" : ""}`} />
                     {isWishlisted ? "In Wishlist" : "Add to Wishlist"}
                   </button>
                 </div>
-              )}
-
-              {/* Message Seller */}
-              {!isAdmin && !(isVendor && vendorBrandId === product.brandId) && (
-                <button
-                  onClick={() => {
-                    if (!user) {
-                      toast({
-                        title: "Login Required",
-                        description: "Please log in to message this seller.",
-                        variant: "destructive",
-                      });
-                      navigate("/auth");
-                      return;
-                    }
-                    navigate(
-                      `/account/messages?vendorOrderId=dm-${brandOwnerId}&otherUserId=${brandOwnerId}&otherUserName=${encodeURIComponent(
-                        product.brandName
-                      )}&productId=${product.id}&productName=${encodeURIComponent(
-                        product.name
-                      )}&productImage=${encodeURIComponent(product.image || "")}&role=customer`
-                    );
-                  }}
-                  className="mt-2 w-full flex items-center justify-center gap-2 py-3 border-2 border-foreground/40 text-sm font-heading uppercase tracking-wide hover:border-foreground hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  Message Seller
-                </button>
               )}
 
               {/* Trust Badges */}
@@ -720,7 +722,7 @@ const ProductDetail = () => {
       {/* Media Lightbox Modal */}
       {selectedMediaUrl && (
         <div
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setSelectedMediaUrl(null)}
         >
           <div

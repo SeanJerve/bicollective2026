@@ -87,7 +87,7 @@ const VendorPremium = () => {
   };
 
   const benefits = [
-    { icon: TrendingUp, label: "3% Commission", desc: "Lower platform fees from 5% to 3%." },
+    { icon: TrendingUp, label: "5% Commission", desc: "Lower platform fees from 10% to 5%." },
     {
       icon: Award,
       label: "Premium Badge",

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
+import PageLoadingFallback from "@/components/layout/PageLoadingFallback";
 import {
   LayoutDashboard,
   Package,
@@ -15,7 +16,6 @@ import {
   ChevronLeft,
   DollarSign,
   Zap,
-  Award,
   Calendar,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -38,8 +38,7 @@ const VendorLayout = () => {
     { href: "/vendor/reviews", label: "Reviews", icon: Star, badge: counts.newReviews },
     { href: "/vendor/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/vendor/finances", label: "Finances", icon: DollarSign },
-    { href: "/vendor/marketing", label: "Marketing", icon: Zap },
-    { href: "/vendor/premium", label: "Premium Plan", icon: Award },
+    { href: "/vendor/marketing", label: "Marketing & Premium", icon: Zap },
   ];
 
   const isActive = (path: string, exact?: boolean) => {
@@ -142,7 +141,9 @@ const VendorLayout = () => {
       <main className="flex-1 bg-background overflow-auto pt-14 md:pt-0">
         <div className="p-4 md:p-8">
           <Breadcrumbs />
-          <Outlet />
+          <Suspense fallback={<PageLoadingFallback />}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
     </div>
