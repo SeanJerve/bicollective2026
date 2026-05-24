@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   RotateCcw,
   MessageSquare,
+  AlertTriangle,
 } from "lucide-react";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import PageLayout from "@/components/layout/PageLayout";
@@ -23,6 +24,7 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import ReviewForm from "@/components/account/ReviewForm";
 import PaymentProofUpload from "@/components/account/PaymentProofUpload";
+import DisputeForm from "@/components/orders/DisputeForm";
 import { formatStatusLabel } from "@/lib/formatStatus";
 
 const statusColors: Record<string, string> = {
@@ -105,9 +107,18 @@ const OrderDetail = () => {
   const [showConfirmId, setShowConfirmId] = useState<string | null>(null);
   const [showCancelConfirmId, setShowCancelConfirmId] = useState<string | null>(null);
   const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
+  const [disputingVendorOrderId, setDisputingVendorOrderId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const cancellableStatuses = ["pending_payment", "payment_uploaded", "confirmed"];
+  const disputableStatuses = [
+    "shipped",
+    "for_delivery",
+    "delivered",
+    "handed_to_courier",
+    "processing",
+    "disputed",
+  ];
 
   const handleCancelVendorOrder = async (vendorOrderId: string) => {
     setCancellingOrder(vendorOrderId);
@@ -307,6 +318,20 @@ const OrderDetail = () => {
       });
     }
   }, [enrichedOrder, orderId, queryClient]);
+
+  const { data: existingDispute } = useQuery({
+    queryKey: ["order-dispute", orderId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("disputes")
+        .select("id, status")
+        .eq("vendor_order_id", orderId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!orderId && !!user,
+  });
 
   const { data: existingReviews } = useQuery({
     queryKey: ["order-reviews", orderId],
@@ -631,6 +656,49 @@ const OrderDetail = () => {
                   Chat about Order
                 </Link>
               </div>
+
+              {/* Dispute */}
+              {disputableStatuses.includes(vo.status) && (
+                <div className="border-t border-border-subtle pt-4 mt-4">
+                  {existingDispute ? (
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <p className="text-xs text-muted-foreground">
+                        Dispute status:{" "}
+                        <span className="font-heading uppercase text-foreground">
+                          {formatStatusLabel(existingDispute.status || "pending")}
+                        </span>
+                      </p>
+                      <Link
+                        to="/account/disputes"
+                        className="text-xs font-heading uppercase underline hover:opacity-70"
+                      >
+                        View My Disputes
+                      </Link>
+                    </div>
+                  ) : disputingVendorOrderId === vo.id ? (
+                    <div className="p-4 bg-warning/10 border-2 border-foreground animate-fade-in">
+                      <DisputeForm
+                        vendorOrderId={vo.id}
+                        vendorId={vo.brand?.owner_id || ""}
+                        onSuccess={() => {
+                          setDisputingVendorOrderId(null);
+                          queryClient.invalidateQueries({ queryKey: ["order-dispute", orderId] });
+                          queryClient.invalidateQueries({ queryKey: ["customer-disputes"] });
+                        }}
+                        onCancel={() => setDisputingVendorOrderId(null)}
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setDisputingVendorOrderId(vo.id)}
+                      className="btn-brutal-secondary w-full flex items-center justify-center gap-2 text-warning border-warning hover:bg-warning hover:text-warning-foreground"
+                    >
+                      <AlertTriangle className="w-4 h-4" />
+                      Open Dispute
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Cancel button for cancellable orders */}
               {cancellableStatuses.includes(vo.status) && (

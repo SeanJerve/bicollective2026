@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveCommissionRate } from "@/lib/platformFees";
+import { compareBoostedProducts, hasActiveAdBoost } from "@/lib/adBoosts";
 
 export interface ProductVariant {
   id: string;
@@ -115,18 +116,13 @@ export const useProducts = () => {
             storeSalePercent: p.brand?.store_sale_percent || undefined,
             storeSaleEndsAt: p.brand?.store_sale_ends_at || undefined,
             brandCommissionRate: resolveCommissionRate(p.brand?.commission_rate),
-            isBoosted: (p.ad_boosts || []).some(
-              (b: any) =>
-                b.status === "active" &&
-                (!b.starts_at || new Date(b.starts_at) <= new Date()) &&
-                (!b.ends_at || new Date(b.ends_at) >= new Date())
-            ),
+            isBoosted: hasActiveAdBoost(p.ad_boosts),
             dropId: p.drop_id || null,
             dropLaunchDate: p.product_drops?.launch_date || null,
             isTeaser: p.product_drops?.launch_date ? new Date(p.product_drops.launch_date) > new Date() : (p.listing_type === "teaser"),
           };
         })
-        .sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));
+        .sort(compareBoostedProducts);
     },
   });
 };
@@ -191,12 +187,7 @@ export const useProduct = (slug: string) => {
         storeSalePercent: product.brand?.store_sale_percent || undefined,
         storeSaleEndsAt: product.brand?.store_sale_ends_at || undefined,
         brandCommissionRate: resolveCommissionRate(product.brand?.commission_rate),
-        isBoosted: (product.ad_boosts || []).some(
-          (b: any) =>
-            b.status === "active" &&
-            (!b.starts_at || new Date(b.starts_at) <= new Date()) &&
-            (!b.ends_at || new Date(b.ends_at) >= new Date())
-        ),
+        isBoosted: hasActiveAdBoost(product.ad_boosts),
         dropId: product.drop_id || null,
         dropLaunchDate: product.product_drops?.launch_date || null,
         isTeaser: product.product_drops?.launch_date ? new Date(product.product_drops.launch_date) > new Date() : (product.listing_type === "teaser"),
@@ -357,18 +348,13 @@ export const useProductsByBrand = (brandSlug: string) => {
             releaseDate: p.release_date || undefined,
             preorderDiscountPercent: p.preorder_discount_percent || undefined,
             brandCommissionRate: resolveCommissionRate(p.brand?.commission_rate),
-            isBoosted: (p.ad_boosts || []).some(
-              (b: any) =>
-                b.status === "active" &&
-                (!b.starts_at || new Date(b.starts_at) <= new Date()) &&
-                (!b.ends_at || new Date(b.ends_at) >= new Date())
-            ),
+            isBoosted: hasActiveAdBoost(p.ad_boosts),
             dropId: p.drop_id || null,
             dropLaunchDate: p.product_drops?.launch_date || null,
             isTeaser: p.product_drops?.launch_date ? new Date(p.product_drops.launch_date) > new Date() : (p.listing_type === "teaser"),
           };
         })
-        .sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));
+        .sort(compareBoostedProducts);
     },
     enabled: !!brandSlug,
   });
@@ -458,18 +444,13 @@ export const useProductsByCategory = (categorySlug: string) => {
             releaseDate: p.release_date || undefined,
             preorderDiscountPercent: p.preorder_discount_percent || undefined,
             brandCommissionRate: resolveCommissionRate(p.brand?.commission_rate),
-            isBoosted: (p.ad_boosts || []).some(
-              (b: any) =>
-                b.status === "active" &&
-                (!b.starts_at || new Date(b.starts_at) <= new Date()) &&
-                (!b.ends_at || new Date(b.ends_at) >= new Date())
-            ),
+            isBoosted: hasActiveAdBoost(p.ad_boosts),
             dropId: p.drop_id || null,
             dropLaunchDate: p.product_drops?.launch_date || null,
             isTeaser: p.product_drops?.launch_date ? new Date(p.product_drops.launch_date) > new Date() : (p.listing_type === "teaser"),
           };
         })
-        .sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0));
+        .sort(compareBoostedProducts);
     },
     enabled: !!categorySlug,
   });

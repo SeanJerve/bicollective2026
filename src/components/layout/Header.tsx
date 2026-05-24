@@ -15,6 +15,7 @@ import {
   Star,
   Store,
   MessageSquare,
+  AlertTriangle,
 } from "lucide-react";
 import NotificationCenter from "./NotificationCenter";
 import { useAuth } from "@/contexts/AuthContext";
@@ -83,6 +84,7 @@ const Header = ({ minimal = false }: HeaderProps) => {
     },
     { href: "/account/wishlist", label: "Wishlist", icon: Heart },
     { href: "/account/vouchers", label: "My Vouchers", icon: Ticket },
+    { href: "/account/disputes", label: "My Disputes", icon: AlertTriangle },
     { href: "/account/profile", label: "Profile Settings", icon: UserCog },
   ];
 

@@ -6,6 +6,7 @@ import ProductCard from "@/components/marketplace/ProductCard";
 import ProductCardSkeleton from "@/components/marketplace/ProductCardSkeleton";
 import { useProducts, useBrands, useCategories } from "@/hooks/useProducts";
 import usePageSEO from "@/hooks/usePageSEO";
+import { useAuth } from "@/contexts/AuthContext";
 
 const BICOL_LOCATIONS = [
   "All Locations",
@@ -29,6 +30,7 @@ const BICOL_LOCATIONS = [
 const INITIAL_SHOW_COUNT = 3;
 
 const Products = () => {
+  const { isVendor } = useAuth();
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get("search") || "";
   const locationParam = searchParams.get("location") || "";
@@ -93,6 +95,8 @@ const Products = () => {
   });
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
+    const boostOrder = (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0);
+    if (boostOrder !== 0) return boostOrder;
     switch (sortBy) {
       case "price-low":
         return a.price - b.price;
@@ -670,7 +674,11 @@ const Products = () => {
                 viewMode === "grid" ? (
                   <div className="product-grid">
                     {sortedProducts.map((product) => (
-                      <ProductCard key={product.id} {...product} />
+                      <ProductCard
+                        key={product.id}
+                        {...product}
+                        showSponsoredBadge={isVendor}
+                      />
                     ))}
                   </div>
                 ) : (

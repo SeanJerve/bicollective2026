@@ -27,6 +27,7 @@ const Index = () => {
 
   const featuredProducts = (products || [])
     .filter((p) => !p.isTeaser && p.listingType !== "teaser")
+    .sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0))
     .slice(0, 4);
   const featuredBrands = brands?.slice(0, 3) || [];
 
@@ -146,7 +147,9 @@ const Index = () => {
             {productsLoading ? (
               Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)
             ) : featuredProducts.length > 0 ? (
-              featuredProducts.map((product) => <ProductCard key={product.id} {...product} />)
+              featuredProducts.map((product) => (
+                <ProductCard key={product.id} {...product} showSponsoredBadge={isVendor} />
+              ))
             ) : (
               <div className="col-span-full text-center py-12">
                 <p className="text-muted-foreground">No products available yet.</p>

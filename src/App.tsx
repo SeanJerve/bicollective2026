@@ -56,6 +56,7 @@ const AdminLayout = lazy(() => import("./components/layout/AdminLayout"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminVendors = lazy(() => import("./pages/admin/AdminVendors"));
 const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
+const AdminDisputes = lazy(() => import("./pages/admin/AdminDisputes"));
 const AdminApplications = lazy(() => import("./pages/admin/AdminApplications"));
 const AdminVerifications = lazy(() => import("./pages/admin/AdminVerifications"));
 const AdminPromotions = lazy(() => import("./pages/admin/AdminPromotions"));
@@ -71,6 +72,7 @@ const Wishlist = lazy(() => import("./pages/account/Wishlist"));
 const AddAddress = lazy(() => import("./pages/account/AddAddress"));
 const ToReview = lazy(() => import("./pages/account/ToReview"));
 const Notifications = lazy(() => import("./pages/account/Notifications"));
+const Disputes = lazy(() => import("./pages/account/Disputes"));
 
 // Static pages
 const HelpCenter = lazy(() => import("./pages/static/HelpCenter"));
@@ -203,6 +205,7 @@ const App = () => (
                   <Route path="applications" element={<AdminApplications />} />
                   <Route path="verifications" element={<AdminVerifications />} />
                   <Route path="reports" element={<AdminReports />} />
+                  <Route path="disputes" element={<AdminDisputes />} />
                   <Route path="promotions" element={<AdminPromotions />} />
                   <Route path="analytics" element={<AdminAnalytics />} />
                   <Route path="finances" element={<AdminFinances />} />
@@ -245,6 +248,14 @@ const App = () => (
                   path="/account/to-review"
                   element={
                     <Navigate to="/account/orders?filter=to_review" replace />
+                  }
+                />
+                <Route
+                  path="/account/disputes"
+                  element={
+                    <ProtectedRoute>
+                      <Disputes />
+                    </ProtectedRoute>
                   }
                 />
 

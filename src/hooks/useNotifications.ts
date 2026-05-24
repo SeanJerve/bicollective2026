@@ -7,6 +7,7 @@ interface NotificationCounts {
   pendingApplications: number;
   pendingVerifications: number;
   pendingReports: number;
+  pendingDisputes: number;
   // Vendor counts
   pendingOrders: number;
   newReviews: number;
@@ -23,6 +24,7 @@ const EMPTY_COUNTS: NotificationCounts = {
   pendingApplications: 0,
   pendingVerifications: 0,
   pendingReports: 0,
+  pendingDisputes: 0,
   pendingOrders: 0,
   newReviews: 0,
   lowStockProducts: 0,
@@ -100,6 +102,9 @@ export const useNotifications = () => {
       ).length;
       newCounts.pendingReports = allUnreads.filter(
         (n) => n.type === "admin" && n.link?.includes("reports")
+      ).length;
+      newCounts.pendingDisputes = allUnreads.filter(
+        (n) => n.type === "admin" && n.link?.includes("disputes")
       ).length;
       newCounts.needsResubmission = allUnreads.filter((n) => n.type === "status").length;
       newCounts.lowStockProducts = allUnreads.filter((n) => n.type === "inventory").length;
@@ -307,6 +312,7 @@ export const useNotifications = () => {
         if (key === "pendingVerifications")
           query = query.eq("type", "admin").ilike("link", "%verifications%");
         if (key === "pendingReports") query = query.eq("type", "admin").ilike("link", "%reports%");
+        if (key === "pendingDisputes") query = query.eq("type", "admin").ilike("link", "%disputes%");
         if (key === "newReviews") query = query.eq("type", "review");
         if (key === "pendingOrders")
           query = query.filter("type", "eq", "order").or("link.ilike.%vendor%,link.ilike.%orders%");
@@ -325,7 +331,10 @@ export const useNotifications = () => {
   }, [user, fetchCounts]);
 
   const totalAdmin =
-    counts.pendingApplications + counts.pendingVerifications + counts.pendingReports;
+    counts.pendingApplications +
+    counts.pendingVerifications +
+    counts.pendingReports +
+    counts.pendingDisputes;
   const totalVendor =
     counts.pendingOrders +
     counts.lowStockProducts +

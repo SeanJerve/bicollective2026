@@ -23,6 +23,7 @@ interface ProductCardProps {
   storeSaleEndsAt?: string;
   variants?: { id: string; size: string; stock_quantity: number }[];
   isBoosted?: boolean;
+  showSponsoredBadge?: boolean;
   isTeaser?: boolean;
 }
 
@@ -44,6 +45,7 @@ const ProductCard = ({
   storeSaleEndsAt,
   variants,
   isBoosted = false,
+  showSponsoredBadge = false,
   isTeaser = false,
 }: ProductCardProps) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -108,7 +110,7 @@ const ProductCard = ({
                   {category}
                 </span>
               )}
-              {isBoosted && (
+              {showSponsoredBadge && isBoosted && (
                 <div className="absolute bottom-2 left-2 md:bottom-3 md:left-3 px-1.5 py-0.5 md:px-2 md:py-1 bg-background/80 border border-foreground text-[8px] md:text-[10px] font-heading uppercase tracking-tighter flex items-center gap-1 z-10 backdrop-blur-sm">
                   SPONSORED
                 </div>

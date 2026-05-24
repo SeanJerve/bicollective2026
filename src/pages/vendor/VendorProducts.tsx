@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import ProductForm from "@/components/vendor/ProductForm";
 import BrutalistConfirmModal from "@/components/ui/BrutalistConfirmModal";
+import VendorBoostBadge from "@/components/vendor/VendorBoostBadge";
 
 const VendorProducts = () => {
   const { user } = useAuth();
@@ -42,7 +43,7 @@ const VendorProducts = () => {
           supabase
             .from("products")
             .select(
-              `*, category:categories (name), product_variants(id, size, stock_quantity), product_images(image_url, sort_order)`
+              `*, category:categories (name), product_variants(id, size, stock_quantity), product_images(image_url, sort_order), ad_boosts(id, status, starts_at, ends_at)`
             )
             .eq("brand_id", brandData.id)
             .is("deleted_at", null)
@@ -76,7 +77,7 @@ const VendorProducts = () => {
     const { data } = await supabase
       .from("products")
       .select(
-        `*, category:categories (name), product_variants(id, size, stock_quantity), product_images(image_url, sort_order)`
+        `*, category:categories (name), product_variants(id, size, stock_quantity), product_images(image_url, sort_order), ad_boosts(id, status, starts_at, ends_at)`
       )
       .eq("brand_id", brand.id)
       .is("deleted_at", null)
@@ -255,7 +256,7 @@ const VendorProducts = () => {
             {products.map((product) => (
               <div key={product.id} className="card-brutal p-4">
                 <div className="flex gap-4">
-                  <div className="w-20 h-24 bg-muted flex-shrink-0 overflow-hidden">
+                  <div className="relative w-20 h-24 bg-muted flex-shrink-0 overflow-hidden border-2 border-foreground">
                     {product.image_url && (
                       <img
                         src={product.image_url}
@@ -266,6 +267,9 @@ const VendorProducts = () => {
                         }}
                       />
                     )}
+                    <div className="absolute bottom-0 left-0 right-0 p-0.5">
+                      <VendorBoostBadge adBoosts={product.ad_boosts} className="w-full text-center block" />
+                    </div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-sm truncate">{product.name}</h3>
@@ -337,7 +341,7 @@ const VendorProducts = () => {
                     <tr key={product.id}>
                       <td className="p-4">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-16 bg-muted flex-shrink-0 overflow-hidden">
+                          <div className="relative w-12 h-16 bg-muted flex-shrink-0 overflow-hidden border border-foreground">
                             {product.image_url && (
                               <img
                                 src={product.image_url}
@@ -348,6 +352,9 @@ const VendorProducts = () => {
                                 }}
                               />
                             )}
+                            <div className="absolute bottom-0 left-0 right-0">
+                              <VendorBoostBadge adBoosts={product.ad_boosts} className="text-[8px] w-full text-center" />
+                            </div>
                           </div>
                           <span className="font-medium">{product.name}</span>
                         </div>
@@ -364,15 +371,18 @@ const VendorProducts = () => {
                         )}
                       </td>
                       <td className="p-4">
-                        <span
-                          className={`px-2 py-1 text-xs uppercase ${
-                            product.is_active
-                              ? "bg-success text-success-foreground"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {product.is_active ? "Active" : "Hidden"}
-                        </span>
+                        <div className="flex flex-col gap-1 items-start">
+                          <span
+                            className={`px-2 py-1 text-xs uppercase ${
+                              product.is_active
+                                ? "bg-success text-success-foreground"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {product.is_active ? "Active" : "Hidden"}
+                          </span>
+                          <VendorBoostBadge adBoosts={product.ad_boosts} />
+                        </div>
                       </td>
                       <td className="p-4">
                         <div className="flex items-center justify-end gap-2">

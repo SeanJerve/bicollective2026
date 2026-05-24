@@ -93,16 +93,29 @@ const DisputeForm = ({ vendorOrderId, vendorId, onSuccess, onCancel }: DisputeFo
     setLoading(true);
 
     try {
-      const { error } = await supabase.from("disputes").insert({
-        vendor_order_id: vendorOrderId,
-        customer_id: user.id,
-        vendor_id: vendorId,
-        reason,
-        description: description || null,
-        evidence_urls: evidenceUrls.length > 0 ? evidenceUrls : null,
-      });
+      const { data: dispute, error } = await supabase
+        .from("disputes")
+        .insert({
+          vendor_order_id: vendorOrderId,
+          customer_id: user.id,
+          vendor_id: vendorId,
+          reason,
+          description: description || null,
+        })
+        .select("id")
+        .single();
 
       if (error) throw error;
+
+      if (evidenceUrls.length > 0 && dispute?.id) {
+        const { error: evidenceError } = await supabase.from("dispute_evidence").insert(
+          evidenceUrls.map((url) => ({
+            dispute_id: dispute.id,
+            evidence_url: url,
+          }))
+        );
+        if (evidenceError) throw evidenceError;
+      }
 
       toast({
         title: "Dispute submitted",

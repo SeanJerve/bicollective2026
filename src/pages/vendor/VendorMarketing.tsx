@@ -17,6 +17,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import DocumentUpload from "@/components/vendor/DocumentUpload";
+import VendorBoostBadge from "@/components/vendor/VendorBoostBadge";
 
 interface Product {
   id: string;
@@ -68,7 +69,9 @@ const VendorMarketing = () => {
     queryKey: ["vendor-products-marketing", brand?.id],
     queryFn: async () => {
       const { data, error } = await (
-        supabase.from("products").select("id, name, image_url, price") as any
+        supabase
+          .from("products")
+          .select("id, name, image_url, price, ad_boosts(id, status, starts_at, ends_at)") as any
       )
         .eq("brand_id", brand!.id)
         .eq("is_active", true);
@@ -285,9 +288,10 @@ const VendorMarketing = () => {
                           e.currentTarget.src = "/placeholder.svg";
                         }}
                       />
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="text-xs font-heading uppercase truncate">{p.name}</p>
                         <p className="text-[10px] text-muted-foreground">{formatPrice(p.price)}</p>
+                        <VendorBoostBadge adBoosts={(p as any).ad_boosts} className="mt-1" />
                       </div>
                     </button>
                   ))}
